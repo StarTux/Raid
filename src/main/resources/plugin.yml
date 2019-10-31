@@ -1,0 +1,22 @@
+main: com.cavetale.raid.RaidPlugin
+name: Raid
+version: 0.1
+api-version: 1.13
+description: Turn worlds into raids
+author: StarTux
+website: https://cavetale.com
+depend: []
+softdepend: []
+commands:
+  raid:
+    aliases: []
+    description: Raid Editor Command
+    permission: raid.raid
+    permission-message: You do not have permission!
+    usage: /<command>
+permissions:
+  raid.raid:
+    description: Use /raid
+    default: op
+    children:
+      raid.child: true
