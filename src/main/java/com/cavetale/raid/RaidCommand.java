@@ -33,7 +33,8 @@ final class RaidCommand implements CommandExecutor {
         BOSS,
         SET,
         SAVE,
-        RELOAD;
+        RELOAD,
+        DEBUG;
 
         final String key;
 
@@ -98,6 +99,7 @@ final class RaidCommand implements CommandExecutor {
         case SET: return setCommand(requirePlayer(sender), args);
         case SAVE: return saveCommand(requirePlayer(sender), args);
         case RELOAD: return reloadCommand(sender, args);
+        case DEBUG: return debugCommand(requirePlayer(sender), args);
         default:
             throw new IllegalArgumentException(cmd.key);
         }
@@ -407,6 +409,18 @@ final class RaidCommand implements CommandExecutor {
             plugin.raidInstance(world);
         }
         sender.sendMessage(y + "Raids reloaded.");
+        return true;
+    }
+
+    boolean debugCommand(@NonNull Player player, String[] args) throws Wrong {
+        Raid raid = requireRaid(player);
+        Instance inst = plugin.raidInstance(raid);
+        int newWave = Integer.parseInt(args[0]);
+        inst.clearWave();
+        inst.waveIndex = newWave;
+        inst.waveComplete = false;
+        inst.waveTicks = 0;
+        player.sendMessage("Wave " + newWave + " activated.");
         return true;
     }
 }
