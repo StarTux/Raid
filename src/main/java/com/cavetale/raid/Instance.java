@@ -161,6 +161,9 @@ final class Instance {
                     slot.mob = mob;
                 }
             }
+            if (slot.isPresent()) {
+                findTarget(slot.mob, players);
+            }
         }
         if (bossFight != null) {
             if (!bossFight.killed && !bossFight.isPresent()
@@ -169,6 +172,7 @@ final class Instance {
             }
             if (bossFight.isPresent()) {
                 bossFight.onTick(wave, players);
+                findTarget(bossFight.mob, players);
             }
         }
         // Complete condition
@@ -259,6 +263,24 @@ final class Instance {
             for (Player player : players) {
                 player.setCompassTarget(target);
             }
+        }
+    }
+
+    void findTarget(@NonNull Mob mob, @NonNull List<Player> players) {
+        if (mob.getTarget() instanceof Player) return;
+        Location eye = mob.getLocation();
+        double min = Double.MAX_VALUE;
+        Player target = null;
+        for (Player player : players) {
+            if (!mob.hasLineOfSight(player)) continue;
+            double dist = player.getLocation().distanceSquared(eye);
+            if (dist < min) {
+                min = dist;
+                target = player;
+            }
+        }
+        if (target != null) {
+            mob.setTarget(target);
         }
     }
 }
