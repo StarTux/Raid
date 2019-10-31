@@ -9,6 +9,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.player.PlayerItemDamageEvent;
 
 @RequiredArgsConstructor
 final class EventListener implements Listener {
@@ -31,6 +32,14 @@ final class EventListener implements Listener {
         if (inst != null
             && entity.getType() == EntityType.VEX
             && event.getSpawnReason() == CreatureSpawnEvent.SpawnReason.DEFAULT) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    void onPlayerItemDamage(PlayerItemDamageEvent event) {
+        Instance inst = plugin.raidInstance(event.getPlayer().getWorld());
+        if (inst != null) {
             event.setCancelled(true);
         }
     }
