@@ -7,7 +7,8 @@ final class Wave implements ShortInfo {
     Type type = Type.MOBS;
     Place place;
     int radius = 0;
-    final List<Spawn> spawns = new ArrayList<>();
+    List<Spawn> spawns = new ArrayList<>();
+    Boss boss;
 
     enum Type {
         MOBS,
@@ -20,6 +21,7 @@ final class Wave implements ShortInfo {
         return type
             + " place=" + ShortInfo.of(place)
             + " radius=" + radius
-            + " mobs=" + spawns.size();
+            + " mobs=" + spawns.size()
+            + " boss=" + ShortInfo.of(boss);
     }
 }

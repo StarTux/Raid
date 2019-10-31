@@ -29,6 +29,7 @@ final class RaidCommand implements CommandExecutor {
         PLACE,
         WAVE,
         MOB,
+        BOSS,
         SET,
         SAVE,
         RELOAD;
@@ -92,6 +93,7 @@ final class RaidCommand implements CommandExecutor {
         case PLACE: return placeCommand(requirePlayer(sender), args);
         case WAVE: return waveCommand(requirePlayer(sender), args);
         case MOB: return mobCommand(requirePlayer(sender), args);
+        case BOSS: return bossCommand(requirePlayer(sender), args);
         case SET: return setCommand(requirePlayer(sender), args);
         case SAVE: return saveCommand(requirePlayer(sender), args);
         case RELOAD: return reloadCommand(sender, args);
@@ -120,8 +122,8 @@ final class RaidCommand implements CommandExecutor {
             break;
         case WAVE:
             sender.sendMessage("/raid wave <index> - Select wave.");
-            sender.sendMessage("/raid wave add - Add wave.");
-            sender.sendMessage("/raid wave remove <index> - Remove wave.");
+            sender.sendMessage("/raid wave add [index] - Add wave.");
+            sender.sendMessage("/raid wave remove - Remove current wave.");
             sender.sendMessage("/raid wave list - List waves.");
             break;
         case MOB:
@@ -129,6 +131,9 @@ final class RaidCommand implements CommandExecutor {
             sender.sendMessage("/raid mob remove [index] - Remove mob.");
             sender.sendMessage("/raid mob list - List mobs.");
             break;
+        case BOSS:
+            sender.sendMessage("/raid boss - Clear wave boss.");
+            sender.sendMessage("/raid boss <type> - Set wave boss.");
         default:
             sender.sendMessage("/raid " + cmd.key);
             break;
@@ -243,12 +248,22 @@ final class RaidCommand implements CommandExecutor {
         if (cmd == null) return false;
         switch (cmd) {
         case ADD: {
+            if (args.length > 2) return false;
             Wave wave = new Wave();
             wave.place = Place.of(player.getLocation());
-            raid.waves.add(wave);
-            inst.editWave = raid.waves.size() - 1;
+            int index;
+            if (args.length >= 2) {
+                index = requireInt(args[1]);
+                if (index < 0 || index > raid.waves.size()) {
+                    throw new Wrong("Invalid index: " + index);
+                }
+            } else {
+                index = raid.waves.size();
+            }
+            inst.editWave = index;
+            raid.waves.add(index, wave);
             plugin.saveRaid(raid);
-            player.sendMessage(y + "Wave #" + inst.editWave + " created.");
+            player.sendMessage(y + "Wave #" + index + " created.");
             return true;
         } case REMOVE: {
             Wave wave = requireWave(player);
@@ -259,8 +274,8 @@ final class RaidCommand implements CommandExecutor {
             return true;
         } case LIST: {
             player.sendMessage("" + y + raid.waves.size() + " waves:");
-            int i = 0;
-            for (Wave wave : raid.waves) {
+            for (int i = 0; i < raid.waves.size(); i += 1) {
+                Wave wave = raid.waves.get(i);
                 player.sendMessage("" + i + ") " + y + ShortInfo.of(wave));
             }
             return true;
@@ -331,6 +346,31 @@ final class RaidCommand implements CommandExecutor {
         }
         default: throw new IllegalArgumentException(cmd.key);
         }
+    }
+
+    boolean bossCommand(@NonNull Player player, String[] args) throws Wrong {
+        if (args.length > 1) return false;
+        Raid raid = requireRaid(player);
+        Wave wave = requireWave(player);
+        if (args.length == 0) {
+            wave.boss = null;
+            player.sendMessage(y + "Wave boss=-");
+        } else if (args.length == 1) {
+            Boss.Type type;
+            try {
+                type = Boss.Type.valueOf(args[0].toUpperCase());
+            } catch (IllegalArgumentException iae) {
+                throw new Wrong("Invalid boss type: " + args[0] + "("
+                                + Stream.of(Boss.Type.values()).map(Enum::name)
+                                .collect(Collectors.joining("|"))
+                                + ")");
+            }
+            Boss boss = new Boss(type);
+            wave.boss = boss;
+            player.sendMessage("Wave boss=" + boss.getShortInfo());
+        }
+        plugin.saveRaid(raid);
+        return true;
     }
 
     boolean setCommand(@NonNull Player player, String[] args) throws Wrong {

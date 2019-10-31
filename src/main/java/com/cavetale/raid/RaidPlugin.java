@@ -7,6 +7,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Random;
 import lombok.NonNull;
 import org.bukkit.World;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -19,6 +20,7 @@ public final class RaidPlugin extends JavaPlugin {
     Gson gson = new Gson();
     Gson prettyGson = new GsonBuilder().setPrettyPrinting().create();
     File raidFolder;
+    Random random = new Random();
 
     @Override
     public void onEnable() {
@@ -87,5 +89,11 @@ public final class RaidPlugin extends JavaPlugin {
         for (Instance instance : instances.values()) {
             instance.onTick();
         }
+    }
+
+    double rnd() {
+        return random.nextBoolean()
+            ? random.nextDouble()
+            : -random.nextDouble();
     }
 }

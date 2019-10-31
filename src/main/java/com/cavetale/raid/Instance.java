@@ -29,6 +29,7 @@ final class Instance {
     long waveTicks = 0;
     boolean waveComplete = false;
     final List<SpawnSlot> spawns = new ArrayList<>();
+    BossFight bossFight;
 
     Instance(@NonNull final RaidPlugin plugin,
              @NonNull final Raid raid,
@@ -95,6 +96,10 @@ final class Instance {
             if (slot.isPresent()) slot.mob.remove();
         }
         spawns.clear();
+        if (bossFight != null) {
+            bossFight.cleanup();
+        }
+        bossFight = null;
     }
 
     void setupWave(@NonNull Wave wave, List<Player> players) {
@@ -102,6 +107,9 @@ final class Instance {
             for (int i = 0; i < spawn.amount; i += 1) {
                 spawns.add(new SpawnSlot(spawn));
             }
+        }
+        if (wave.boss != null) {
+            bossFight = new BossFight(this, wave.boss);
         }
         for (Player player : players) {
             player.sendMessage("Wave #" + (1 + waveIndex));
@@ -113,8 +121,12 @@ final class Instance {
             if (mob.equals(slot.mob)) {
                 slot.killed = true;
                 slot.mob = null;
-                break;
+                return;
             }
+        }
+        if (bossFight != null && mob.equals(bossFight.mob)) {
+            bossFight.killed = true;
+            bossFight.mob = null;
         }
     }
 
@@ -151,6 +163,15 @@ final class Instance {
                 }
             }
         }
+        if (bossFight != null) {
+            if (!bossFight.killed && !bossFight.isPresent()
+                && spawnChunks.contains(wave.place.getChunk())) {
+                bossFight.mob = bossFight.boss.spawn(wave.place.toLocation(world));
+            }
+            if (bossFight.isPresent()) {
+                bossFight.onTick(wave, players);
+            }
+        }
         // Complete condition
         switch (wave.type) {
         case MOBS: {
@@ -184,6 +205,15 @@ final class Instance {
             break;
         }
         case BOSS: {
+            if (bossFight == null || bossFight.killed) {
+                waveComplete = true;
+            } else if (bossFight != null && bossFight.isPresent()) {
+                for (Player player : players) {
+                    player.sendActionBar("" + ChatColor.RED
+                                         + ((int) bossFight.mob.getHealth())
+                                         + "/" + bossFight.maxHealth);
+                }
+            }
             break;
         }
         default: break;
