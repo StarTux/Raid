@@ -11,7 +11,6 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.player.PlayerItemDamageEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
-import org.bukkit.event.player.PlayerToggleFlightEvent;
 
 @RequiredArgsConstructor
 final class EventListener implements Listener {
@@ -42,14 +41,6 @@ final class EventListener implements Listener {
     void onPlayerItemDamage(PlayerItemDamageEvent event) {
         Instance inst = plugin.raidInstance(event.getPlayer().getWorld());
         if (inst != null) {
-            event.setCancelled(true);
-        }
-    }
-
-    @EventHandler(ignoreCancelled = true)
-    void onPlayerToggleFlight(PlayerToggleFlightEvent event) {
-        Instance inst = plugin.raidInstance(event.getPlayer().getWorld());
-        if (inst != null && event.isFlying()) {
             event.setCancelled(true);
         }
     }

@@ -136,6 +136,7 @@ final class Instance {
         // Spawnable chunks
         Set<Vec2i> spawnChunks = new HashSet<>();
         for (Player player : players) {
+            if (player.isGliding()) player.setGliding(false);
             Location loc = player.getLocation();
             Chunk chunk = loc.getChunk();
             final int cx = chunk.getX();
