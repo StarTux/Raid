@@ -12,6 +12,8 @@ import org.bukkit.Chunk;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Particle;
+import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
@@ -111,9 +113,6 @@ final class Instance {
         if (wave.boss != null) {
             bossFight = new BossFight(this, wave.boss);
         }
-        for (Player player : players) {
-            player.sendMessage("Wave #" + (1 + waveIndex));
-        }
     }
 
     void onDeath(@NonNull Mob mob) {
@@ -212,6 +211,39 @@ final class Instance {
                     player.sendActionBar("" + ChatColor.RED
                                          + ((int) bossFight.mob.getHealth())
                                          + "/" + bossFight.maxHealth);
+                }
+            }
+            break;
+        }
+        case WIN: {
+            if (waveTicks == 1) {
+                String playerNames = players.stream().map(Player::getName)
+                    .collect(Collectors.joining(", "));
+                plugin.getLogger().info("Raid " + raid.worldName + " defeated: " + playerNames);
+                String msg = ChatColor.GOLD + "Dungeon " + raid.displayName
+                    + " defeated by " + playerNames + "!";
+                for (Player other : plugin.getServer().getOnlinePlayers()) {
+                    other.sendMessage(msg);
+                }
+                for (Player player : players) {
+                    player.playSound(player.getEyeLocation(),
+                                     Sound.UI_TOAST_CHALLENGE_COMPLETE,
+                                     SoundCategory.MASTER,
+                                     1.0f, 1.0f);
+                    for (String cmd : raid.winCommands) {
+                        cmd = cmd.replace("%player%", player.getName());
+                        plugin.getLogger().info("Running command: " + cmd);
+                        plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(),
+                                                           cmd);
+                    }
+                }
+            }
+            if (waveTicks >= 200) {
+                World w = plugin.getServer().getWorld("spawn");
+                if (w != null) {
+                    for (Player player : players) {
+                        player.teleport(w.getSpawnLocation());
+                    }
                 }
             }
             break;

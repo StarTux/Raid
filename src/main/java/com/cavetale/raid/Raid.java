@@ -9,6 +9,8 @@ import org.bukkit.World;
 final class Raid {
     transient String worldName;
     List<Wave> waves = new ArrayList<>();
+    String displayName = "";
+    List<String> winCommands = new ArrayList<>();
 
     Raid() { }
 

@@ -6,6 +6,7 @@ import java.util.stream.Stream;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.ChatColor;
+import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -402,6 +403,9 @@ final class RaidCommand implements CommandExecutor {
         plugin.raids.clear();
         plugin.instances.clear();
         plugin.loadRaids();
+        for (World world : plugin.getServer().getWorlds()) {
+            plugin.raidInstance(world);
+        }
         sender.sendMessage(y + "Raids reloaded.");
         return true;
     }

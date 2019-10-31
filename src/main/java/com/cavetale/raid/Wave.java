@@ -13,7 +13,8 @@ final class Wave implements ShortInfo {
     enum Type {
         MOBS,
         GOAL,
-        BOSS;
+        BOSS,
+        WIN;
     }
 
     @Override
