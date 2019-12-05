@@ -10,8 +10,11 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.entity.ElderGuardian;
 import org.bukkit.entity.Evoker;
+import org.bukkit.entity.MagmaCube;
 import org.bukkit.entity.Mob;
+import org.bukkit.entity.Skeleton;
 import org.bukkit.entity.Wither;
 import org.bukkit.entity.WitherSkeleton;
 import org.bukkit.inventory.EntityEquipment;
@@ -20,9 +23,15 @@ final class Boss implements ShortInfo {
     Type type;
 
     enum Type {
+        // Halloween 2019
         DECAYED("The Decayed"),
         FORGOTTEN("The Forgotten"),
-        VENGEFUL("The Vengeful");
+        VENGEFUL("The Vengeful"),
+        // Halloween 2018 (Legacy)
+        SKELLINGTON("Skellington"),
+        DEEP_FEAR("Deep Fear"),
+        LAVA_LORD("Lava Lord"),
+        ;
 
         public final String displayName;
 
@@ -59,6 +68,21 @@ final class Boss implements ShortInfo {
                 .asList("Like the crops in the field, you too shall wither away.",
                         "Your time has come.",
                         "Death draws nearer with every moment.");
+        case SKELLINGTON:
+            return Arrays.
+                asList("Who dares to enter these halls?",
+                       "You shall be added to my collecton.",
+                       "This room will be your tomb.");
+        case DEEP_FEAR:
+            return Arrays
+                .asList("Blub!",
+                        "Blub blub blubbb blllub",
+                        "Blooob blub blub blub blub...");
+        case LAVA_LORD:
+            return Arrays
+                .asList("You've made it this far. Now you shall perish.",
+                        "Christmas will come this year over my dead bones.",
+                        "This is where it ends. For you.");
         default:
             return Arrays.asList("You'll never defeat StarTuuuuux!!!");
         }
@@ -82,6 +106,25 @@ final class Boss implements ShortInfo {
                 });
         case VENGEFUL:
             return w.spawn(loc, Wither.class, e -> {
+                    prep(e);
+                });
+        case SKELLINGTON:
+            return w.spawn(loc, Skeleton.class, e -> {
+                    EntityEquipment eq = e.getEquipment();
+                    eq.setHelmet(new ItemBuilder(Material.GOLDEN_HELMET).create());
+                    eq.setChestplate(new ItemBuilder(Material.GOLDEN_CHESTPLATE).create());
+                    eq.setLeggings(new ItemBuilder(Material.GOLDEN_LEGGINGS).create());
+                    eq.setBoots(new ItemBuilder(Material.GOLDEN_BOOTS).create());
+                    prep(e);
+                });
+        case DEEP_FEAR:
+            return w.spawn(loc, ElderGuardian.class, e -> {
+                    prep(e);
+                });
+        case LAVA_LORD:
+            return w.spawn(loc, MagmaCube.class, e -> {
+                    e.setSize(1);
+                    e.setWander(false);
                     prep(e);
                 });
         default:

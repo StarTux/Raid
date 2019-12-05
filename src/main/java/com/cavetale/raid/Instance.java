@@ -32,6 +32,7 @@ final class Instance {
     boolean waveComplete = false;
     final List<SpawnSlot> spawns = new ArrayList<>();
     BossFight bossFight;
+    int goalCompleteTicks;
 
     Instance(@NonNull final RaidPlugin plugin,
              @NonNull final Raid raid,
@@ -100,8 +101,8 @@ final class Instance {
         spawns.clear();
         if (bossFight != null) {
             bossFight.cleanup();
+            bossFight = null;
         }
-        bossFight = null;
     }
 
     void setupWave(@NonNull Wave wave, List<Player> players) {
@@ -189,22 +190,42 @@ final class Instance {
             break;
         }
         case GOAL: {
+            int goalCount = 0;
             for (Player player : players) {
                 Location loc = player.getLocation();
                 double dx = Math.abs(loc.getX() - wave.place.x);
                 double dz = Math.abs(loc.getZ() - wave.place.z);
-                double d = Math.max(dx, dz);
-                if ((int) d <= wave.radius) {
-                    waveComplete = true;
-                    break;
+                double d = Math.sqrt(dx * dx + dz * dz);
+                if (d < wave.radius) {
+                    goalCount += 1;
                 }
             }
-            if (!waveComplete
-                && (waveTicks % 10) == 0
+            if (goalCount >= players.size()) {
+                if (goalCompleteTicks >= 40) {
+                    waveComplete = true;
+                }
+                goalCompleteTicks += 1;
+            } else {
+                goalCompleteTicks = 0;
+            }
+            if (waveTicks % 20 == 0) {
+                String msg = "" + ChatColor.YELLOW + "Players in goal: "
+                    + goalCount + "/" + players.size();
+                for (Player player : players) {
+                    player.sendActionBar(msg);
+                }
+            }
+            if (!waveComplete && (waveTicks % 2) == 0
                 && spawnChunks.contains(wave.place.getChunk())) {
-                world.spawnParticle(Particle.END_ROD,
-                                    wave.place.toLocation(world).add(0, 1, 0),
-                                    2, 1, 1, 1, 0.0);
+                double inp = 0.08 * (double) waveTicks;
+                double radius = wave.radius;
+                double x = Math.cos(inp) * radius;
+                double z = Math.sin(inp) * radius;
+                Location loc = wave.place.toLocation(world);
+                Location p1 = loc.clone().add(x, 0.25, z);
+                Location p2 = loc.clone().add(-x, 0.25, -z);
+                world.spawnParticle(Particle.FLAME, p1, 1, 0, 0, 0, 0);
+                world.spawnParticle(Particle.FLAME, p2, 1, 0, 0, 0, 0);
             }
             break;
         }

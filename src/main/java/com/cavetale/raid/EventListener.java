@@ -8,6 +8,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.player.PlayerItemDamageEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
@@ -51,6 +52,17 @@ final class EventListener implements Listener {
         if (inst != null
             && event.getCause() == PlayerTeleportEvent.TeleportCause.ENDER_PEARL) {
             event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    void onEntityDamage(EntityDamageEvent event) {
+        if (!(event.getEntity() instanceof Mob)) return;
+        Mob mob = (Mob) event.getEntity();
+        Instance inst = plugin.raidInstance(mob.getWorld());
+        if (inst == null) return;
+        if (inst.bossFight != null && mob.equals(inst.bossFight.mob)) {
+            inst.bossFight.onBossDamage(event);
         }
     }
 }

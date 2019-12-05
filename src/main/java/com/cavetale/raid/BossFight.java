@@ -11,14 +11,23 @@ import org.bukkit.FireworkEffect;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
+import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
-import org.bukkit.entity.LargeFireball;
+import org.bukkit.entity.Arrow;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Firework;
+import org.bukkit.entity.LargeFireball;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Spider;
 import org.bukkit.entity.ThrownPotion;
+import org.bukkit.entity.Trident;
 import org.bukkit.entity.Vex;
 import org.bukkit.entity.WitherSkeleton;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.potion.PotionType;
@@ -38,11 +47,15 @@ final class BossFight {
     int phaseIndex = 0;
     long phaseTicks;
     double backupSpeed;
+    double mountBackupSpeed;
     boolean phaseComplete = false;
     int maxHealth = 1000;
     final List<Mob> adds = new ArrayList<>();
     List<String> dialogue;
     int dialogueIndex;
+    boolean invulnerable;
+    boolean shield;
+    int shieldCooldown;
 
     enum Phase {
         IDLE,
@@ -53,7 +66,10 @@ final class BossFight {
         PULL,
         PUSH,
         FIREBALL,
-        POTION;
+        POTION,
+        ARROWS,
+        MOUNT,
+        TRIDENTS;
     }
 
     boolean isPresent() {
@@ -77,6 +93,12 @@ final class BossFight {
             phaseTicks = 0;
         }
         adds.removeIf(e -> !e.isValid());
+        switch (boss.type) {
+        case DEEP_FEAR:
+            tickDeepFear(wave, players);
+            break;
+        default: break;
+        }
         switch (phase) {
         case FIREWORK:
             tickFirework(wave, players);
@@ -98,6 +120,15 @@ final class BossFight {
             break;
         case POTION:
             tickPotion(wave, players);
+            break;
+        case ARROWS:
+            tickArrows(wave, players);
+            break;
+        case TRIDENTS:
+            tickTridents(wave, players);
+            break;
+        case MOUNT:
+            tickMount(wave, players);
             break;
         case PAUSE:
             phaseComplete = phaseTicks >= 100;
@@ -123,6 +154,12 @@ final class BossFight {
             return Arrays.asList(Phase.DIALOGUE, Phase.PULL, Phase.POTION, Phase.PAUSE, Phase.ADDS);
         case VENGEFUL:
             return Arrays.asList(Phase.DIALOGUE, Phase.PUSH, Phase.PAUSE, Phase.FIREBALL);
+        case SKELLINGTON:
+            return Arrays
+                .asList(Phase.DIALOGUE, Phase.PAUSE, Phase.ARROWS, Phase.PAUSE, Phase.MOUNT);
+        case DEEP_FEAR:
+            return Arrays
+                .asList(Phase.DIALOGUE, Phase.PAUSE, Phase.TRIDENTS, Phase.PAUSE, Phase.ADDS);
         default: return Arrays.asList(Phase.PAUSE);
         }
     }
@@ -173,10 +210,21 @@ final class BossFight {
     void immobile() {
         backupSpeed = mob.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).getBaseValue();
         mob.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(0);
+        Entity vehicle = mob.getVehicle();
+        if (vehicle instanceof Mob) {
+            Mob veh = (Mob) vehicle;
+            mountBackupSpeed = veh.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).getBaseValue();
+            veh.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(0);
+        }
     }
 
     void mobile() {
         mob.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(backupSpeed);
+        Entity vehicle = mob.getVehicle();
+        if (vehicle instanceof Mob) {
+            Mob veh = (Mob) vehicle;
+            veh.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(mountBackupSpeed);
+        }
     }
 
     void tickFirework(@NonNull Wave wave, @NonNull List<Player> players) {
@@ -194,7 +242,7 @@ final class BossFight {
                 mob.getWorld().spawn(from, Firework.class, fw -> {
                         fw.setVelocity(vec.multiply(2.0));
                         FireworkMeta meta = fw.getFireworkMeta();
-                        for (int i = 0; i < 5; i += 1) {
+                        for (int i = 0; i < 2; i += 1) {
                             FireworkEffect.Builder builder = FireworkEffect.builder();
                             builder.with(FireworkEffect.Type.BALL)
                                 .withColor(Color.BLACK).withTrail();
@@ -295,6 +343,55 @@ final class BossFight {
         }
     }
 
+    void tickArrows(@NonNull Wave wave, @NonNull List<Player> players) {
+        if (phaseTicks == 0) {
+            invulnerable = true;
+            immobile();
+        } else if (phaseTicks >= 200) {
+            invulnerable = false;
+            mobile();
+        }
+        if (phaseTicks < 20) return; // Grace period
+        players.removeIf(p -> mob.hasLineOfSight(p));
+        if (players.isEmpty()) return;
+        Player target = players.get(instance.plugin.random.nextInt(players.size()));
+        Vector velo = target.getEyeLocation()
+            .subtract(mob.getEyeLocation())
+            .toVector().normalize().multiply(2.0);
+        Arrow arrow = (Arrow) mob.launchProjectile(Arrow.class, velo);
+        arrow.setFireTicks(6000);
+    }
+
+    void tickTridents(@NonNull Wave wave, @NonNull List<Player> players) {
+        if (phaseTicks == 0) {
+            invulnerable = true;
+            immobile();
+        } else if (phaseTicks >= 200) {
+            invulnerable = false;
+            mobile();
+        }
+        if (phaseTicks < 20) return; // Grace period
+        players.removeIf(p -> mob.hasLineOfSight(p));
+        if (players.isEmpty()) return;
+        Player target = players.get(instance.plugin.random.nextInt(players.size()));
+        Vector velo = target.getEyeLocation()
+            .subtract(mob.getEyeLocation())
+            .toVector().normalize().multiply(2.0);
+        Trident tri = (Trident) mob.launchProjectile(Trident.class, velo);
+        tri.setPickupStatus(Trident.PickupStatus.DISALLOWED);
+    }
+
+    void tickMount(@NonNull Wave wave, @NonNull List<Player> players) {
+        if (phaseTicks >= 100) {
+            phaseComplete = true;
+            return;
+        }
+        if (mob.getVehicle() == null) return;
+        Mob mount = mob.getWorld().spawn(mob.getLocation(), Spider.class, this::prepAdd);
+        adds.add(mount);
+        mount.addPassenger(mob);
+    }
+
     void tickDialogue(@NonNull Wave wave, @NonNull List<Player> players) {
         if (phaseTicks >= 100) {
             phaseComplete = true;
@@ -310,6 +407,67 @@ final class BossFight {
             dialogueIndex += 1;
             for (Player player : players) {
                 player.sendMessage(dia);
+            }
+        }
+    }
+
+    void onBossDamage(EntityDamageEvent event) {
+        if (event instanceof EntityDamageByEntityEvent) {
+            EntityDamageByEntityEvent edbee =
+                (EntityDamageByEntityEvent) event;
+            if (boss.type == Boss.Type.DEEP_FEAR && shield
+                && edbee.getDamager() instanceof Trident) {
+                World w = mob.getWorld();
+                w.spawnParticle(Particle.END_ROD, mob.getLocation(), 64, 1.0, 1.0, 1.0, 1.0);
+                w.playSound(mob.getLocation(), Sound.ENTITY_ELDER_GUARDIAN_DEATH_LAND, 2.0f, 0.5f);
+                shield = false;
+                shieldCooldown = 100;
+                return;
+            }
+        }
+        if (invulnerable || shield) {
+            event.setCancelled(true);
+            return;
+        }
+        switch (event.getCause()) {
+        case CRAMMING:
+        case DROWNING:
+        case DRYOUT:
+        case FALL:
+        case FIRE:
+        case FIRE_TICK:
+        case HOT_FLOOR:
+        case LAVA:
+        case LIGHTNING:
+        case MELTING:
+        case STARVATION:
+        case SUFFOCATION:
+            event.setCancelled(true);
+        default:
+            break;
+        }
+    }
+
+    void tickDeepFear(Wave wave, List<Player> players) {
+        Location eye = mob.getEyeLocation();
+        if (this.shield) {
+            // Display shield
+            for (int i = 0; i < 9; i += 1) {
+                Vector vec = new Vector(instance.plugin.random.nextDouble() - 0.5,
+                                        instance.plugin.random.nextDouble() - 0.5,
+                                        instance.plugin.random.nextDouble() - 0.5)
+                    .normalize()
+                    .multiply(2.0);
+                Location loc = eye.clone().add(vec);
+                loc.getWorld().spawnParticle(Particle.END_ROD, loc, 1, 0.0, 0.0, 0.0, 0.0);
+            }
+        } else {
+            if (shieldCooldown <= 0) {
+                eye.getWorld().playSound(eye,
+                                         Sound.ENTITY_ELDER_GUARDIAN_CURSE, 2.0f, 0.5f);
+                shield = true;
+            } else {
+                shieldCooldown -= 1;
             }
         }
     }

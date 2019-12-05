@@ -6,7 +6,7 @@ import java.util.List;
 final class Wave implements ShortInfo {
     Type type = Type.MOBS;
     Place place;
-    int radius = 0;
+    double radius = 0;
     List<Spawn> spawns = new ArrayList<>();
     Boss boss;
 

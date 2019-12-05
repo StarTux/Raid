@@ -187,6 +187,14 @@ final class RaidCommand implements CommandExecutor {
         }
     }
 
+    double requireDouble(@NonNull String arg) throws Wrong {
+        try {
+            return Double.parseDouble(arg);
+        } catch (NumberFormatException nfe) {
+            throw new Wrong("Invalid double: " + arg);
+        }
+    }
+
     boolean newCommand(@NonNull Player player, String[] args) throws Wrong {
         String worldName = player.getWorld().getName();
         if (plugin.raids.get(worldName) != null) {
@@ -385,7 +393,7 @@ final class RaidCommand implements CommandExecutor {
             .collect(Collectors.joining(" "));
         switch (key) {
         case "radius":
-            wave.radius = value == null ? 0 : requireInt(value);
+            wave.radius = value == null ? 0 : requireDouble(value);
             player.sendMessage("Set " + y + "radius=" + wave.radius);
             return true;
         default: throw new Wrong("Unknown key: " + key);
