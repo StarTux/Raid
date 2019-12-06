@@ -4,6 +4,6 @@ import lombok.Value;
 
 @Value
 final class Vec2i {
-    final int x;
-    final int z;
+    public final int x;
+    public final int z;
 }

@@ -11,7 +11,6 @@ import org.bukkit.FireworkEffect;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
-import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
@@ -19,6 +18,7 @@ import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Firework;
 import org.bukkit.entity.LargeFireball;
+import org.bukkit.entity.MagmaCube;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Spider;
@@ -69,7 +69,8 @@ final class BossFight {
         POTION,
         ARROWS,
         MOUNT,
-        TRIDENTS;
+        TRIDENTS,
+        HOME;
     }
 
     boolean isPresent() {
@@ -133,6 +134,12 @@ final class BossFight {
         case PAUSE:
             phaseComplete = phaseTicks >= 100;
             break;
+        case HOME:
+            phaseComplete = phaseTicks >= 40;
+            if (phaseTicks == 20) {
+                mob.teleport(wave.place.toLocation(instance.world));
+            }
+            break;
         default: break;
         }
         if (phaseComplete) {
@@ -160,6 +167,9 @@ final class BossFight {
         case DEEP_FEAR:
             return Arrays
                 .asList(Phase.DIALOGUE, Phase.PAUSE, Phase.TRIDENTS, Phase.PAUSE, Phase.ADDS);
+        case LAVA_LORD:
+            return Arrays
+                .asList(Phase.DIALOGUE, Phase.PAUSE, Phase.HOME, Phase.PAUSE, Phase.PAUSE);
         default: return Arrays.asList(Phase.PAUSE);
         }
     }
@@ -422,7 +432,23 @@ final class BossFight {
                 w.playSound(mob.getLocation(), Sound.ENTITY_ELDER_GUARDIAN_DEATH_LAND, 2.0f, 0.5f);
                 shield = false;
                 shieldCooldown = 100;
-                return;
+            } else if (boss.type == Boss.Type.LAVA_LORD) {
+                MagmaCube mc = (MagmaCube) mob;
+                int health = (int) mc.getHealth();
+                int damage = maxHealth - health;
+                final int maxSize = 30;
+                int size = (damage * maxSize) / maxHealth;
+                mc.setSize(size);
+                World w = mob.getWorld();
+                if (instance.plugin.random.nextInt(3) == 0) { // 1/3
+                    final int size2 = instance.plugin.random.nextInt(2);
+                    MagmaCube add = w.spawn(mob.getLocation(), MagmaCube.class, e -> {
+                            e.setSize(size2);
+                            e.setWander(true);
+                            prepAdd(e);
+                        });
+                    adds.add(add);
+                }
             }
         }
         if (invulnerable || shield) {

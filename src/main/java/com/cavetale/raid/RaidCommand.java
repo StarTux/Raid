@@ -1,6 +1,7 @@
 package com.cavetale.raid;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.NonNull;
@@ -8,13 +9,13 @@ import lombok.RequiredArgsConstructor;
 import org.bukkit.ChatColor;
 import org.bukkit.World;
 import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 
 @RequiredArgsConstructor
-final class RaidCommand implements CommandExecutor {
+final class RaidCommand implements TabExecutor {
     final RaidPlugin plugin;
     final ChatColor y = ChatColor.YELLOW;
 
@@ -34,6 +35,8 @@ final class RaidCommand implements CommandExecutor {
         SET,
         SAVE,
         RELOAD,
+        TP,
+        SKIP,
         DEBUG;
 
         final String key;
@@ -88,6 +91,23 @@ final class RaidCommand implements CommandExecutor {
         return true;
     }
 
+    @Override
+    public List<String> onTabComplete(final CommandSender sender,
+                                      final Command command,
+                                      final String alias,
+                                      final String[] args) {
+        if (args.length == 0) return null;
+        String arg = args[0];
+        if (args.length == 1) {
+            return Stream.of(Cmd.values())
+                .map(Enum::name)
+                .map(String::toLowerCase)
+                .filter(f -> f.startsWith(arg))
+                .collect(Collectors.toList());
+        }
+        return null;
+    }
+
     boolean onCommand(CommandSender sender, Cmd cmd, String[] args) throws Wrong {
         switch (cmd) {
         case NEW: return newCommand(requirePlayer(sender), args);
@@ -99,6 +119,8 @@ final class RaidCommand implements CommandExecutor {
         case SET: return setCommand(requirePlayer(sender), args);
         case SAVE: return saveCommand(requirePlayer(sender), args);
         case RELOAD: return reloadCommand(sender, args);
+        case TP: return tpCommand(requirePlayer(sender), args);
+        case SKIP: return skipCommand(requirePlayer(sender), args);
         case DEBUG: return debugCommand(requirePlayer(sender), args);
         default:
             throw new IllegalArgumentException(cmd.key);
@@ -137,6 +159,15 @@ final class RaidCommand implements CommandExecutor {
         case BOSS:
             sender.sendMessage("/raid boss - Clear wave boss.");
             sender.sendMessage("/raid boss <type> - Set wave boss.");
+            break;
+        case TP:
+            sender.sendMessage("/raid tp <wave> - Teleport to wave location.");
+        case SKIP:
+            sender.sendMessage("/raid skip [wave] - Skip to (next) wave.");
+            break;
+        case DEBUG:
+            sender.sendMessage("/raid debug - Toggle debug mode.");
+            break;
         default:
             sender.sendMessage("/raid " + cmd.key);
             break;
@@ -223,6 +254,9 @@ final class RaidCommand implements CommandExecutor {
         wave.type = type;
         if (type == Wave.Type.GOAL && wave.place == null) {
             wave.place = Place.of(player.getLocation());
+        }
+        if (type == Wave.Type.GOAL && wave.radius == 0) {
+            wave.radius = 2;
         }
         plugin.saveRaid(raid);
         player.sendMessage("Wave #" + raid.waves.indexOf(wave) + " type=" + type);
@@ -420,15 +454,41 @@ final class RaidCommand implements CommandExecutor {
         return true;
     }
 
+    boolean tpCommand(@NonNull Player player, String[] args) throws Wrong {
+        if (args.length != 1) return false;
+        Raid raid = requireRaid(player);
+        int index = requireInt(args[0]);
+        Wave wave = raid.waves.get(index); // aioobe
+        Instance instance = plugin.raidInstance(raid);
+        player.teleport(wave.place.toLocation(instance.world));
+        player.sendMessage("Teleported to wave " + index + ".");
+        return true;
+    }
+
+    boolean skipCommand(@NonNull Player player, String[] args) throws Wrong {
+        if (args.length > 1) return false;
+        Raid raid = requireRaid(player);
+        Instance inst = plugin.raidInstance(raid);
+        if (args.length == 0) {
+            inst.waveComplete = true;
+            player.sendMessage("Skipping wave...");
+        } else {
+            int newWave = Integer.parseInt(args[0]);
+            inst.clearWave();
+            inst.waveIndex = newWave;
+            inst.waveComplete = false;
+            inst.waveTicks = 0;
+            player.sendMessage("Jumping to wave " + newWave + ".");
+        }
+        return true;
+    }
+
     boolean debugCommand(@NonNull Player player, String[] args) throws Wrong {
         Raid raid = requireRaid(player);
         Instance inst = plugin.raidInstance(raid);
-        int newWave = Integer.parseInt(args[0]);
-        inst.clearWave();
-        inst.waveIndex = newWave;
-        inst.waveComplete = false;
-        inst.waveTicks = 0;
-        player.sendMessage("Wave " + newWave + " activated.");
+        inst.debug = !inst.debug;
+        inst.updateDebugMode();
+        player.sendMessage("Debug mode: " + inst.debug);
         return true;
     }
 }
