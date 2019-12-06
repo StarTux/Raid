@@ -17,10 +17,12 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Firework;
+import org.bukkit.entity.Guardian;
 import org.bukkit.entity.LargeFireball;
 import org.bukkit.entity.MagmaCube;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Skeleton;
 import org.bukkit.entity.Spider;
 import org.bukkit.entity.ThrownPotion;
 import org.bukkit.entity.Trident;
@@ -29,6 +31,8 @@ import org.bukkit.entity.WitherSkeleton;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.inventory.meta.FireworkMeta;
+import org.bukkit.potion.PotionData;
+import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.potion.PotionType;
 import org.bukkit.util.Vector;
@@ -94,6 +98,9 @@ final class BossFight {
             phaseTicks = 0;
         }
         adds.removeIf(e -> !e.isValid());
+        for (Mob add : adds) {
+            instance.findTarget(add, players);
+        }
         switch (boss.type) {
         case DEEP_FEAR:
             tickDeepFear(wave, players);
@@ -163,7 +170,8 @@ final class BossFight {
             return Arrays.asList(Phase.DIALOGUE, Phase.PUSH, Phase.PAUSE, Phase.FIREBALL);
         case SKELLINGTON:
             return Arrays
-                .asList(Phase.DIALOGUE, Phase.PAUSE, Phase.ARROWS, Phase.PAUSE, Phase.MOUNT);
+                .asList(Phase.DIALOGUE, Phase.MOUNT, Phase.PAUSE,
+                        Phase.ARROWS, Phase.ADDS, Phase.PAUSE);
         case DEEP_FEAR:
             return Arrays
                 .asList(Phase.DIALOGUE, Phase.PAUSE, Phase.TRIDENTS, Phase.PAUSE, Phase.ADDS);
@@ -206,6 +214,18 @@ final class BossFight {
                          instance.plugin.rnd() * 8.0,
                          instance.plugin.rnd() * 8.0);
                 adds.add(mob.getWorld().spawn(loc, Vex.class, this::prepAdd));
+            }
+            break;
+        case SKELLINGTON:
+            if (phaseTicks > 0 && phaseTicks % 10 == 0) {
+                adds.add(mob.getWorld().spawn(mob.getLocation(),
+                                              Skeleton.class, this::prepAdd));
+            }
+            break;
+        case DEEP_FEAR:
+            if (phaseTicks > 0 && phaseTicks % 20 == 0) {
+                adds.add(mob.getWorld().spawn(mob.getLocation(),
+                                              Guardian.class, this::prepAdd));
             }
             break;
         default: break;
@@ -360,9 +380,11 @@ final class BossFight {
         } else if (phaseTicks >= 200) {
             invulnerable = false;
             mobile();
+            phaseComplete = true;
+            return;
         }
         if (phaseTicks < 20) return; // Grace period
-        players.removeIf(p -> mob.hasLineOfSight(p));
+        players.removeIf(p -> !mob.hasLineOfSight(p));
         if (players.isEmpty()) return;
         Player target = players.get(instance.plugin.random.nextInt(players.size()));
         Vector velo = target.getEyeLocation()
@@ -370,6 +392,21 @@ final class BossFight {
             .toVector().normalize().multiply(2.0);
         Arrow arrow = (Arrow) mob.launchProjectile(Arrow.class, velo);
         arrow.setFireTicks(6000);
+        switch (instance.plugin.random.nextInt(4)) {
+        case 0:
+            arrow.setBasePotionData(new PotionData(PotionType.INSTANT_DAMAGE, false, true));
+            break;
+        case 1:
+            arrow.setBasePotionData(new PotionData(PotionType.POISON, false, true));
+            break;
+        case 2:
+            arrow.setBasePotionData(new PotionData(PotionType.WEAKNESS, true, false));
+            break;
+        case 3:
+            arrow.addCustomEffect(new PotionEffect(PotionEffectType.HUNGER, 400, 1), true);
+            break;
+        default: break;
+        }
     }
 
     void tickTridents(@NonNull Wave wave, @NonNull List<Player> players) {
@@ -379,9 +416,11 @@ final class BossFight {
         } else if (phaseTicks >= 200) {
             invulnerable = false;
             mobile();
+            phaseComplete = true;
+            return;
         }
         if (phaseTicks < 20) return; // Grace period
-        players.removeIf(p -> mob.hasLineOfSight(p));
+        players.removeIf(p -> !mob.hasLineOfSight(p));
         if (players.isEmpty()) return;
         Player target = players.get(instance.plugin.random.nextInt(players.size()));
         Vector velo = target.getEyeLocation()
@@ -395,11 +434,12 @@ final class BossFight {
         if (phaseTicks >= 100) {
             phaseComplete = true;
             return;
+        } else if (phaseTicks == 20) {
+            if (mob.getVehicle() != null) return;
+            Mob mount = mob.getWorld().spawn(mob.getLocation(), Spider.class, this::prepAdd);
+            adds.add(mount);
+            mount.addPassenger(mob);
         }
-        if (mob.getVehicle() == null) return;
-        Mob mount = mob.getWorld().spawn(mob.getLocation(), Spider.class, this::prepAdd);
-        adds.add(mount);
-        mount.addPassenger(mob);
     }
 
     void tickDialogue(@NonNull Wave wave, @NonNull List<Player> players) {

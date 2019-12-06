@@ -85,6 +85,7 @@ final class Instance {
             for (int i = 0; i < raid.waves.size(); i += 1) {
                 Wave wave = raid.waves.get(i);
                 highlightPlace(wave);
+                while (waveInsts.size() <= i) waveInsts.add(new WaveInst());
                 WaveInst waveInst = waveInsts.get(i);
                 if (wave.place != null) {
                     if (waveInst.debugEntity == null) {
