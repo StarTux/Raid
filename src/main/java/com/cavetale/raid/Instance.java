@@ -234,7 +234,8 @@ final class Instance {
                 slot.mob = null;
             }
             if (!slot.killed) aliveMobCount += 1;
-            if (!slot.killed && !slot.isPresent()
+            // Spawn Mob
+            if (waveTicks > 20 && !slot.killed && !slot.isPresent()
                 && spawnChunks.contains(slot.spawn.place.getChunk())) {
                 Mob mob = slot.spawn.spawn(world);
                 if (mob != null) {
