@@ -1,15 +1,21 @@
 package com.cavetale.raid;
 
 import lombok.RequiredArgsConstructor;
+import org.bukkit.entity.AbstractArrow;
+import org.bukkit.entity.ElderGuardian;
 import org.bukkit.entity.EntityType;
-import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.ProjectileLaunchEvent;
+import org.bukkit.event.hanging.HangingBreakEvent;
 import org.bukkit.event.player.PlayerItemDamageEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 
@@ -29,12 +35,20 @@ final class EventListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     void onCreatureSpawn(CreatureSpawnEvent event) {
-        LivingEntity entity = event.getEntity();
-        Instance inst = plugin.raidInstance(entity.getWorld());
-        if (inst != null
-            && entity.getType() == EntityType.VEX
-            && event.getSpawnReason() == CreatureSpawnEvent.SpawnReason.DEFAULT) {
-            event.setCancelled(true);
+        if (!(event.getEntity() instanceof Mob)) return;
+        Mob mob = (Mob) event.getEntity();
+        Instance inst = plugin.raidInstance(mob.getWorld());
+        if (inst != null) {
+            if (mob.getType() == EntityType.VEX
+                && event.getSpawnReason() == SpawnReason.DEFAULT) {
+                event.setCancelled(true);
+            } else if (event.getSpawnReason() == SpawnReason.SLIME_SPLIT) {
+                if (inst.bossFight != null) {
+                    inst.bossFight.adds.add(mob);
+                } else {
+                    inst.adds.add(mob);
+                }
+            }
         }
     }
 
@@ -64,5 +78,34 @@ final class EventListener implements Listener {
         if (inst.bossFight != null && mob.equals(inst.bossFight.mob)) {
             inst.bossFight.onBossDamage(event);
         }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
+        if (!(event.getEntity() instanceof Player)) return;
+        Player player = (Player) event.getEntity();
+        Instance inst = plugin.raidInstance(player.getWorld());
+        if (inst == null) return;
+        if (!(event.getDamager() instanceof ElderGuardian)) return;
+        double dmg = event.getDamage();
+        if (dmg > 1.0) event.setDamage(1.0); // 4 times per second
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
+    void onProjectileLaunch(ProjectileLaunchEvent event) {
+        if (!(event.getEntity() instanceof AbstractArrow)) return;
+        AbstractArrow arrow = (AbstractArrow) event.getEntity();
+        Instance inst = plugin.raidInstance(arrow.getWorld());
+        if (inst == null) return;
+        if (!(arrow.getShooter() instanceof Mob)) return;
+        arrow.setPersistent(false);
+        inst.arrows.add(arrow);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    void onHangingBreak(HangingBreakEvent event) {
+        Instance inst = plugin.raidInstance(event.getEntity().getWorld());
+        if (inst == null) return;
+        event.setCancelled(true);
     }
 }

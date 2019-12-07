@@ -9,6 +9,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.ElderGuardian;
 import org.bukkit.entity.Evoker;
@@ -30,8 +31,7 @@ final class Boss implements ShortInfo {
         // Halloween 2018 (Legacy)
         SKELLINGTON("Skellington"),
         DEEP_FEAR("Deep Fear"),
-        LAVA_LORD("Lava Lord"),
-        ;
+        LAVA_LORD("Lava Lord");
 
         public final String displayName;
 
@@ -71,7 +71,7 @@ final class Boss implements ShortInfo {
         case SKELLINGTON:
             return Arrays.
                 asList("Who dares to enter these halls?",
-                       "You shall be added to my collecton.",
+                       "You shall be added to my collection.",
                        "This room will be your tomb.");
         case DEEP_FEAR:
             return Arrays
@@ -124,7 +124,6 @@ final class Boss implements ShortInfo {
         case LAVA_LORD:
             return w.spawn(loc, MagmaCube.class, e -> {
                     e.setSize(1);
-                    e.setWander(false);
                     prep(e);
                 });
         default:
@@ -132,15 +131,21 @@ final class Boss implements ShortInfo {
         }
     }
 
+    void setAttr(Mob mob, Attribute attribute, double value) {
+        AttributeInstance inst = mob.getAttribute(attribute);
+        if (inst == null) return;
+        inst.setBaseValue(value);
+    }
+
     void prep(@NonNull Mob mob) {
         double health = 1000.0;
-        mob.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(health);
-        mob.setHealth(1000.0);
-        mob.getAttribute(Attribute.GENERIC_ATTACK_DAMAGE).setBaseValue(10.0);
-        mob.getAttribute(Attribute.GENERIC_KNOCKBACK_RESISTANCE).setBaseValue(1.0);
-        mob.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(0.25);
-        mob.getAttribute(Attribute.GENERIC_ARMOR).setBaseValue(20.0);
-        mob.getAttribute(Attribute.GENERIC_ARMOR_TOUGHNESS).setBaseValue(8.0);
+        setAttr(mob, Attribute.GENERIC_MAX_HEALTH, health);
+        mob.setHealth(health);
+        setAttr(mob, Attribute.GENERIC_ATTACK_DAMAGE, 10.0);
+        setAttr(mob, Attribute.GENERIC_KNOCKBACK_RESISTANCE, 1.0);
+        setAttr(mob, Attribute.GENERIC_MOVEMENT_SPEED, 0.25);
+        setAttr(mob, Attribute.GENERIC_ARMOR, 16.0); // dia=20
+        setAttr(mob, Attribute.GENERIC_ARMOR_TOUGHNESS, 2.0); // dia=8
         mob.setPersistent(false);
         EntityMarker.setId(mob, "raid:boss");
         EntityEquipment eq = mob.getEquipment();

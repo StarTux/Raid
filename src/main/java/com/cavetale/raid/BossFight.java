@@ -2,7 +2,10 @@ package com.cavetale.raid;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.ChatColor;
@@ -12,9 +15,12 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Arrow;
+import org.bukkit.entity.Blaze;
+import org.bukkit.entity.Drowned;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Firework;
 import org.bukkit.entity.Guardian;
@@ -22,6 +28,7 @@ import org.bukkit.entity.LargeFireball;
 import org.bukkit.entity.MagmaCube;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.PufferFish;
 import org.bukkit.entity.Skeleton;
 import org.bukkit.entity.Spider;
 import org.bukkit.entity.ThrownPotion;
@@ -30,6 +37,8 @@ import org.bukkit.entity.Vex;
 import org.bukkit.entity.WitherSkeleton;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.inventory.EntityEquipment;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.FireworkMeta;
 import org.bukkit.potion.PotionData;
 import org.bukkit.potion.PotionEffect;
@@ -60,6 +69,9 @@ final class BossFight {
     boolean invulnerable;
     boolean shield;
     int shieldCooldown;
+    boolean tookDamage;
+    final Set<UUID> damagers = new HashSet<>();
+    static final int ADDS_LIMIT = 32;
 
     enum Phase {
         IDLE,
@@ -104,6 +116,9 @@ final class BossFight {
         switch (boss.type) {
         case DEEP_FEAR:
             tickDeepFear(wave, players);
+            break;
+        case LAVA_LORD:
+            tickLavaLord(wave, players);
             break;
         default: break;
         }
@@ -174,10 +189,10 @@ final class BossFight {
                         Phase.ARROWS, Phase.ADDS, Phase.PAUSE);
         case DEEP_FEAR:
             return Arrays
-                .asList(Phase.DIALOGUE, Phase.PAUSE, Phase.TRIDENTS, Phase.PAUSE, Phase.ADDS);
+                .asList(Phase.DIALOGUE, Phase.PAUSE, Phase.ADDS, Phase.PAUSE);
         case LAVA_LORD:
             return Arrays
-                .asList(Phase.DIALOGUE, Phase.PAUSE, Phase.HOME, Phase.PAUSE, Phase.PAUSE);
+                .asList(Phase.DIALOGUE, Phase.PAUSE, Phase.ADDS, Phase.PAUSE, Phase.HOME);
         default: return Arrays.asList(Phase.PAUSE);
         }
     }
@@ -194,6 +209,7 @@ final class BossFight {
                                          0.5, 0.5, 0.5,
                                          0.0);
         }
+        if (adds.size() > ADDS_LIMIT) return;
         switch (boss.type) {
         case DECAYED:
             if (phaseTicks == 40
@@ -217,15 +233,42 @@ final class BossFight {
             }
             break;
         case SKELLINGTON:
-            if (phaseTicks > 0 && phaseTicks % 10 == 0) {
+            if (phaseTicks > 0 && phaseTicks % 15 == 0) {
                 adds.add(mob.getWorld().spawn(mob.getLocation(),
                                               Skeleton.class, this::prepAdd));
             }
             break;
         case DEEP_FEAR:
+            long guardians = adds.stream().filter(m -> m instanceof Guardian).count();
+            if (guardians < 2) {
+                if (phaseTicks == 30) {
+                    adds.add(mob.getWorld().spawn(mob.getEyeLocation(),
+                                                  Guardian.class, this::prepAdd));
+                }
+            }
             if (phaseTicks > 0 && phaseTicks % 20 == 0) {
-                adds.add(mob.getWorld().spawn(mob.getLocation(),
-                                              Guardian.class, this::prepAdd));
+                long drowned = adds.stream().filter(m -> m instanceof Drowned).count();
+                if (drowned < 5) {
+                    ItemStack trident = new ItemBuilder(Material.TRIDENT).create();
+                    Drowned d = instance.world
+                        .spawn(mob.getEyeLocation(),
+                               Drowned.class, e -> {
+                                   e.getEquipment().setItemInMainHand(trident);
+                                   e.setHealth(2.0);
+                                   prepAdd(e);
+                               });
+                    adds.add(d);
+                }
+            }
+            if (phaseTicks > 0 && phaseTicks % 20 == 10) {
+                adds.add(mob.getWorld().spawn(mob.getEyeLocation(),
+                                              PufferFish.class, this::prepAdd));
+            }
+            break;
+        case LAVA_LORD:
+            if (phaseTicks > 0 && phaseTicks % 20 == 0) {
+                adds.add(mob.getWorld().spawn(mob.getEyeLocation(),
+                                              Blaze.class, this::prepAdd));
             }
             break;
         default: break;
@@ -235,6 +278,15 @@ final class BossFight {
     void prepAdd(@NonNull Mob e) {
         e.setPersistent(false);
         e.setRemoveWhenFarAway(true);
+        EntityEquipment eq = mob.getEquipment();
+        if (eq != null) {
+            eq.setHelmetDropChance(0.0f);
+            eq.setChestplateDropChance(0.0f);
+            eq.setLeggingsDropChance(0.0f);
+            eq.setBootsDropChance(0.0f);
+            eq.setItemInMainHandDropChance(0.0f);
+            eq.setItemInOffHandDropChance(0.0f);
+        }
     }
 
     void immobile() {
@@ -383,15 +435,32 @@ final class BossFight {
             phaseComplete = true;
             return;
         }
-        if (phaseTicks < 20) return; // Grace period
+        if (phaseTicks == 0) {
+            instance.world.spawnParticle(Particle.FLASH,
+                                         mob.getEyeLocation(),
+                                         5,
+                                         0.5, 0.5, 0.5,
+                                         0.0);
+        }
+        if (phaseTicks < 20) {
+            return; // Grace period
+        }
         players.removeIf(p -> !mob.hasLineOfSight(p));
         if (players.isEmpty()) return;
         Player target = players.get(instance.plugin.random.nextInt(players.size()));
         Vector velo = target.getEyeLocation()
             .subtract(mob.getEyeLocation())
-            .toVector().normalize().multiply(2.0);
+            .toVector().normalize()
+            .add(new Vector(instance.plugin.rnd() * 0.1,
+                            instance.plugin.random.nextDouble() * 0.2,
+                            instance.plugin.rnd() * 0.1))
+            .multiply(2.0);
         Arrow arrow = (Arrow) mob.launchProjectile(Arrow.class, velo);
         arrow.setFireTicks(6000);
+        arrow.setDamage(5.0);
+        arrow.setPierceLevel(3);
+        arrow.setPersistent(false);
+        instance.arrows.add(arrow);
         switch (instance.plugin.random.nextInt(4)) {
         case 0:
             arrow.setBasePotionData(new PotionData(PotionType.INSTANT_DAMAGE, false, true));
@@ -407,6 +476,8 @@ final class BossFight {
             break;
         default: break;
         }
+        instance.world
+            .playSound(mob.getLocation(), Sound.ENTITY_ARROW_SHOOT, 1.0f, 1.2f);
     }
 
     void tickTridents(@NonNull Wave wave, @NonNull List<Player> players) {
@@ -437,6 +508,9 @@ final class BossFight {
         } else if (phaseTicks == 20) {
             if (mob.getVehicle() != null) return;
             Mob mount = mob.getWorld().spawn(mob.getLocation(), Spider.class, this::prepAdd);
+            double health = 200.0;
+            boss.setAttr(mount, Attribute.GENERIC_MAX_HEALTH, health);
+            mount.setHealth(health);
             adds.add(mount);
             mount.addPassenger(mob);
         }
@@ -465,6 +539,10 @@ final class BossFight {
         if (event instanceof EntityDamageByEntityEvent) {
             EntityDamageByEntityEvent edbee =
                 (EntityDamageByEntityEvent) event;
+            Player damager = Util.getPlayerDamager(edbee.getDamager());
+            if (damager != null) {
+                damagers.add(damager.getUniqueId());
+            }
             if (boss.type == Boss.Type.DEEP_FEAR && shield
                 && edbee.getDamager() instanceof Trident) {
                 World w = mob.getWorld();
@@ -473,17 +551,16 @@ final class BossFight {
                 shield = false;
                 shieldCooldown = 100;
             } else if (boss.type == Boss.Type.LAVA_LORD) {
-                MagmaCube mc = (MagmaCube) mob;
-                int health = (int) mc.getHealth();
-                int damage = maxHealth - health;
-                final int maxSize = 30;
-                int size = (damage * maxSize) / maxHealth;
-                mc.setSize(size);
-                World w = mob.getWorld();
-                if (instance.plugin.random.nextInt(3) == 0) { // 1/3
-                    final int size2 = instance.plugin.random.nextInt(2);
-                    MagmaCube add = w.spawn(mob.getLocation(), MagmaCube.class, e -> {
-                            e.setSize(size2);
+                tookDamage = true;
+                if (adds.size() < ADDS_LIMIT && instance.plugin.random.nextBoolean()) {
+                    World w = mob.getWorld();
+                    Location loc = mob.getEyeLocation();
+                    MagmaCube mc = (MagmaCube) mob;
+                    final int size = mc.getSize() <= 1
+                        ? 1
+                        : 1 + instance.plugin.random.nextInt(mc.getSize());
+                    MagmaCube add = w.spawn(loc, MagmaCube.class, e -> {
+                            e.setSize(size);
                             e.setWander(true);
                             prepAdd(e);
                         });
@@ -534,6 +611,62 @@ final class BossFight {
                 shield = true;
             } else {
                 shieldCooldown -= 1;
+            }
+        }
+    }
+
+    void tickLavaLord(Wave wave, List<Player> players) {
+        if (!tookDamage) return;
+        tookDamage = false;
+        MagmaCube mc = (MagmaCube) mob;
+        int health = (int) mc.getHealth();
+        int damage = maxHealth - health;
+        final int maxSize = 16;
+        int size = (damage * maxSize) / maxHealth;
+        if (size < 1) size = 1;
+        if (size == mc.getSize()) return;
+        mc.setSize(size);
+        boss.setAttr(mc, Attribute.GENERIC_MAX_HEALTH, (double) maxHealth);
+        mc.setHealth(health);
+    }
+
+    void onBossDeath() {
+        Player killer = mob.getKiller();
+        if (killer != null) damagers.add(killer.getUniqueId());
+        ItemBuilder reward;
+        switch (boss.type) {
+        case DEEP_FEAR:
+            reward = new ItemBuilder(Material.TRIDENT);
+            break;
+        case VENGEFUL:
+            reward = new ItemBuilder(Material.NETHER_STAR);
+            break;
+        case DECAYED:
+            reward = new ItemBuilder(Material.WITHER_SKELETON_SKULL);
+            break;
+        case FORGOTTEN:
+            reward = new ItemBuilder(Material.TOTEM_OF_UNDYING);
+            break;
+        case SKELLINGTON:
+            reward = new ItemBuilder(Material.SKELETON_SKULL);
+            break;
+        case LAVA_LORD:
+            reward = new ItemBuilder(Material.GHAST_TEAR).amount(5);
+            break;
+        default:
+            reward = new ItemBuilder(Material.DIAMOND);
+            break;
+        }
+        for (Player player : instance.getPlayers()) {
+            player.sendTitle(ChatColor.GOLD + boss.type.displayName,
+                             ChatColor.RED + "Defeated!");
+            if (!damagers.contains(player.getUniqueId())) continue;
+            player.playSound(player.getEyeLocation(),
+                             Sound.UI_TOAST_CHALLENGE_COMPLETE,
+                             SoundCategory.MASTER,
+                             0.5f, 2.0f);
+            for (ItemStack drop : player.getInventory().addItem(reward.create()).values()) {
+                player.getWorld().dropItem(player.getEyeLocation(), drop);
             }
         }
     }

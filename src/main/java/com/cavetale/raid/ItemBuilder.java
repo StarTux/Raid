@@ -19,6 +19,11 @@ final class ItemBuilder {
         item = new ItemStack(mat);
     }
 
+    ItemBuilder amount(int amount) {
+        item.setAmount(amount);
+        return this;
+    }
+
     ItemBuilder dmg(int dmg) {
         ItemMeta meta = item.getItemMeta();
         if (meta instanceof Damageable) {
@@ -59,6 +64,6 @@ final class ItemBuilder {
     }
 
     ItemStack create() {
-        return item;
+        return item.clone();
     }
 }

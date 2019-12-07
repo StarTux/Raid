@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,8 @@ import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.World;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.ExperienceOrb;
 import org.bukkit.entity.Mob;
@@ -36,6 +39,9 @@ final class Instance {
     BossFight bossFight;
     boolean debug;
     final List<WaveInst> waveInsts = new ArrayList<>();
+    final List<Mob> adds = new ArrayList<>();
+    final List<AbstractArrow> arrows = new ArrayList<>();
+    final Set<UUID> bossDamagers = new HashSet<>(); // last boss battle
 
     Instance(@NonNull final RaidPlugin plugin,
              @NonNull final Raid raid,
@@ -146,6 +152,10 @@ final class Instance {
             if (slot.isPresent()) slot.mob.remove();
         }
         spawns.clear();
+        for (Mob add : adds) {
+            if (add.isValid()) add.remove();
+        }
+        adds.clear();
         if (bossFight != null) {
             bossFight.cleanup();
             bossFight = null;
@@ -176,6 +186,9 @@ final class Instance {
             }
         }
         if (bossFight != null && mob.equals(bossFight.mob)) {
+            bossFight.onBossDeath();
+            bossDamagers.clear();
+            bossDamagers.addAll(bossFight.damagers);
             bossFight.killed = true;
             bossFight.mob.remove();
             bossFight.mob = null;
@@ -201,11 +214,11 @@ final class Instance {
                 }
             }
         }
+        // Count alive mobs
         aliveMobCount = 0;
         for (SpawnSlot slot : spawns) {
-            if (slot.mob != null && slot.mob.isDead()) {
+            if (slot.mob != null && !slot.mob.isValid()) {
                 slot.mob = null;
-                slot.killed = true;
             }
             if (!slot.killed) aliveMobCount += 1;
             if (!slot.killed && !slot.isPresent()
@@ -213,12 +226,31 @@ final class Instance {
                 Mob mob = slot.spawn.spawn(world);
                 if (mob != null) {
                     slot.mob = mob;
+                    if (players.size() > 1) {
+                        double mul = 1.0 + 0.25 * (double) (players.size() - 1);
+                        double maxHealth = mob
+                            .getAttribute(Attribute.GENERIC_MAX_HEALTH).getBaseValue();
+                        double health = maxHealth * mul;
+                        mob.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(health);
+                        mob.setHealth(health);
+                    }
                 }
             }
             if (slot.isPresent()) {
                 findTarget(slot.mob, players);
             }
         }
+        adds.removeIf(add -> !add.isValid());
+        aliveMobCount += adds.size();
+        // Arrows
+        for (AbstractArrow arrow : arrows) {
+            if (!arrow.isValid()) continue;
+            if (arrow.isInBlock() && arrow.getTicksLived() > 200) {
+                arrow.remove();
+            }
+        }
+        arrows.removeIf(arrow -> !arrow.isValid());
+        // Boss Fight
         if (bossFight != null) {
             if (!bossFight.killed && !bossFight.isPresent()
                 && spawnChunks.contains(wave.place.getChunk())) {
@@ -255,6 +287,7 @@ final class Instance {
         }
         case GOAL: {
             int goalCount = 0;
+            long secondsLeft = Math.max(0, 60 - (waveTicks / 20));
             for (Player player : players) {
                 Location loc = player.getLocation();
                 double dx = Math.abs(loc.getX() - wave.place.x);
@@ -262,14 +295,19 @@ final class Instance {
                 double d = Math.sqrt(dx * dx + dz * dz);
                 if (d < wave.radius) {
                     goalCount += 1;
+                } else if (secondsLeft == 0 && waveIndex > 0) {
+                    plugin.getServer().getScheduler().runTask(plugin, () -> {
+                            removePlayer(player);
+                        });
                 }
             }
             if (goalCount >= players.size()) {
                 waveComplete = true;
             }
             if (waveTicks % 20 == 0) {
-                String msg = "" + ChatColor.YELLOW + "Players reached waypoint: "
-                    + goalCount + "/" + players.size();
+                String msg = "" + ChatColor.GOLD + "Players at waypoint: "
+                    + goalCount + "/" + players.size()
+                    + ChatColor.GRAY + String.format(" 00:%02d", secondsLeft);
                 for (Player player : players) {
                     player.sendActionBar(msg);
                 }
@@ -283,17 +321,21 @@ final class Instance {
             if (bossFight == null || bossFight.killed) {
                 waveComplete = true;
             } else if (bossFight != null && bossFight.isPresent()) {
-                for (Player player : players) {
-                    player.sendActionBar("" + ChatColor.RED
-                                         + ((int) bossFight.mob.getHealth())
-                                         + "/" + bossFight.maxHealth);
+                if (waveTicks % 20 == 0) {
+                    for (Player player : players) {
+                        player.sendActionBar("" + ChatColor.RED
+                                             + ((int) bossFight.mob.getHealth())
+                                             + "/" + bossFight.maxHealth);
+                    }
                 }
             }
             break;
         }
         case WIN: {
             if (waveTicks == 1) {
-                String playerNames = players.stream().map(Player::getName)
+                String playerNames = players.stream()
+                    .filter(p -> bossDamagers.contains(p.getUniqueId()))
+                    .map(Player::getName)
                     .collect(Collectors.joining(", "));
                 plugin.getLogger().info("Raid " + raid.worldName + " defeated: " + playerNames);
                 String msg = ChatColor.GOLD + "Dungeon " + raid.displayName
@@ -302,6 +344,7 @@ final class Instance {
                     other.sendMessage(msg);
                 }
                 for (Player player : players) {
+                    if (!bossDamagers.contains(player.getUniqueId())) continue;
                     player.playSound(player.getEyeLocation(),
                                      Sound.UI_TOAST_CHALLENGE_COMPLETE,
                                      SoundCategory.MASTER,
@@ -388,5 +431,11 @@ final class Instance {
                 }
             }
         }
+    }
+
+    void removePlayer(Player player) {
+        World w = plugin.getServer().getWorld("spawn");
+        if (w == null) w = plugin.getServer().getWorlds().get(0);
+        player.teleport(w.getSpawnLocation());
     }
 }
