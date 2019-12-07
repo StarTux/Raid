@@ -12,6 +12,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
@@ -22,6 +23,7 @@ import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.ExperienceOrb;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.EquipmentSlot;
 
 final class Instance {
     final RaidPlugin plugin;
@@ -42,6 +44,10 @@ final class Instance {
     final List<Mob> adds = new ArrayList<>();
     final List<AbstractArrow> arrows = new ArrayList<>();
     final Set<UUID> bossDamagers = new HashSet<>(); // last boss battle
+    int secondsLeft;
+    int prevGoalCount = 0;
+    ArmorStand goalEntity;
+    Set<Vec2i> spawnChunks = new HashSet<>();
 
     Instance(@NonNull final RaidPlugin plugin,
              @NonNull final Raid raid,
@@ -86,6 +92,10 @@ final class Instance {
             .collect(Collectors.toList());
     }
 
+    boolean isChunkLoaded(Vec2i chunk) {
+        return world.isChunkLoaded(chunk.x, chunk.z);
+    }
+
     void onTick() {
         if (debug) {
             for (int i = 0; i < raid.waves.size(); i += 1) {
@@ -95,8 +105,7 @@ final class Instance {
                 WaveInst waveInst = waveInsts.get(i);
                 if (wave.place != null) {
                     if (waveInst.debugEntity == null) {
-                        Vec2i c = wave.place.getChunk();
-                        if (world.isChunkLoaded(c.x, c.z)) {
+                        if (isChunkLoaded(wave.place.getChunk())) {
                             waveInst.debugEntity = world
                                 .spawn(wave.place.toLocation(world).add(0, 1, 0),
                                        ArmorStand.class,
@@ -164,6 +173,10 @@ final class Instance {
             debug = false;
             updateDebugMode();
         }
+        if (goalEntity != null) {
+            if (goalEntity.isValid()) goalEntity.remove();
+            goalEntity = null;
+        }
     }
 
     void setupWave(@NonNull Wave wave, List<Player> players) {
@@ -200,7 +213,7 @@ final class Instance {
         if (waveTicks == 0) setupWave(wave, players);
         waveTicks += 1;
         // Spawnable chunks
-        Set<Vec2i> spawnChunks = new HashSet<>();
+        spawnChunks.clear();
         for (Player player : players) {
             if (player.isGliding()) player.setGliding(false);
             Location loc = player.getLocation();
@@ -234,6 +247,8 @@ final class Instance {
                         mob.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(health);
                         mob.setHealth(health);
                     }
+                    mob.getWorld().playSound(mob.getEyeLocation(),
+                                             Sound.ENTITY_ENDERMAN_TELEPORT, 0.1f, 2.0f);
                 }
             }
             if (slot.isPresent()) {
@@ -256,67 +271,17 @@ final class Instance {
                 && spawnChunks.contains(wave.place.getChunk())) {
                 bossFight.mob = bossFight.boss.spawn(wave.place.toLocation(world));
             }
-            if (bossFight.isPresent()) {
-                bossFight.onTick(wave, players);
-                findTarget(bossFight.mob, players);
-            }
+            if (bossFight.isPresent()) bossFight.onTick(wave, players);
+            if (bossFight.isPresent()) findTarget(bossFight.mob, players);
         }
         // Complete condition
         switch (wave.type) {
-        case MOBS: {
-            if (aliveMobCount == 0) waveComplete = true;
-            if (!waveComplete && (waveTicks % 20) == 0) {
-                String msg = "" + ChatColor.YELLOW + "Kill Mobs: " + aliveMobCount;
-                for (Player player : players) {
-                    player.sendActionBar(msg);
-                }
-            }
-            if (waveComplete) {
-                int totalExp = wave.spawns.size() * 5;
-                if (totalExp > 0) {
-                    for (Player player : players) {
-                        world.spawn(player.getLocation(),
-                                    ExperienceOrb.class,
-                                    e -> {
-                                        e.setExperience(totalExp);
-                                    });
-                    }
-                }
-            }
+        case MOBS:
+            tickMobs(wave, players);
             break;
-        }
-        case GOAL: {
-            int goalCount = 0;
-            long secondsLeft = Math.max(0, 60 - (waveTicks / 20));
-            for (Player player : players) {
-                Location loc = player.getLocation();
-                double dx = Math.abs(loc.getX() - wave.place.x);
-                double dz = Math.abs(loc.getZ() - wave.place.z);
-                double d = Math.sqrt(dx * dx + dz * dz);
-                if (d < wave.radius) {
-                    goalCount += 1;
-                } else if (secondsLeft == 0 && waveIndex > 0) {
-                    plugin.getServer().getScheduler().runTask(plugin, () -> {
-                            removePlayer(player);
-                        });
-                }
-            }
-            if (goalCount >= players.size()) {
-                waveComplete = true;
-            }
-            if (waveTicks % 20 == 0) {
-                String msg = "" + ChatColor.GOLD + "Players at waypoint: "
-                    + goalCount + "/" + players.size()
-                    + ChatColor.GRAY + String.format(" 00:%02d", secondsLeft);
-                for (Player player : players) {
-                    player.sendActionBar(msg);
-                }
-            }
-            if (!waveComplete && spawnChunks.contains(wave.place.getChunk())) {
-                highlightPlace(wave);
-            }
+        case GOAL:
+            tickGoal(wave, players);
             break;
-        }
         case BOSS: {
             if (bossFight == null || bossFight.killed) {
                 waveComplete = true;
@@ -357,7 +322,7 @@ final class Instance {
                     }
                 }
             }
-            if (waveTicks >= 200) {
+            if (waveTicks >= 1200) {
                 World w = plugin.getServer().getWorld("spawn");
                 if (w != null) {
                     for (Player player : players) {
@@ -378,6 +343,121 @@ final class Instance {
             Location target = wave.place.toLocation(world);
             for (Player player : players) {
                 player.setCompassTarget(target);
+            }
+        }
+    }
+
+    void tickGoal(Wave wave, List<Player> players) {
+        int goalCount = 0;
+        List<Player> outList = new ArrayList<>();
+        for (Player player : players) {
+            Location loc = player.getLocation();
+            double dx = Math.abs(loc.getX() - wave.place.x);
+            double dz = Math.abs(loc.getZ() - wave.place.z);
+            double d = Math.sqrt(dx * dx + dz * dz);
+            if (d < wave.radius) {
+                goalCount += 1;
+            } else {
+                outList.add(player);
+            }
+        }
+        if (goalCount >= players.size()) {
+            waveComplete = true;
+            secondsLeft = 60;
+            for (Player player : players) {
+                player.playSound(player.getEyeLocation(),
+                                 Sound.ENTITY_ARROW_HIT_PLAYER,
+                                 SoundCategory.MASTER,
+                                 0.1f, 0.7f);
+            }
+        } else if (goalCount > 0) {
+            if (secondsLeft > 0 && waveTicks % 20 == 0) {
+                secondsLeft -= 1;
+            }
+        } else {
+            secondsLeft = 60;
+        }
+        if (secondsLeft == 0) {
+            for (Player out : outList) {
+                removePlayer(out);
+            }
+        }
+        if (goalCount != prevGoalCount || waveTicks % 20 == 0) {
+            prevGoalCount = goalCount;
+            String timeString = secondsLeft >= 60
+                ? " 01:00"
+                : String.format(" 00:%02d", secondsLeft);
+            String msg = ""
+                + ChatColor.GRAY + "Players at waypoint: "
+                + ChatColor.WHITE + goalCount
+                + ChatColor.GRAY + "/" + players.size()
+                + ChatColor.GRAY + timeString;
+            for (Player player : players) {
+                player.sendActionBar(msg);
+            }
+        }
+        if (!waveComplete && spawnChunks.contains(wave.place.getChunk())) {
+            highlightPlace(wave);
+        }
+        if (goalEntity != null && !goalEntity.isValid()) goalEntity = null;
+        if (!waveComplete && goalEntity == null && isChunkLoaded(wave.place.getChunk())) {
+            goalEntity = world.spawn(wave.place.toLocation(world), ArmorStand.class, e -> {
+                    e.setSmall(true);
+                    e.setCanTick(false);
+                    e.setCanMove(false);
+                    e.setGravity(false);
+                    e.setDisabledSlots(EquipmentSlot.values());
+                    e.setHelmet(new ItemBuilder(Material.RED_BANNER).create());
+                    e.setGlowing(true);
+                    e.setVisible(false);
+                    e.setMarker(true);
+                    e.setPersistent(false);
+                });
+        }
+        if (goalEntity != null) {
+            Location loc = goalEntity.getLocation();
+            float yaw = loc.getYaw();
+            yaw += 3.6f;
+            if (yaw > 360f) yaw -= 360f;
+            loc.setYaw(yaw);
+            goalEntity.teleport(loc);
+        }
+    }
+
+    void tickMobs(Wave wave, List<Player> players) {
+        if (aliveMobCount == 0) {
+            waveComplete = true;
+            for (Player player : players) {
+                player.playSound(player.getEyeLocation(),
+                                 Sound.ENTITY_PLAYER_LEVELUP,
+                                 SoundCategory.MASTER,
+                                 0.1f, 2.0f);
+            }
+        }
+        if (!waveComplete && (waveTicks % 20) == 0) {
+            String msg = "" + ChatColor.YELLOW + "Kill Mobs: " + aliveMobCount;
+            for (Player player : players) {
+                player.sendActionBar(msg);
+            }
+        }
+        if (waveComplete) {
+            int totalExp = wave.spawns.size() * 5;
+            if (totalExp > 0) {
+                for (Player player : players) {
+                    world.spawn(player.getLocation(),
+                                ExperienceOrb.class,
+                                e -> {
+                                    e.setExperience(totalExp);
+                                });
+                }
+            }
+        }
+        if (waveTicks > 1200 && waveTicks % 100 == 0) {
+            for (SpawnSlot slot : spawns) {
+                if (slot.isPresent()) slot.mob.setGlowing(true);
+            }
+            for (Mob mob : adds) {
+                if (mob.isValid()) mob.setGlowing(true);
             }
         }
     }

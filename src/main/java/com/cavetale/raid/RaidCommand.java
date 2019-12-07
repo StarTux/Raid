@@ -444,6 +444,9 @@ final class RaidCommand implements TabExecutor {
 
     boolean reloadCommand(@NonNull CommandSender sender, String[] args) throws Wrong {
         if (args.length != 0) return false;
+        for (Instance inst : plugin.instances.values()) {
+            inst.clearWave();
+        }
         plugin.raids.clear();
         plugin.instances.clear();
         plugin.loadRaids();
