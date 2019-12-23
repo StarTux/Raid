@@ -1,6 +1,7 @@
 package com.cavetale.raid;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -47,7 +48,15 @@ final class Instance {
     int secondsLeft;
     int prevGoalCount = 0;
     ArmorStand goalEntity;
+    int goalIndex = 0;
     Set<Vec2i> spawnChunks = new HashSet<>();
+    static List<ItemBuilder> goalItems = Arrays
+        .asList(new ItemBuilder(Material.RED_BANNER),
+                new ItemBuilder(Material.YELLOW_BANNER),
+                new ItemBuilder(Material.BLACK_BANNER),
+                new ItemBuilder(Material.WHITE_BANNER),
+                new ItemBuilder(Material.ORANGE_BANNER),
+                new ItemBuilder(Material.LIGHT_BLUE_BANNER));
 
     Instance(@NonNull final RaidPlugin plugin,
              @NonNull final Raid raid,
@@ -235,7 +244,7 @@ final class Instance {
             }
             if (!slot.killed) aliveMobCount += 1;
             // Spawn Mob
-            if (waveTicks > 20 && !slot.killed && !slot.isPresent()
+            if (!slot.killed && !slot.isPresent()
                 && spawnChunks.contains(slot.spawn.place.getChunk())) {
                 Mob mob = slot.spawn.spawn(world);
                 if (mob != null) {
@@ -351,12 +360,11 @@ final class Instance {
     void tickGoal(Wave wave, List<Player> players) {
         int goalCount = 0;
         List<Player> outList = new ArrayList<>();
+        Location waveLoc = wave.place.toLocation(world);
+        double radius = wave.radius * wave.radius;
         for (Player player : players) {
             Location loc = player.getLocation();
-            double dx = Math.abs(loc.getX() - wave.place.x);
-            double dz = Math.abs(loc.getZ() - wave.place.z);
-            double d = Math.sqrt(dx * dx + dz * dz);
-            if (d < wave.radius) {
+            if (loc.distanceSquared(waveLoc) <= radius) {
                 goalCount += 1;
             } else {
                 outList.add(player);
@@ -422,8 +430,12 @@ final class Instance {
             if (yaw > 360f) yaw -= 360f;
             loc.setYaw(yaw);
             goalEntity.teleport(loc);
+            if (ticks % 5 == 0) {
+                goalEntity.setHelmet(goalItems.get(goalIndex++).create());
+                if (goalIndex >= goalItems.size()) goalIndex = 0;
+            }
         }
-    }
+     }
 
     void tickMobs(Wave wave, List<Player> players) {
         if (aliveMobCount == 0) {
