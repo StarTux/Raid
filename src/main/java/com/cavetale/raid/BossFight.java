@@ -1,5 +1,6 @@
 package com.cavetale.raid;
 
+import com.cavetale.worldmarker.EntityMarker;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -18,10 +19,14 @@ import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Blaze;
 import org.bukkit.entity.Drowned;
+import org.bukkit.entity.ElderGuardian;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Evoker;
 import org.bukkit.entity.Firework;
 import org.bukkit.entity.Guardian;
 import org.bukkit.entity.LargeFireball;
@@ -34,6 +39,7 @@ import org.bukkit.entity.Spider;
 import org.bukkit.entity.ThrownPotion;
 import org.bukkit.entity.Trident;
 import org.bukkit.entity.Vex;
+import org.bukkit.entity.Wither;
 import org.bukkit.entity.WitherSkeleton;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
@@ -100,6 +106,116 @@ final class BossFight {
             if (add.isValid()) add.remove();
         }
         adds.clear();
+    }
+
+
+    List<String> getDialogue() {
+        switch (boss.type) {
+        case DECAYED:
+            return Arrays
+                .asList("Your effort is in vain.",
+                        "The show's over with my next move.",
+                        "Welcome home.");
+        case FORGOTTEN:
+            return Arrays
+                .asList("The journey ends here.",
+                        "My powers are beyond your understanding.",
+                        "You were foolish to come here.");
+        case VENGEFUL:
+            return Arrays
+                .asList("Like the crops in the field, you too shall wither away.",
+                        "Your time has come.",
+                        "Death draws nearer with every moment.");
+        case SKELLINGTON:
+            return Arrays.
+                asList("Who dares to enter these halls?",
+                       "You shall be added to my collection.",
+                       "This room will be your tomb.");
+        case DEEP_FEAR:
+            return Arrays
+                .asList("Blub!",
+                        "Blub blub blubbb blllub",
+                        "Blooob blub blub blub blub...");
+        case LAVA_LORD:
+            return Arrays
+                .asList("You've made it this far. Now you shall perish.",
+                        "Christmas will come this year over my dead bones.",
+                        "This is where it ends. For you.");
+        default:
+            return Arrays.asList("You'll never defeat StarTuuuuux!!!");
+        }
+    }
+
+    Mob spawn(@NonNull Location loc) {
+        World w = loc.getWorld();
+        switch (boss.type) {
+        case DECAYED:
+            return w.spawn(loc, WitherSkeleton.class, e -> {
+                    EntityEquipment eq = e.getEquipment();
+                    eq.setHelmet(new ItemBuilder(Material.CARVED_PUMPKIN).create());
+                    eq.setItemInMainHand(new ItemBuilder(Material.DIAMOND_SWORD)
+                                         .ench(Enchantment.KNOCKBACK, 2)
+                                         .ench(Enchantment.DAMAGE_ALL, 5).create());
+                    prep(e);
+                });
+        case FORGOTTEN:
+            return w.spawn(loc, Evoker.class, e -> {
+                    prep(e);
+                });
+        case VENGEFUL:
+            return w.spawn(loc, Wither.class, e -> {
+                    prep(e);
+                });
+        case SKELLINGTON:
+            return w.spawn(loc, Skeleton.class, e -> {
+                    EntityEquipment eq = e.getEquipment();
+                    eq.setHelmet(new ItemBuilder(Material.GOLDEN_HELMET).create());
+                    eq.setChestplate(new ItemBuilder(Material.GOLDEN_CHESTPLATE).create());
+                    eq.setLeggings(new ItemBuilder(Material.GOLDEN_LEGGINGS).create());
+                    eq.setBoots(new ItemBuilder(Material.GOLDEN_BOOTS).create());
+                    prep(e);
+                });
+        case DEEP_FEAR:
+            return w.spawn(loc, ElderGuardian.class, e -> {
+                    prep(e);
+                });
+        case LAVA_LORD:
+            return w.spawn(loc, MagmaCube.class, e -> {
+                    e.setSize(1);
+                    prep(e);
+                });
+        default:
+            throw new IllegalArgumentException(boss.type.name());
+        }
+    }
+
+    void setAttr(Mob entity, Attribute attribute, double value) {
+        AttributeInstance inst = entity.getAttribute(attribute);
+        if (inst == null) return;
+        inst.setBaseValue(value);
+    }
+
+    void prep(@NonNull Mob entity) {
+        double health = 1000.0;
+        setAttr(entity, Attribute.GENERIC_MAX_HEALTH, health);
+        entity.setHealth(health);
+        setAttr(entity, Attribute.GENERIC_ATTACK_DAMAGE, 10.0);
+        setAttr(entity, Attribute.GENERIC_KNOCKBACK_RESISTANCE, 1.0);
+        setAttr(entity, Attribute.GENERIC_MOVEMENT_SPEED, 0.25);
+        setAttr(entity, Attribute.GENERIC_ARMOR, 16.0); // dia=20
+        setAttr(entity, Attribute.GENERIC_ARMOR_TOUGHNESS, 2.0); // dia=8
+        entity.setPersistent(false);
+        EntityMarker.setId(entity, "raid:boss");
+        EntityEquipment eq = entity.getEquipment();
+        eq.setHelmetDropChance(0.0f);
+        eq.setChestplateDropChance(0.0f);
+        eq.setLeggingsDropChance(0.0f);
+        eq.setBootsDropChance(0.0f);
+        eq.setItemInMainHandDropChance(0.0f);
+        eq.setItemInOffHandDropChance(0.0f);
+        entity.setCustomName("" + ChatColor.YELLOW + ChatColor.BOLD
+                          + boss.type.displayName);
+        entity.setCustomNameVisible(true);
     }
 
     void onTick(@NonNull Wave wave, @NonNull List<Player> players) {
@@ -509,7 +625,7 @@ final class BossFight {
             if (mob.getVehicle() != null) return;
             Mob mount = mob.getWorld().spawn(mob.getLocation(), Spider.class, this::prepAdd);
             double health = 200.0;
-            boss.setAttr(mount, Attribute.GENERIC_MAX_HEALTH, health);
+            setAttr(mount, Attribute.GENERIC_MAX_HEALTH, health);
             mount.setHealth(health);
             adds.add(mount);
             mount.addPassenger(mob);
@@ -522,7 +638,7 @@ final class BossFight {
             return;
         }
         if (phaseTicks == 0) {
-            if (dialogue == null) dialogue = boss.getDialogue();
+            if (dialogue == null) dialogue = getDialogue();
             if (dialogue.isEmpty()) return;
             if (dialogueIndex >= dialogue.size()) dialogueIndex = 0;
             String dia = "" + ChatColor.DARK_RED + boss.type.displayName
@@ -626,7 +742,7 @@ final class BossFight {
         if (size < 1) size = 1;
         if (size == mc.getSize()) return;
         mc.setSize(size);
-        boss.setAttr(mc, Attribute.GENERIC_MAX_HEALTH, (double) maxHealth);
+        setAttr(mc, Attribute.GENERIC_MAX_HEALTH, (double) maxHealth);
         mc.setHealth(health);
     }
 

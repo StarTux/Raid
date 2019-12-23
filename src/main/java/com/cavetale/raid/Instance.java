@@ -279,7 +279,7 @@ final class Instance {
         if (bossFight != null) {
             if (!bossFight.killed && !bossFight.isPresent()
                 && spawnChunks.contains(wave.place.getChunk())) {
-                bossFight.mob = bossFight.boss.spawn(wave.place.toLocation(world));
+                bossFight.mob = bossFight.spawn(wave.place.toLocation(world));
             }
             if (bossFight.isPresent()) bossFight.onTick(wave, players);
             if (bossFight.isPresent()) findTarget(bossFight.mob, players);
