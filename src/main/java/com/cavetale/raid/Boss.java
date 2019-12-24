@@ -18,6 +18,7 @@ final class Boss implements ShortInfo {
         FROSTWRECKER("Frostwrecker"),
         ICE_GOLEM("Ice Golem"),
         ICEKELLY("Icekelly"),
+        SNOBEAR("Snobear"),
         ;
 
         public final String displayName;

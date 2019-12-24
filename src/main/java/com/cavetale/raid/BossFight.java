@@ -36,6 +36,7 @@ import org.bukkit.entity.LlamaSpit;
 import org.bukkit.entity.MagmaCube;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.PolarBear;
 import org.bukkit.entity.PufferFish;
 import org.bukkit.entity.Skeleton;
 import org.bukkit.entity.Snowman;
@@ -105,7 +106,9 @@ final class BossFight {
         WARP,
         LIGHTNING_SINGLE,
         SLIP_ICE,
-        LLAMA_SPIT;
+        LLAMA_SPIT,
+        THROW,
+        LEVITATE;
     }
 
     boolean isPresent() {
@@ -177,6 +180,10 @@ final class BossFight {
                     eq.setBoots(new ItemBuilder(Material.CHAINMAIL_BOOTS).create());
                     prep(e);
                 });
+        case SNOBEAR:
+            return w.spawn(loc, PolarBear.class, e -> {
+                    prep(e);
+                });
         default:
             throw new IllegalArgumentException(boss.type.name());
         }
@@ -229,6 +236,11 @@ final class BossFight {
                 .asList("My arrows are cooler than yours.",
                         "These halls are not for you!",
                         "Take them, my minions!");
+        case SNOBEAR:
+            return Arrays
+                .asList("Out of my cave!",
+                        "You think you're stronger than me?",
+                        "I'll show you.");
         default:
             return Arrays.asList("You'll never defeat StarTuuuuux!!!");
         }
@@ -264,6 +276,10 @@ final class BossFight {
             return Arrays
                 .asList(Phase.DIALOGUE, Phase.PAUSE, Phase.WARP,
                         Phase.ARROWS, Phase.ADDS, Phase.PAUSE);
+        case SNOBEAR:
+            return Arrays
+                .asList(Phase.DIALOGUE, Phase.THROW, Phase.WARP,
+                        Phase.LEVITATE, Phase.ADDS);
         default: return Arrays.asList(Phase.PAUSE);
         }
     }
@@ -331,18 +347,12 @@ final class BossFight {
                 mob.teleport(wave.place.toLocation(instance.world));
             }
             break;
-        case WARP:
-            tickWarp(wave, players);
-            break;
-        case LIGHTNING_SINGLE:
-            tickLightningSingle(wave, players);
-            break;
-        case SLIP_ICE:
-            tickSlipIce(wave, players);
-            break;
-        case LLAMA_SPIT:
-            tickLlamaSpit(wave, players);
-            break;
+        case WARP: tickWarp(wave, players); break;
+        case LIGHTNING_SINGLE: tickLightningSingle(wave, players); break;
+        case SLIP_ICE: tickSlipIce(wave, players); break;
+        case LLAMA_SPIT: tickLlamaSpit(wave, players); break;
+        case THROW: tickThrow(wave, players); break;
+        case LEVITATE: tickLevitate(wave, players); break;
         default: break;
         }
         if (phaseComplete) {
@@ -524,6 +534,12 @@ final class BossFight {
             if (phaseTicks > 0 && phaseTicks % 20 == 0) {
                 adds.add(mob.getWorld().spawn(mob.getEyeLocation(),
                                               Vex.class, this::prepAdd));
+            }
+            break;
+        case SNOBEAR:
+            if (phaseTicks > 0 && phaseTicks % 10 == 0) {
+                adds.add(mob.getWorld().spawn(mob.getEyeLocation(),
+                                              Blaze.class, this::prepAdd));
             }
             break;
         default: break;
@@ -1000,9 +1016,41 @@ final class BossFight {
             return;
         } else if (phaseTicks == 10) {
             for (Player player : players) {
-                Vector vec = Vector.getRandom().setY(0)
+                Vector vec = new Vector(instance.plugin.rnd(), 0, instance.plugin.rnd())
                     .normalize().multiply(1.5);
                 player.setVelocity(player.getVelocity().add(vec));
+            }
+        }
+    }
+
+    void tickThrow(Wave wave, List<Player> players) {
+        if (phaseTicks > 400) {
+            phaseComplete = true;
+            return;
+        }
+        if (phaseTicks % 20 != 0) return;
+        Player target = instance.findTarget(mob, players);
+        if (target == null) return;
+        Vector vec = new Vector(instance.plugin.rnd(), 0, instance.plugin.rnd())
+            .multiply(1.5)
+            .setY(2.0);
+        target.setVelocity(target.getVelocity().add(vec));
+        target.playSound(target.getEyeLocation(),
+                         Sound.ENTITY_POLAR_BEAR_WARNING,
+                         SoundCategory.HOSTILE,
+                         1.0f, 1.0f);
+    }
+
+    void tickLevitate(Wave wave, List<Player> players) {
+        if (phaseTicks > 20) {
+            phaseComplete = true;
+            return;
+        }
+        PotionEffect effect = new PotionEffect(PotionEffectType.LEVITATION,
+                                               200, 0);
+        if (phaseTicks == 10) {
+            for (Player player : players) {
+                player.addPotionEffect(effect, false);
             }
         }
     }
