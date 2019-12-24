@@ -416,8 +416,27 @@ final class BossFight {
         case LAVA_LORD:
             reward = new ItemBuilder(Material.GHAST_TEAR).amount(5);
             break;
+        case FROSTWRECKER:
+            reward = new ItemBuilder(Material.ENCHANTED_BOOK)
+                .enchStore(Enchantment.CHANNELING, 1);
+            break;
+        case ICE_GOLEM:
+            reward = new ItemBuilder(Material.ENCHANTED_BOOK)
+                .enchStore(Enchantment.FROST_WALKER, 2);
+            break;
+        case ICEKELLY:
+            reward = new ItemBuilder(Material.ENCHANTED_BOOK)
+                .enchStore(Enchantment.ARROW_INFINITE, 1);
+            break;
+        case SNOBEAR:
+            reward = new ItemBuilder(Material.ENCHANTED_BOOK)
+                .enchStore(Enchantment.DAMAGE_ALL, 5);
+            break;
+        case QUEEN_BEE:
+            reward = new ItemBuilder(Material.BEE_NEST);
+            break;
         default:
-            reward = new ItemBuilder(Material.DIAMOND);
+            reward = new ItemBuilder(Material.DIAMOND_BLOCK);
             break;
         }
         for (Player player : instance.getPlayers()) {

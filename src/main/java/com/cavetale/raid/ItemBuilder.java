@@ -5,6 +5,7 @@ import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
+import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.potion.PotionData;
@@ -38,6 +39,15 @@ final class ItemBuilder {
 
     ItemBuilder ench(@NonNull Enchantment ench, int level) {
         item.addUnsafeEnchantment(ench, level);
+        return this;
+    }
+
+    ItemBuilder enchStore(@NonNull Enchantment ench, int level) {
+        ItemMeta meta = item.getItemMeta();
+        if (meta instanceof EnchantmentStorageMeta) {
+            EnchantmentStorageMeta store = (EnchantmentStorageMeta) meta;
+            store.addStoredEnchant(ench, level, true);
+        }
         return this;
     }
 
