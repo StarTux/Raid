@@ -261,8 +261,9 @@ final class Instance {
                                              Sound.ENTITY_ENDERMAN_TELEPORT, 0.1f, 2.0f);
                 }
             }
-            if (slot.isPresent()) {
-                findTarget(slot.mob, players);
+            if (slot.isPresent() && !(slot.mob.getTarget() instanceof Player)) {
+                Player target = findTarget(slot.mob, players);
+                if (target != null) slot.mob.setTarget(target);
             }
         }
         adds.removeIf(add -> !add.isValid());
@@ -282,7 +283,6 @@ final class Instance {
                 bossFight.mob = bossFight.spawn(wave.place.toLocation(world));
             }
             if (bossFight.isPresent()) bossFight.onTick(wave, players);
-            if (bossFight.isPresent()) findTarget(bossFight.mob, players);
         }
         // Complete condition
         switch (wave.type) {
@@ -497,8 +497,7 @@ final class Instance {
         }
     }
 
-    void findTarget(@NonNull Mob mob, @NonNull List<Player> players) {
-        if (mob.getTarget() instanceof Player) return;
+    Player findTarget(@NonNull Mob mob, @NonNull List<Player> players) {
         Location eye = mob.getLocation();
         double min = Double.MAX_VALUE;
         Player target = null;
@@ -510,9 +509,7 @@ final class Instance {
                 target = player;
             }
         }
-        if (target != null) {
-            mob.setTarget(target);
-        }
+        return target;
     }
 
     void updateDebugMode() {

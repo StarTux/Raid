@@ -29,6 +29,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Evoker;
 import org.bukkit.entity.Firework;
 import org.bukkit.entity.Guardian;
+import org.bukkit.entity.Illusioner;
 import org.bukkit.entity.LargeFireball;
 import org.bukkit.entity.MagmaCube;
 import org.bukkit.entity.Mob;
@@ -50,6 +51,7 @@ import org.bukkit.potion.PotionData;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.potion.PotionType;
+import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
 
 /**
@@ -77,7 +79,10 @@ final class BossFight {
     int shieldCooldown;
     boolean tookDamage;
     final Set<UUID> damagers = new HashSet<>();
+    UUID lightningTarget;
+    List<Place> lightningSpots = new ArrayList<>();
     static final int ADDS_LIMIT = 32;
+    static final double MAX_DISTANCE = 32;
 
     enum Phase {
         IDLE,
@@ -92,7 +97,9 @@ final class BossFight {
         ARROWS,
         MOUNT,
         TRIDENTS,
-        HOME;
+        HOME,
+        WARP,
+        LIGHTNING_SINGLE;
     }
 
     boolean isPresent() {
@@ -106,44 +113,6 @@ final class BossFight {
             if (add.isValid()) add.remove();
         }
         adds.clear();
-    }
-
-
-    List<String> getDialogue() {
-        switch (boss.type) {
-        case DECAYED:
-            return Arrays
-                .asList("Your effort is in vain.",
-                        "The show's over with my next move.",
-                        "Welcome home.");
-        case FORGOTTEN:
-            return Arrays
-                .asList("The journey ends here.",
-                        "My powers are beyond your understanding.",
-                        "You were foolish to come here.");
-        case VENGEFUL:
-            return Arrays
-                .asList("Like the crops in the field, you too shall wither away.",
-                        "Your time has come.",
-                        "Death draws nearer with every moment.");
-        case SKELLINGTON:
-            return Arrays.
-                asList("Who dares to enter these halls?",
-                       "You shall be added to my collection.",
-                       "This room will be your tomb.");
-        case DEEP_FEAR:
-            return Arrays
-                .asList("Blub!",
-                        "Blub blub blubbb blllub",
-                        "Blooob blub blub blub blub...");
-        case LAVA_LORD:
-            return Arrays
-                .asList("You've made it this far. Now you shall perish.",
-                        "Christmas will come this year over my dead bones.",
-                        "This is where it ends. For you.");
-        default:
-            return Arrays.asList("You'll never defeat StarTuuuuux!!!");
-        }
     }
 
     Mob spawn(@NonNull Location loc) {
@@ -184,38 +153,81 @@ final class BossFight {
                     e.setSize(1);
                     prep(e);
                 });
+        case FROSTWRECKER:
+            return w.spawn(loc, Illusioner.class, e -> {
+                    prep(e);
+                });
         default:
             throw new IllegalArgumentException(boss.type.name());
         }
     }
 
-    void setAttr(Mob entity, Attribute attribute, double value) {
-        AttributeInstance inst = entity.getAttribute(attribute);
-        if (inst == null) return;
-        inst.setBaseValue(value);
+    List<String> getDialogue() {
+        switch (boss.type) {
+        case DECAYED:
+            return Arrays
+                .asList("Your effort is in vain.",
+                        "The show's over with my next move.",
+                        "Welcome home.");
+        case FORGOTTEN:
+            return Arrays
+                .asList("The journey ends here.",
+                        "My powers are beyond your understanding.",
+                        "You were foolish to come here.");
+        case VENGEFUL:
+            return Arrays
+                .asList("Like the crops in the field, you too shall wither away.",
+                        "Your time has come.",
+                        "Death draws nearer with every moment.");
+        case SKELLINGTON:
+            return Arrays.
+                asList("Who dares to enter these halls?",
+                       "You shall be added to my collection.",
+                       "This room will be your tomb.");
+        case DEEP_FEAR:
+            return Arrays
+                .asList("Blub!",
+                        "Blub blub blubbb blllub",
+                        "Blooob blub blub blub blub...");
+        case LAVA_LORD:
+            return Arrays
+                .asList("You've made it this far. Now you shall perish.",
+                        "Christmas will come this year over my dead bones.",
+                        "This is where it ends. For you.");
+        case FROSTWRECKER:
+            return Arrays
+                .asList("Join the others on the icy floor.",
+                        "Give in to the stream.",
+                        "Become one with the ocean.");
+        default:
+            return Arrays.asList("You'll never defeat StarTuuuuux!!!");
+        }
     }
 
-    void prep(@NonNull Mob entity) {
-        double health = 1000.0;
-        setAttr(entity, Attribute.GENERIC_MAX_HEALTH, health);
-        entity.setHealth(health);
-        setAttr(entity, Attribute.GENERIC_ATTACK_DAMAGE, 10.0);
-        setAttr(entity, Attribute.GENERIC_KNOCKBACK_RESISTANCE, 1.0);
-        setAttr(entity, Attribute.GENERIC_MOVEMENT_SPEED, 0.25);
-        setAttr(entity, Attribute.GENERIC_ARMOR, 16.0); // dia=20
-        setAttr(entity, Attribute.GENERIC_ARMOR_TOUGHNESS, 2.0); // dia=8
-        entity.setPersistent(false);
-        EntityMarker.setId(entity, "raid:boss");
-        EntityEquipment eq = entity.getEquipment();
-        eq.setHelmetDropChance(0.0f);
-        eq.setChestplateDropChance(0.0f);
-        eq.setLeggingsDropChance(0.0f);
-        eq.setBootsDropChance(0.0f);
-        eq.setItemInMainHandDropChance(0.0f);
-        eq.setItemInOffHandDropChance(0.0f);
-        entity.setCustomName("" + ChatColor.YELLOW + ChatColor.BOLD
-                          + boss.type.displayName);
-        entity.setCustomNameVisible(true);
+    List<Phase> getPhases() {
+        switch (boss.type) {
+        case DECAYED:
+            return Arrays.asList(Phase.DIALOGUE, Phase.FIREWORK, Phase.PAUSE, Phase.ADDS);
+        case FORGOTTEN:
+            return Arrays.asList(Phase.DIALOGUE, Phase.PULL, Phase.POTION, Phase.PAUSE, Phase.ADDS);
+        case VENGEFUL:
+            return Arrays.asList(Phase.DIALOGUE, Phase.PUSH, Phase.PAUSE, Phase.FIREBALL);
+        case SKELLINGTON:
+            return Arrays
+                .asList(Phase.DIALOGUE, Phase.MOUNT, Phase.PAUSE,
+                        Phase.ARROWS, Phase.ADDS, Phase.PAUSE);
+        case DEEP_FEAR:
+            return Arrays
+                .asList(Phase.DIALOGUE, Phase.PAUSE, Phase.ADDS, Phase.PAUSE);
+        case LAVA_LORD:
+            return Arrays
+                .asList(Phase.DIALOGUE, Phase.PAUSE, Phase.ADDS, Phase.PAUSE, Phase.HOME);
+        case FROSTWRECKER:
+            return Arrays
+                .asList(Phase.DIALOGUE, Phase.PAUSE, Phase.LIGHTNING_SINGLE, Phase.WARP,
+                        Phase.PAUSE);
+        default: return Arrays.asList(Phase.PAUSE);
+        }
     }
 
     void onTick(@NonNull Wave wave, @NonNull List<Player> players) {
@@ -278,6 +290,12 @@ final class BossFight {
                 mob.teleport(wave.place.toLocation(instance.world));
             }
             break;
+        case WARP:
+            tickWarp(wave, players);
+            break;
+        case LIGHTNING_SINGLE:
+            tickLightningSingle(wave, players);
+            break;
         default: break;
         }
         if (phaseComplete) {
@@ -288,29 +306,82 @@ final class BossFight {
             phaseTicks = 0;
         } else {
             phaseTicks += 1;
+            if (!(mob.getTarget() instanceof Player)) {
+                Player target = instance.findTarget(mob, players);
+                if (target != null) mob.setTarget(target);
+            }
         }
     }
 
-    List<Phase> getPhases() {
+
+    void onBossDeath() {
+        Player killer = mob.getKiller();
+        if (killer != null) damagers.add(killer.getUniqueId());
+        ItemBuilder reward;
         switch (boss.type) {
-        case DECAYED:
-            return Arrays.asList(Phase.DIALOGUE, Phase.FIREWORK, Phase.PAUSE, Phase.ADDS);
-        case FORGOTTEN:
-            return Arrays.asList(Phase.DIALOGUE, Phase.PULL, Phase.POTION, Phase.PAUSE, Phase.ADDS);
-        case VENGEFUL:
-            return Arrays.asList(Phase.DIALOGUE, Phase.PUSH, Phase.PAUSE, Phase.FIREBALL);
-        case SKELLINGTON:
-            return Arrays
-                .asList(Phase.DIALOGUE, Phase.MOUNT, Phase.PAUSE,
-                        Phase.ARROWS, Phase.ADDS, Phase.PAUSE);
         case DEEP_FEAR:
-            return Arrays
-                .asList(Phase.DIALOGUE, Phase.PAUSE, Phase.ADDS, Phase.PAUSE);
+            reward = new ItemBuilder(Material.TRIDENT);
+            break;
+        case VENGEFUL:
+            reward = new ItemBuilder(Material.NETHER_STAR);
+            break;
+        case DECAYED:
+            reward = new ItemBuilder(Material.WITHER_SKELETON_SKULL);
+            break;
+        case FORGOTTEN:
+            reward = new ItemBuilder(Material.TOTEM_OF_UNDYING);
+            break;
+        case SKELLINGTON:
+            reward = new ItemBuilder(Material.SKELETON_SKULL);
+            break;
         case LAVA_LORD:
-            return Arrays
-                .asList(Phase.DIALOGUE, Phase.PAUSE, Phase.ADDS, Phase.PAUSE, Phase.HOME);
-        default: return Arrays.asList(Phase.PAUSE);
+            reward = new ItemBuilder(Material.GHAST_TEAR).amount(5);
+            break;
+        default:
+            reward = new ItemBuilder(Material.DIAMOND);
+            break;
         }
+        for (Player player : instance.getPlayers()) {
+            player.sendTitle(ChatColor.GOLD + boss.type.displayName,
+                             ChatColor.RED + "Defeated!");
+            if (!damagers.contains(player.getUniqueId())) continue;
+            player.playSound(player.getEyeLocation(),
+                             Sound.UI_TOAST_CHALLENGE_COMPLETE,
+                             SoundCategory.MASTER,
+                             0.5f, 2.0f);
+            for (ItemStack drop : player.getInventory().addItem(reward.create()).values()) {
+                player.getWorld().dropItem(player.getEyeLocation(), drop);
+            }
+        }
+    }
+
+    void setAttr(Mob entity, Attribute attribute, double value) {
+        AttributeInstance inst = entity.getAttribute(attribute);
+        if (inst == null) return;
+        inst.setBaseValue(value);
+    }
+
+    void prep(@NonNull Mob entity) {
+        double health = 1000.0;
+        setAttr(entity, Attribute.GENERIC_MAX_HEALTH, health);
+        entity.setHealth(health);
+        setAttr(entity, Attribute.GENERIC_ATTACK_DAMAGE, 10.0);
+        setAttr(entity, Attribute.GENERIC_KNOCKBACK_RESISTANCE, 1.0);
+        setAttr(entity, Attribute.GENERIC_MOVEMENT_SPEED, 0.25);
+        setAttr(entity, Attribute.GENERIC_ARMOR, 16.0); // dia=20
+        setAttr(entity, Attribute.GENERIC_ARMOR_TOUGHNESS, 2.0); // dia=8
+        entity.setPersistent(false);
+        EntityMarker.setId(entity, "raid:boss");
+        EntityEquipment eq = entity.getEquipment();
+        eq.setHelmetDropChance(0.0f);
+        eq.setChestplateDropChance(0.0f);
+        eq.setLeggingsDropChance(0.0f);
+        eq.setBootsDropChance(0.0f);
+        eq.setItemInMainHandDropChance(0.0f);
+        eq.setItemInOffHandDropChance(0.0f);
+        entity.setCustomName("" + ChatColor.GOLD + ChatColor.BOLD
+                          + boss.type.displayName);
+        entity.setCustomNameVisible(true);
     }
 
     void tickAdds(@NonNull Wave wave, @NonNull List<Player> players) {
@@ -746,43 +817,82 @@ final class BossFight {
         mc.setHealth(health);
     }
 
-    void onBossDeath() {
-        Player killer = mob.getKiller();
-        if (killer != null) damagers.add(killer.getUniqueId());
-        ItemBuilder reward;
-        switch (boss.type) {
-        case DEEP_FEAR:
-            reward = new ItemBuilder(Material.TRIDENT);
-            break;
-        case VENGEFUL:
-            reward = new ItemBuilder(Material.NETHER_STAR);
-            break;
-        case DECAYED:
-            reward = new ItemBuilder(Material.WITHER_SKELETON_SKULL);
-            break;
-        case FORGOTTEN:
-            reward = new ItemBuilder(Material.TOTEM_OF_UNDYING);
-            break;
-        case SKELLINGTON:
-            reward = new ItemBuilder(Material.SKELETON_SKULL);
-            break;
-        case LAVA_LORD:
-            reward = new ItemBuilder(Material.GHAST_TEAR).amount(5);
-            break;
-        default:
-            reward = new ItemBuilder(Material.DIAMOND);
-            break;
+    void tickWarp(Wave wave, List<Player> players) {
+        Location center = wave.place.toLocation(instance.world);
+        Location loc = mob.getLocation();
+        if (phaseTicks == 0) {
+            if (center.distanceSquared(loc) > MAX_DISTANCE * MAX_DISTANCE) {
+                phaseComplete = true;
+                mob.teleport(center);
+            }
+        } else if (phaseTicks > 100) {
+            phaseComplete = true;
+            return;
         }
-        for (Player player : instance.getPlayers()) {
-            player.sendTitle(ChatColor.GOLD + boss.type.displayName,
-                             ChatColor.RED + "Defeated!");
-            if (!damagers.contains(player.getUniqueId())) continue;
-            player.playSound(player.getEyeLocation(),
-                             Sound.UI_TOAST_CHALLENGE_COMPLETE,
-                             SoundCategory.MASTER,
-                             0.5f, 2.0f);
-            for (ItemStack drop : player.getInventory().addItem(reward.create()).values()) {
-                player.getWorld().dropItem(player.getEyeLocation(), drop);
+        final double radius = 16.0;
+        Location to = loc.clone().add(instance.plugin.rnd() * radius,
+                                      instance.plugin.rnd() * radius,
+                                      instance.plugin.rnd() * radius);
+        if (to.distanceSquared(center) > MAX_DISTANCE * MAX_DISTANCE) return;
+        if (to.getY() < 5.0 && to.getY() > 250.0) return;
+        if (!to.getBlock().getRelative(0, -1, 0).getType().isSolid()) return;
+        BoundingBox bb = mob.getBoundingBox().shift(to.clone().subtract(loc));
+        World w = to.getWorld();
+        final int ax = (int) Math.floor(bb.getMinX());
+        final int ay = (int) Math.floor(bb.getMinY());
+        final int az = (int) Math.floor(bb.getMinZ());
+        final int bx = (int) Math.floor(bb.getMaxX());
+        final int by = (int) Math.floor(bb.getMaxY());
+        final int bz = (int) Math.floor(bb.getMaxZ());
+        for (int y = ay; y <= by; y += 1) {
+            for (int z = az; z <= bz; z += 1) {
+                for (int x = ax; x <= bx; x += 1) {
+                    if (!instance.world.getBlockAt(x, y, z).isEmpty()) return;
+                }
+            }
+        }
+        mob.teleport(to);
+        phaseComplete = true;
+    }
+
+    void tickLightningSingle(Wave wave, List<Player> players) {
+        if (phaseTicks == 0) {
+            lightningTarget = null;
+            instance.world.spawnParticle(Particle.FLASH, mob.getEyeLocation(),
+                                         5, 0.5, 0.5, 0.5, 0.0);
+        } else if (phaseTicks > 400) {
+            phaseComplete = true;
+            lightningTarget = null;
+            return;
+        } else if (phaseTicks < 30) {
+            return;
+        }
+        long mod = phaseTicks % 30;
+        if (mod == 10) {
+            lightningSpots.clear();
+            Player target;
+            if (lightningTarget == null) {
+                target = players
+                    .get(instance.plugin.random.nextInt(players.size()));
+                lightningTarget = target.getUniqueId();
+            } else {
+                target = null;
+                for (Player p : players) {
+                    if (p.getUniqueId().equals(lightningTarget)) {
+                        target = p;
+                    }
+                }
+                if (target == null) {
+                    lightningTarget = null;
+                    return;
+                }
+            }
+            instance.world.spawnParticle(Particle.END_ROD, target.getEyeLocation(),
+                                         6, 0.2, 0.2, 0.2, 0);
+            lightningSpots.add(Place.of(target.getLocation()));
+        } else if (mod == 29) {
+            for (Place spot : lightningSpots) {
+                instance.world.strikeLightning(spot.toLocation(instance.world));
             }
         }
     }

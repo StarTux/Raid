@@ -13,7 +13,10 @@ final class Boss implements ShortInfo {
         // Halloween 2018 (Legacy)
         SKELLINGTON("Skellington"),
         DEEP_FEAR("Deep Fear"),
-        LAVA_LORD("Lava Lord");
+        LAVA_LORD("Lava Lord"),
+        // Christmas 2019
+        FROSTWRECKER("Frostwrecker"),
+        ;
 
         public final String displayName;
 
