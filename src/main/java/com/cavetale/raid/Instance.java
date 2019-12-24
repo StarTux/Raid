@@ -186,6 +186,10 @@ final class Instance {
             if (goalEntity.isValid()) goalEntity.remove();
             goalEntity = null;
         }
+        for (AbstractArrow arrow : arrows) {
+            arrow.remove();
+        }
+        arrows.clear();
     }
 
     void setupWave(@NonNull Wave wave, List<Player> players) {
