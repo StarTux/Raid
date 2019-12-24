@@ -22,6 +22,7 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Arrow;
+import org.bukkit.entity.Bee;
 import org.bukkit.entity.Blaze;
 import org.bukkit.entity.Creeper;
 import org.bukkit.entity.Drowned;
@@ -86,7 +87,7 @@ final class BossFight {
     final Set<UUID> damagers = new HashSet<>();
     UUID lightningTarget;
     List<Place> lightningSpots = new ArrayList<>();
-    static final int ADDS_LIMIT = 32;
+    static final int ADDS_LIMIT = 40;
     static final double MAX_DISTANCE = 32;
 
     enum Phase {
@@ -184,6 +185,12 @@ final class BossFight {
             return w.spawn(loc, PolarBear.class, e -> {
                     prep(e);
                 });
+        case QUEEN_BEE:
+            return w.spawn(loc, Bee.class, e -> {
+                    e.setHasNectar(true);
+                    e.setAnger(72000);
+                    prep(e);
+                });
         default:
             throw new IllegalArgumentException(boss.type.name());
         }
@@ -241,6 +248,11 @@ final class BossFight {
                 .asList("Out of my cave!",
                         "You think you're stronger than me?",
                         "I'll show you.");
+        case QUEEN_BEE:
+            return Arrays
+                .asList("Bzzzzz!",
+                        "Bww bww bwwww buzzzzz!",
+                        "Zzzzzzzzz...");
         default:
             return Arrays.asList("You'll never defeat StarTuuuuux!!!");
         }
@@ -280,6 +292,10 @@ final class BossFight {
             return Arrays
                 .asList(Phase.DIALOGUE, Phase.THROW, Phase.WARP,
                         Phase.LEVITATE, Phase.ADDS);
+        case QUEEN_BEE:
+            return Arrays
+                .asList(Phase.DIALOGUE, Phase.PAUSE,
+                        Phase.ADDS, Phase.HOME);
         default: return Arrays.asList(Phase.PAUSE);
         }
     }
@@ -305,6 +321,12 @@ final class BossFight {
         case LAVA_LORD:
             tickLavaLord(wave, players);
             break;
+        case QUEEN_BEE: {
+            Bee bee = (Bee) mob;
+            bee.setAnger(72000);
+            bee.setHasStung(false);
+            break;
+        }
         default: break;
         }
         switch (phase) {
@@ -442,7 +464,7 @@ final class BossFight {
     }
 
     void tickAdds(@NonNull Wave wave, @NonNull List<Player> players) {
-        if (phaseTicks > 100) {
+        if (phaseTicks > 200) {
             phaseComplete = true;
             return;
         }
@@ -540,6 +562,15 @@ final class BossFight {
             if (phaseTicks > 0 && phaseTicks % 10 == 0) {
                 adds.add(mob.getWorld().spawn(mob.getEyeLocation(),
                                               Blaze.class, this::prepAdd));
+            }
+            break;
+        case QUEEN_BEE:
+            if (phaseTicks > 0 && phaseTicks % 5 == 0) {
+                adds.add(mob.getWorld().spawn(mob.getEyeLocation(),
+                                              Bee.class, e -> {
+                                                  e.setAnger(72000);
+                                                  prepAdd(e);
+                                              }));
             }
             break;
         default: break;
