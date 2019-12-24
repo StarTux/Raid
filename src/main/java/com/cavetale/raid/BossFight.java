@@ -23,6 +23,7 @@ import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Blaze;
+import org.bukkit.entity.Creeper;
 import org.bukkit.entity.Drowned;
 import org.bukkit.entity.ElderGuardian;
 import org.bukkit.entity.Entity;
@@ -31,12 +32,15 @@ import org.bukkit.entity.Firework;
 import org.bukkit.entity.Guardian;
 import org.bukkit.entity.Illusioner;
 import org.bukkit.entity.LargeFireball;
+import org.bukkit.entity.LlamaSpit;
 import org.bukkit.entity.MagmaCube;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.PufferFish;
 import org.bukkit.entity.Skeleton;
+import org.bukkit.entity.Snowman;
 import org.bukkit.entity.Spider;
+import org.bukkit.entity.Stray;
 import org.bukkit.entity.ThrownPotion;
 import org.bukkit.entity.Trident;
 import org.bukkit.entity.Vex;
@@ -99,7 +103,9 @@ final class BossFight {
         TRIDENTS,
         HOME,
         WARP,
-        LIGHTNING_SINGLE;
+        LIGHTNING_SINGLE,
+        SLIP_ICE,
+        LLAMA_SPIT;
     }
 
     boolean isPresent() {
@@ -157,6 +163,11 @@ final class BossFight {
             return w.spawn(loc, Illusioner.class, e -> {
                     prep(e);
                 });
+        case ICE_GOLEM:
+            return w.spawn(loc, Snowman.class, e -> {
+                    e.setDerp(true);
+                    prep(e);
+                });
         default:
             throw new IllegalArgumentException(boss.type.name());
         }
@@ -199,6 +210,11 @@ final class BossFight {
                 .asList("Join the others on the icy floor.",
                         "Give in to the stream.",
                         "Become one with the ocean.");
+        case ICE_GOLEM:
+            return Arrays
+                .asList("Prepare to slip on my grounds!",
+                        "Behold your own reflection.",
+                        "No foothold for you!");
         default:
             return Arrays.asList("You'll never defeat StarTuuuuux!!!");
         }
@@ -226,6 +242,10 @@ final class BossFight {
             return Arrays
                 .asList(Phase.DIALOGUE, Phase.PAUSE, Phase.LIGHTNING_SINGLE, Phase.WARP,
                         Phase.PAUSE);
+        case ICE_GOLEM:
+            return Arrays
+                .asList(Phase.DIALOGUE, Phase.SLIP_ICE, Phase.PAUSE, Phase.LLAMA_SPIT,
+                        Phase.HOME, Phase.ADDS, Phase.PAUSE);
         default: return Arrays.asList(Phase.PAUSE);
         }
     }
@@ -239,7 +259,10 @@ final class BossFight {
         }
         adds.removeIf(e -> !e.isValid());
         for (Mob add : adds) {
-            instance.findTarget(add, players);
+            if (!(add.getTarget() instanceof Player)) {
+                Player target = instance.findTarget(add, players);
+                if (target != null) add.setTarget(target);
+            }
         }
         switch (boss.type) {
         case DEEP_FEAR:
@@ -295,6 +318,12 @@ final class BossFight {
             break;
         case LIGHTNING_SINGLE:
             tickLightningSingle(wave, players);
+            break;
+        case SLIP_ICE:
+            tickSlipIce(wave, players);
+            break;
+        case LLAMA_SPIT:
+            tickLlamaSpit(wave, players);
             break;
         default: break;
         }
@@ -456,6 +485,21 @@ final class BossFight {
             if (phaseTicks > 0 && phaseTicks % 20 == 0) {
                 adds.add(mob.getWorld().spawn(mob.getEyeLocation(),
                                               Blaze.class, this::prepAdd));
+            }
+            break;
+        case ICE_GOLEM:
+            if (phaseTicks > 0 && phaseTicks % 10 == 0) {
+                int num = instance.plugin.random.nextInt(10);
+                if (num == 0) {
+                    adds.add(mob.getWorld().spawn(mob.getLocation(),
+                                                  Creeper.class, this::prepAdd));
+                } else if (num < 4) {
+                    adds.add(mob.getWorld().spawn(mob.getLocation(),
+                                                  Drowned.class, this::prepAdd));
+                } else {
+                    adds.add(mob.getWorld().spawn(mob.getLocation(),
+                                                  Stray.class, this::prepAdd));
+                }
             }
             break;
         default: break;
@@ -817,6 +861,22 @@ final class BossFight {
         mc.setHealth(health);
     }
 
+    void tickLlamaSpit(Wave wave, List<Player> players) {
+        if (phaseTicks > 200) {
+            phaseComplete = true;
+            return;
+        }
+        Player target = players.get(instance.plugin.random.nextInt(players.size()));
+        Vector velo = target.getEyeLocation()
+            .subtract(mob.getEyeLocation())
+            .toVector().normalize()
+            .add(new Vector(instance.plugin.rnd() * 0.1,
+                            instance.plugin.random.nextDouble() * 0.2,
+                            instance.plugin.rnd() * 0.1))
+            .multiply(2.0);
+        mob.launchProjectile(LlamaSpit.class, velo);
+    }
+
     void tickWarp(Wave wave, List<Player> players) {
         Location center = wave.place.toLocation(instance.world);
         Location loc = mob.getLocation();
@@ -856,13 +916,14 @@ final class BossFight {
     }
 
     void tickLightningSingle(Wave wave, List<Player> players) {
-        if (phaseTicks == 0) {
+        if (phaseTicks > 400) {
+            phaseComplete = true;
+            lightningTarget = null;
+            return;
+        } else if (phaseTicks == 0) {
             lightningTarget = null;
             instance.world.spawnParticle(Particle.FLASH, mob.getEyeLocation(),
                                          5, 0.5, 0.5, 0.5, 0.0);
-        } else if (phaseTicks > 400) {
-            phaseComplete = true;
-            lightningTarget = null;
             return;
         } else if (phaseTicks < 30) {
             return;
@@ -893,6 +954,19 @@ final class BossFight {
         } else if (mod == 29) {
             for (Place spot : lightningSpots) {
                 instance.world.strikeLightning(spot.toLocation(instance.world));
+            }
+        }
+    }
+
+    void tickSlipIce(Wave wave, List<Player> players) {
+        if (phaseTicks > 20) {
+            phaseComplete = true;
+            return;
+        } else if (phaseTicks == 10) {
+            for (Player player : players) {
+                Vector vec = Vector.getRandom().setY(0)
+                    .normalize().multiply(1.5);
+                player.setVelocity(player.getVelocity().add(vec));
             }
         }
     }

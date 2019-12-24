@@ -16,6 +16,7 @@ final class Boss implements ShortInfo {
         LAVA_LORD("Lava Lord"),
         // Christmas 2019
         FROSTWRECKER("Frostwrecker"),
+        ICE_GOLEM("Ice Golem"),
         ;
 
         public final String displayName;

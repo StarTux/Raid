@@ -94,13 +94,15 @@ final class EventListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
-        if (!(event.getEntity() instanceof Player)) return;
-        Player player = (Player) event.getEntity();
-        Instance inst = plugin.raidInstance(player.getWorld());
-        if (inst == null) return;
-        if (!(event.getDamager() instanceof ElderGuardian)) return;
-        double dmg = event.getDamage();
-        if (dmg > 1.0) event.setDamage(1.0); // 4 times per second
+        if (event.getEntity() instanceof Player) {
+            Player player = (Player) event.getEntity();
+            Instance inst = plugin.raidInstance(player.getWorld());
+            if (inst == null) return;
+            if (event.getDamager() instanceof ElderGuardian) {
+                double dmg = event.getDamage();
+                if (dmg > 1.0) event.setDamage(1.0); // 4 times per second
+            }
+        }
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
