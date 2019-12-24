@@ -168,6 +168,15 @@ final class BossFight {
                     e.setDerp(true);
                     prep(e);
                 });
+        case ICEKELLY:
+            return w.spawn(loc, Skeleton.class, e -> {
+                    EntityEquipment eq = e.getEquipment();
+                    eq.setHelmet(new ItemBuilder(Material.CHAINMAIL_HELMET).create());
+                    eq.setChestplate(new ItemBuilder(Material.CHAINMAIL_CHESTPLATE).create());
+                    eq.setLeggings(new ItemBuilder(Material.CHAINMAIL_LEGGINGS).create());
+                    eq.setBoots(new ItemBuilder(Material.CHAINMAIL_BOOTS).create());
+                    prep(e);
+                });
         default:
             throw new IllegalArgumentException(boss.type.name());
         }
@@ -215,6 +224,11 @@ final class BossFight {
                 .asList("Prepare to slip on my grounds!",
                         "Behold your own reflection.",
                         "No foothold for you!");
+        case ICEKELLY:
+            return Arrays
+                .asList("My arrows are cooler than yours.",
+                        "These halls are not for you!",
+                        "Take them, my minions!");
         default:
             return Arrays.asList("You'll never defeat StarTuuuuux!!!");
         }
@@ -246,6 +260,10 @@ final class BossFight {
             return Arrays
                 .asList(Phase.DIALOGUE, Phase.SLIP_ICE, Phase.PAUSE, Phase.LLAMA_SPIT,
                         Phase.HOME, Phase.ADDS, Phase.PAUSE);
+        case ICEKELLY:
+            return Arrays
+                .asList(Phase.DIALOGUE, Phase.PAUSE, Phase.WARP,
+                        Phase.ARROWS, Phase.ADDS, Phase.PAUSE);
         default: return Arrays.asList(Phase.PAUSE);
         }
     }
@@ -502,6 +520,12 @@ final class BossFight {
                 }
             }
             break;
+        case ICEKELLY:
+            if (phaseTicks > 0 && phaseTicks % 20 == 0) {
+                adds.add(mob.getWorld().spawn(mob.getEyeLocation(),
+                                              Vex.class, this::prepAdd));
+            }
+            break;
         default: break;
         }
     }
@@ -687,25 +711,37 @@ final class BossFight {
                             instance.plugin.rnd() * 0.1))
             .multiply(2.0);
         Arrow arrow = (Arrow) mob.launchProjectile(Arrow.class, velo);
-        arrow.setFireTicks(6000);
         arrow.setDamage(5.0);
         arrow.setPierceLevel(3);
         arrow.setPersistent(false);
         instance.arrows.add(arrow);
-        switch (instance.plugin.random.nextInt(4)) {
-        case 0:
-            arrow.setBasePotionData(new PotionData(PotionType.INSTANT_DAMAGE, false, true));
-            break;
-        case 1:
-            arrow.setBasePotionData(new PotionData(PotionType.POISON, false, true));
-            break;
-        case 2:
-            arrow.setBasePotionData(new PotionData(PotionType.WEAKNESS, true, false));
-            break;
-        case 3:
-            arrow.addCustomEffect(new PotionEffect(PotionEffectType.HUNGER, 400, 1), true);
-            break;
-        default: break;
+        if (boss.type == Boss.Type.SKELLINGTON) {
+            arrow.setFireTicks(6000);
+            switch (instance.plugin.random.nextInt(4)) {
+            case 0:
+                arrow.setBasePotionData(new PotionData(PotionType.INSTANT_DAMAGE, false, true));
+                break;
+            case 1:
+                arrow.setBasePotionData(new PotionData(PotionType.POISON, false, true));
+                break;
+            case 2:
+                arrow.setBasePotionData(new PotionData(PotionType.WEAKNESS, true, false));
+                break;
+            case 3:
+                arrow.addCustomEffect(new PotionEffect(PotionEffectType.HUNGER, 400, 1), true);
+                break;
+            default: break;
+            }
+        } else if (boss.type == Boss.Type.ICEKELLY) {
+            switch (instance.plugin.random.nextInt(2)) {
+            case 0:
+                arrow.setBasePotionData(new PotionData(PotionType.SLOWNESS, false, true));
+                break;
+            case 1:
+                arrow.setBasePotionData(new PotionData(PotionType.WEAKNESS, true, false));
+                break;
+            default: break;
+            }
         }
         instance.world
             .playSound(mob.getLocation(), Sound.ENTITY_ARROW_SHOOT, 1.0f, 1.2f);
