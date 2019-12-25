@@ -508,6 +508,7 @@ final class Instance {
         for (Player player : players) {
             if (!mob.hasLineOfSight(player)) continue;
             double dist = player.getLocation().distanceSquared(eye);
+            if (dist > 32) continue;
             if (dist < min) {
                 min = dist;
                 target = player;

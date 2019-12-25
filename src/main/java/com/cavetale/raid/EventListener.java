@@ -3,6 +3,7 @@ package com.cavetale.raid;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.ElderGuardian;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
@@ -14,6 +15,7 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.hanging.HangingBreakEvent;
 import org.bukkit.event.player.PlayerItemDamageEvent;
@@ -118,8 +120,29 @@ final class EventListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     void onHangingBreak(HangingBreakEvent event) {
-        Instance inst = plugin.raidInstance(event.getEntity().getWorld());
+        Entity entity = event.getEntity();
+        Instance inst = plugin.raidInstance(entity.getWorld());
         if (inst == null) return;
         event.setCancelled(true);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    void onEntityTarget(EntityTargetEvent event) {
+        if (event.getReason() == EntityTargetEvent.TargetReason.CUSTOM) return;
+        if (!(event.getEntity() instanceof Mob)) return;
+        Mob mob = (Mob) event.getEntity();
+        Instance inst = plugin.raidInstance(mob.getWorld());
+        if (inst == null) return;
+        Entity target = event.getTarget();
+        if (target == null) return;
+        switch (target.getType()) {
+        case PLAYER:
+        case WOLF:
+        case CAT:
+            return;
+        }
+        Player newTarget = inst.findTarget(mob, inst.getPlayers());
+        // May be null which will set NO target, NOT keep the previous one.
+        event.setTarget(newTarget);
     }
 }
