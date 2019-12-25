@@ -150,6 +150,9 @@ final class Instance {
         ticks += 1;
         List<Player> players = getPlayers();
         if (players.isEmpty()) {
+            if (bossBar != null) {
+                bossBar.removeAll();
+            }
             if (waveIndex >= 0) {
                 clearWave();
                 waveIndex = -1;
