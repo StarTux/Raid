@@ -47,6 +47,7 @@ final class ItemBuilder {
         if (meta instanceof EnchantmentStorageMeta) {
             EnchantmentStorageMeta store = (EnchantmentStorageMeta) meta;
             store.addStoredEnchant(ench, level, true);
+            item.setItemMeta(store);
         }
         return this;
     }
