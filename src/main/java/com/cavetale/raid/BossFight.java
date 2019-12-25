@@ -286,7 +286,7 @@ final class BossFight {
                         Phase.HOME, Phase.ADDS, Phase.PAUSE);
         case ICEKELLY:
             return Arrays
-                .asList(Phase.DIALOGUE, Phase.PAUSE, Phase.WARP,
+                .asList(Phase.DIALOGUE, Phase.PAUSE, Phase.HOME,
                         Phase.ARROWS, Phase.ADDS, Phase.PAUSE);
         case SNOBEAR:
             return Arrays
