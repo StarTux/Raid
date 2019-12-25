@@ -49,7 +49,8 @@ final class RaidCommand implements TabExecutor {
     enum ListCmd {
         ADD,
         REMOVE,
-        LIST;
+        LIST,
+        TP;
 
         final String key;
 
@@ -128,7 +129,7 @@ final class RaidCommand implements TabExecutor {
     }
 
     void help(CommandSender sender) {
-        sender.sendMessage("Usage");
+        sender.sendMessage(y + "Usage");
         for (Cmd cmd : Cmd.values()) {
             help(sender, cmd);
         }
@@ -137,39 +138,42 @@ final class RaidCommand implements TabExecutor {
     void help(CommandSender sender, Cmd cmd) {
         switch (cmd) {
         case TYPE:
-            sender.sendMessage("/raid type "
+            sender.sendMessage(y + "/raid type "
                                + Stream.of(Wave.Type.values()).map(Enum::name)
                                .collect(Collectors.joining("|"))
                                + " - Set wave type.");
             break;
         case SET:
-            sender.sendMessage("/raid set <key> [value] - Settings");
+            sender.sendMessage(y + "/raid set <key> [value] - Settings");
             break;
         case WAVE:
-            sender.sendMessage("/raid wave <index> - Select wave.");
-            sender.sendMessage("/raid wave add [index] - Add wave.");
-            sender.sendMessage("/raid wave remove - Remove current wave.");
-            sender.sendMessage("/raid wave list - List waves.");
+            sender.sendMessage(y + "/raid wave <index> - Select wave.");
+            sender.sendMessage(y + "/raid wave add [index] - Add wave.");
+            sender.sendMessage(y + "/raid wave remove - Remove current wave.");
+            sender.sendMessage(y + "/raid wave list - List waves.");
+            sender.sendMessage(y + "/raid wave tp - Teleport to wave.");
             break;
         case MOB:
-            sender.sendMessage("/raid mob add <type> [amount] - Add mob.");
-            sender.sendMessage("/raid mob remove [index] - Remove mob.");
-            sender.sendMessage("/raid mob list - List mobs.");
+            sender.sendMessage(y + "/raid mob add <type> [amount] - Add mob.");
+            sender.sendMessage(y + "/raid mob remove [index] - Remove mob.");
+            sender.sendMessage(y + "/raid mob list - List mobs.");
+            sender.sendMessage(y + "/raid mob tp <index> - Teleport to mob.");
             break;
         case BOSS:
-            sender.sendMessage("/raid boss - Clear wave boss.");
-            sender.sendMessage("/raid boss <type> - Set wave boss.");
+            sender.sendMessage(y + "/raid boss - Clear wave boss.");
+            sender.sendMessage(y + "/raid boss <type> - Set wave boss.");
             break;
         case TP:
-            sender.sendMessage("/raid tp <wave> - Teleport to wave location.");
+            sender.sendMessage(y + "/raid tp <wave> - Teleport to wave location.");
+            break;
         case SKIP:
-            sender.sendMessage("/raid skip [wave] - Skip to (next) wave.");
+            sender.sendMessage(y + "/raid skip [wave] - Skip to (next) wave.");
             break;
         case DEBUG:
-            sender.sendMessage("/raid debug - Toggle debug mode.");
+            sender.sendMessage(y + "/raid debug - Toggle debug mode.");
             break;
         default:
-            sender.sendMessage("/raid " + cmd.key);
+            sender.sendMessage(y + "/raid " + cmd.key);
             break;
         }
     }
@@ -234,7 +238,7 @@ final class RaidCommand implements TabExecutor {
         Raid raid = new Raid(worldName);
         plugin.raids.put(worldName, raid);
         plugin.saveRaid(raid);
-        player.sendMessage("Raid `" + worldName + "' created.");
+        player.sendMessage(y + "Raid `" + worldName + "' created.");
         return true;
     }
 
@@ -259,7 +263,7 @@ final class RaidCommand implements TabExecutor {
             wave.radius = 2;
         }
         plugin.saveRaid(raid);
-        player.sendMessage("Wave #" + raid.waves.indexOf(wave) + " type=" + type);
+        player.sendMessage(y + "Wave #" + raid.waves.indexOf(wave) + " type=" + type);
         return true;
     }
 
@@ -270,14 +274,23 @@ final class RaidCommand implements TabExecutor {
         Wave wave = requireWave(player);
         wave.place = place;
         plugin.saveRaid(raid);
-        player.sendMessage("Wave #" + raid.waves.indexOf(wave) + " place=" + ShortInfo.of(place));
+        player.sendMessage(y + "Wave #" + raid.waves.indexOf(wave)
+                           + " place=" + ShortInfo.of(place));
         return true;
     }
 
     boolean waveCommand(Player player, String[] args) throws Wrong {
-        if (args.length == 0) return false;
         Raid raid = requireRaid(player);
         Instance inst = plugin.raidInstance(raid);
+        if (args.length == 0) {
+            int waveIndex = inst.editWave;
+            if (waveIndex >= 0 && waveIndex < raid.waves.size()) {
+                Wave wave = raid.waves.get(waveIndex);
+                player.sendMessage(y + "Wave " + waveIndex
+                                   + ": " + ShortInfo.of(wave));
+            }
+            return false;
+        }
         // Select Wave
         if (args.length == 1) {
             try {
@@ -310,19 +323,29 @@ final class RaidCommand implements TabExecutor {
             plugin.saveRaid(raid);
             player.sendMessage(y + "Wave #" + index + " created.");
             return true;
-        } case REMOVE: {
+        }
+        case REMOVE: {
+            if (args.length > 1) return false;
             Wave wave = requireWave(player);
             raid.waves.remove(wave);
             plugin.saveRaid(raid);
             player.sendMessage(y + "Wave #" + inst.editWave + " removed: "
                                + ShortInfo.of(wave));
             return true;
-        } case LIST: {
-            player.sendMessage("" + y + raid.waves.size() + " waves:");
+        }
+        case LIST: {
+            player.sendMessage(y + "" + y + raid.waves.size() + " waves:");
             for (int i = 0; i < raid.waves.size(); i += 1) {
                 Wave wave = raid.waves.get(i);
-                player.sendMessage("" + i + ") " + y + ShortInfo.of(wave));
+                player.sendMessage(y + "" + i + ") " + y + ShortInfo.of(wave));
             }
+            return true;
+        }
+        case TP: {
+            if (args.length > 1) return false;
+            Wave wave = requireWave(player);
+            player.teleport(wave.place.toLocation(inst.world));
+            player.sendMessage(y + "Teleported to wave #" + inst.editWave);
             return true;
         }
         default: throw new IllegalArgumentException(cmd.key);
@@ -360,7 +383,7 @@ final class RaidCommand implements TabExecutor {
             int index = wave.spawns.size();
             wave.spawns.add(spawn);
             plugin.saveRaid(raid);
-            player.sendMessage("Mob #" + index + " added: "
+            player.sendMessage(y + "Mob #" + index + " added: "
                                + ShortInfo.of(spawn));
             return true;
         }
@@ -379,14 +402,30 @@ final class RaidCommand implements TabExecutor {
             }
             Spawn spawn = wave.spawns.remove(index);
             plugin.saveRaid(raid);
-            player.sendMessage("Mob #" + index + " removed: " + ShortInfo.of(spawn));
+            player.sendMessage(y + "Mob #" + index + " removed: " + ShortInfo.of(spawn));
             return true;
         }
         case LIST: {
-            player.sendMessage("Wave #" + inst.editWave + ": " + wave.spawns.size() + " mobs:");
+            player.sendMessage(y + "Wave #" + inst.editWave + ": " + wave.spawns.size() + " mobs:");
             for (int i = 0; i < wave.spawns.size(); i += 1) {
                 player.sendMessage(i + ") " + y + ShortInfo.of(wave.spawns.get(i)));
             }
+            return true;
+        }
+        case TP: {
+            if (args.length != 2) return false;
+            int index;
+            try {
+                index = Integer.parseInt(args[1]);
+            } catch (NumberFormatException iae) {
+                index = -1;
+            }
+            if (index < 0 || index >= wave.spawns.size()) {
+                throw new Wrong("Invalid index: " + args[1]);
+            }
+            Spawn spawn = wave.spawns.get(index);
+            player.teleport(spawn.place.toLocation(inst.world));
+            player.sendMessage(y + "Teleported to mob #" + index);
             return true;
         }
         default: throw new IllegalArgumentException(cmd.key);
@@ -412,7 +451,7 @@ final class RaidCommand implements TabExecutor {
             }
             Boss boss = new Boss(type);
             wave.boss = boss;
-            player.sendMessage("Wave boss=" + boss.getShortInfo());
+            player.sendMessage(y + "Wave boss=" + boss.getShortInfo());
         }
         plugin.saveRaid(raid);
         return true;
@@ -428,7 +467,7 @@ final class RaidCommand implements TabExecutor {
         switch (key) {
         case "radius":
             wave.radius = value == null ? 0 : requireDouble(value);
-            player.sendMessage("Set " + y + "radius=" + wave.radius);
+            player.sendMessage(y + "Set radius=" + wave.radius);
             return true;
         default: throw new Wrong("Unknown key: " + key);
         }
@@ -438,7 +477,7 @@ final class RaidCommand implements TabExecutor {
         if (args.length != 0) return false;
         Raid raid = requireRaid(player);
         boolean res = plugin.saveRaid(raid);
-        player.sendMessage("Saving raid: " + raid.worldName + ": " + res);
+        player.sendMessage(y + "Saving raid: " + raid.worldName + ": " + res);
         return true;
     }
 
@@ -464,7 +503,7 @@ final class RaidCommand implements TabExecutor {
         Wave wave = raid.waves.get(index); // aioobe
         Instance instance = plugin.raidInstance(raid);
         player.teleport(wave.place.toLocation(instance.world));
-        player.sendMessage("Teleported to wave " + index + ".");
+        player.sendMessage(y + "Teleported to wave " + index + ".");
         return true;
     }
 
@@ -474,14 +513,14 @@ final class RaidCommand implements TabExecutor {
         Instance inst = plugin.raidInstance(raid);
         if (args.length == 0) {
             inst.waveComplete = true;
-            player.sendMessage("Skipping wave...");
+            player.sendMessage(y + "Skipping wave...");
         } else {
             int newWave = Integer.parseInt(args[0]);
             inst.clearWave();
             inst.waveIndex = newWave;
             inst.waveComplete = false;
             inst.waveTicks = 0;
-            player.sendMessage("Jumping to wave " + newWave + ".");
+            player.sendMessage(y + "Jumping to wave " + newWave + ".");
         }
         return true;
     }
@@ -491,7 +530,7 @@ final class RaidCommand implements TabExecutor {
         Instance inst = plugin.raidInstance(raid);
         inst.debug = !inst.debug;
         inst.updateDebugMode();
-        player.sendMessage("Debug mode: " + inst.debug);
+        player.sendMessage(y + "Debug mode: " + inst.debug);
         return true;
     }
 }
