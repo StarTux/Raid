@@ -39,7 +39,9 @@ public final class RaidPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        for (Instance instance : instances.values()) instance.clearWave();
+        for (Instance instance : instances.values()) {
+            instance.clear();
+        }
     }
 
     void loadRaids() {

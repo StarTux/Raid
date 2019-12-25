@@ -477,7 +477,7 @@ final class BossFight {
         eq.setBootsDropChance(0.0f);
         eq.setItemInMainHandDropChance(0.0f);
         eq.setItemInOffHandDropChance(0.0f);
-        entity.setCustomName("" + ChatColor.GOLD + ChatColor.BOLD
+        entity.setCustomName("" + ChatColor.DARK_RED + ChatColor.BOLD
                           + boss.type.displayName);
         entity.setCustomNameVisible(true);
     }

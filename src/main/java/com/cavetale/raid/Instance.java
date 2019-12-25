@@ -19,6 +19,10 @@ import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.boss.BarColor;
+import org.bukkit.boss.BarFlag;
+import org.bukkit.boss.BarStyle;
+import org.bukkit.boss.BossBar;
 import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
@@ -47,7 +51,6 @@ final class Instance {
     final List<AbstractArrow> arrows = new ArrayList<>();
     final Set<UUID> bossDamagers = new HashSet<>(); // last boss battle
     int secondsLeft;
-    int prevGoalCount = 0;
     ArmorStand goalEntity;
     int goalIndex = 0;
     Set<Vec2i> spawnChunks = new HashSet<>();
@@ -58,6 +61,7 @@ final class Instance {
                 new ItemBuilder(Material.WHITE_BANNER),
                 new ItemBuilder(Material.ORANGE_BANNER),
                 new ItemBuilder(Material.LIGHT_BLUE_BANNER));
+    BossBar bossBar;
 
     Instance(@NonNull final RaidPlugin plugin,
              @NonNull final Raid raid,
@@ -146,23 +150,66 @@ final class Instance {
         ticks += 1;
         List<Player> players = getPlayers();
         if (players.isEmpty()) {
-            if (waveIndex < 0) return;
-            clearWave();
-            waveIndex = -1;
-            waveTicks = 0;
+            if (waveIndex >= 0) {
+                clearWave();
+                waveIndex = -1;
+                waveTicks = 0;
+            }
+            return;
+        }
+        List<Player> bossBarPlayers = getBossBar().getPlayers();
+        for (Player player : bossBarPlayers) {
+            if (!players.contains(player)) {
+                bossBar.removePlayer(player);
+            }
+        }
+        for (Player player : players) {
+            if (!bossBarPlayers.contains(player)) {
+                getBossBar().addPlayer(player);
+            }
         }
         Wave wave = getWave(waveIndex);
         if (wave == null) {
             waveIndex = 0;
-            waveTicks = 0;
+            setupWave();
             return;
         }
         try {
             tickWave(wave, players);
+            if (waveComplete) {
+                clearWave();
+                waveIndex += 1;
+                setupWave();
+            } else if ((waveTicks % 20) == 0) {
+                Location target = wave.place.toLocation(world);
+                for (Player player : players) {
+                    player.setCompassTarget(target);
+                }
+            }
         } catch (Exception e) {
             e.printStackTrace();
-            waveIndex += 1;
+            waveIndex = -1;
             waveTicks = 0;
+        }
+    }
+
+    void setupWave() {
+        waveTicks = 0;
+        waveComplete = false;
+        Wave wave = getWave(waveIndex);
+        if (wave == null) return;
+        switch (wave.type) {
+        case BOSS:
+            getBossBar().addFlag(BarFlag.CREATE_FOG);
+            getBossBar().addFlag(BarFlag.DARKEN_SKY);
+            getBossBar().addFlag(BarFlag.PLAY_BOSS_MUSIC);
+            if (wave.boss != null) {
+                getBossBar().setTitle(ChatColor.DARK_RED
+                                      + wave.boss.type.displayName);
+                getBossBar().setProgress(1.0);
+            }
+            break;
+        default: break;
         }
     }
 
@@ -191,6 +238,21 @@ final class Instance {
             arrow.remove();
         }
         arrows.clear();
+        Wave wave = getWave(waveIndex);
+        if (wave == null) return;
+        if (bossBar != null && wave.type == Wave.Type.BOSS) {
+            bossBar.removeFlag(BarFlag.CREATE_FOG);
+            bossBar.removeFlag(BarFlag.DARKEN_SKY);
+            bossBar.removeFlag(BarFlag.PLAY_BOSS_MUSIC);
+        }
+    }
+
+    void clear() {
+        clearWave();
+        if (bossBar != null) {
+            bossBar.removeAll();
+            bossBar = null;
+        }
     }
 
     void setupWave(@NonNull Wave wave, List<Player> players) {
@@ -313,13 +375,12 @@ final class Instance {
             if (bossFight == null || bossFight.killed) {
                 waveComplete = true;
             } else if (bossFight != null && bossFight.isPresent()) {
-                if (waveTicks % 20 == 0) {
-                    for (Player player : players) {
-                        player.sendActionBar("" + ChatColor.RED
-                                             + ((int) bossFight.mob.getHealth())
-                                             + "/" + bossFight.maxHealth);
-                    }
-                }
+                double health = bossFight.mob.getHealth();
+                double maxHealth = bossFight.mob
+                    .getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue();
+                getBossBar().setProgress(health / maxHealth);
+                getBossBar().setTitle(ChatColor.DARK_RED + bossFight.boss.type.displayName
+                                      + ChatColor.RED + " " + ((int) health));
             }
             break;
         }
@@ -361,17 +422,6 @@ final class Instance {
         }
         default: break;
         }
-        if (waveComplete) {
-            clearWave();
-            waveIndex += 1;
-            waveComplete = false;
-            waveTicks = 0;
-        } else if ((waveTicks % 20) == 0) {
-            Location target = wave.place.toLocation(world);
-            for (Player player : players) {
-                player.setCompassTarget(target);
-            }
-        }
     }
 
     void tickGoal(Wave wave, List<Player> players) {
@@ -389,7 +439,6 @@ final class Instance {
         }
         if (goalCount >= players.size()) {
             waveComplete = true;
-            secondsLeft = 60;
             for (Player player : players) {
                 player.playSound(player.getEyeLocation(),
                                  Sound.ENTITY_ARROW_HIT_PLAYER,
@@ -408,20 +457,16 @@ final class Instance {
                 removePlayer(out);
             }
         }
-        if (goalCount != prevGoalCount || waveTicks % 20 == 0) {
-            prevGoalCount = goalCount;
-            String timeString = secondsLeft >= 60
-                ? " 01:00"
-                : String.format(" 00:%02d", secondsLeft);
-            String msg = ""
-                + ChatColor.GRAY + "Reach the Goal: "
-                + ChatColor.WHITE + goalCount
-                + ChatColor.GRAY + "/" + players.size()
-                + ChatColor.DARK_GRAY + timeString;
-            for (Player player : players) {
-                player.sendActionBar(msg);
-            }
-        }
+        double perc = (double) secondsLeft / (double) 60;
+        getBossBar().setProgress(perc);
+        String timeString = String.format(" %02d:%02d",
+                                          secondsLeft / 60, secondsLeft % 60);
+        String msg = ""
+            + ChatColor.BLUE + "Reach the Goal "
+            + ChatColor.WHITE + goalCount
+            + ChatColor.GRAY + "/" + players.size()
+            + ChatColor.GRAY + timeString;
+        getBossBar().setTitle(msg);
         if (!waveComplete && spawnChunks.contains(wave.place.getChunk())) {
             highlightPlace(wave);
         }
@@ -464,12 +509,11 @@ final class Instance {
                                  0.1f, 2.0f);
             }
         }
-        if (!waveComplete && (waveTicks % 20) == 0) {
-            String msg = "" + ChatColor.YELLOW + "Kill all Mobs: " + aliveMobCount;
-            for (Player player : players) {
-                player.sendActionBar(msg);
-            }
-        }
+        double perc = Math.min(1.0, (double) aliveMobCount
+                               / (double) spawns.size());
+        getBossBar().setProgress(perc);
+        getBossBar().setTitle(ChatColor.RED + "Kill all Mobs "
+                              + ChatColor.WHITE + aliveMobCount);
         if (waveComplete) {
             int totalExp = wave.spawns.size() * 5;
             if (totalExp > 0) {
@@ -558,5 +602,17 @@ final class Instance {
         World w = plugin.getServer().getWorld("spawn");
         if (w == null) w = plugin.getServer().getWorlds().get(0);
         player.teleport(w.getSpawnLocation());
+        if (bossBar != null) {
+            bossBar.removePlayer(player);
+        }
+    }
+
+    BossBar getBossBar() {
+        if (bossBar != null) return bossBar;
+        bossBar = plugin.getServer().createBossBar("raid",
+                                                   BarColor.WHITE,
+                                                   BarStyle.SOLID);
+        bossBar.setVisible(true);
+        return bossBar;
     }
 }
