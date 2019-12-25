@@ -1085,6 +1085,7 @@ final class BossFight {
         }
         Player target = instance.findTarget(mob, players);
         if (target == null) return;
+        if (!mob.hasLineOfSight(target)) return;
         if (!target.isOnGround()) return;
         Vector vec = new Vector(instance.plugin.rnd(), 0, instance.plugin.rnd())
             .multiply(1.5)

@@ -414,10 +414,10 @@ final class Instance {
                 ? " 01:00"
                 : String.format(" 00:%02d", secondsLeft);
             String msg = ""
-                + ChatColor.GRAY + "Players at waypoint: "
+                + ChatColor.GRAY + "Reach the Goal: "
                 + ChatColor.WHITE + goalCount
                 + ChatColor.GRAY + "/" + players.size()
-                + ChatColor.GRAY + timeString;
+                + ChatColor.DARK_GRAY + timeString;
             for (Player player : players) {
                 player.sendActionBar(msg);
             }
@@ -465,7 +465,7 @@ final class Instance {
             }
         }
         if (!waveComplete && (waveTicks % 20) == 0) {
-            String msg = "" + ChatColor.YELLOW + "Kill Mobs: " + aliveMobCount;
+            String msg = "" + ChatColor.YELLOW + "Kill all Mobs: " + aliveMobCount;
             for (Player player : players) {
                 player.sendActionBar(msg);
             }
@@ -514,21 +514,33 @@ final class Instance {
         }
     }
 
+    /**
+     * Return the closest visible player within 32 blocks distance.
+     * If none exists, pick the closest non-visible player within 16 blocks.
+     */
     Player findTarget(@NonNull Mob mob, @NonNull List<Player> players) {
         Location eye = mob.getEyeLocation();
-        double min = Double.MAX_VALUE;
-        Player target = null;
-        double max = 32 * 32;
+        double minVisible = Double.MAX_VALUE;
+        double minBlind = Double.MAX_VALUE;
+        Player visible = null;
+        Player blind = null;
+        final double maxVisible = 32 * 32;
+        final double maxBlind = 16 * 16;
         for (Player player : players) {
-            if (!mob.hasLineOfSight(player)) continue;
             double dist = player.getEyeLocation().distanceSquared(eye);
-            if (dist > max) continue;
-            if (dist < min) {
-                min = dist;
-                target = player;
+            if (mob.hasLineOfSight(player)) {
+                if (dist < minVisible && dist < maxVisible) {
+                    visible = player;
+                    minVisible = dist;
+                }
+            } else {
+                if (dist < minBlind && dist < maxBlind) {
+                    blind = player;
+                    minBlind = dist;
+                }
             }
         }
-        return target;
+        return visible != null ? visible : blind;
     }
 
     void updateDebugMode() {
