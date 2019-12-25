@@ -1078,12 +1078,12 @@ final class BossFight {
             phaseComplete = true;
             return;
         }
-        if (phaseTicks % 20 != 0) return;
         Player target = instance.findTarget(mob, players);
         if (target == null) return;
+        if (!target.isOnGround()) return;
         Vector vec = new Vector(instance.plugin.rnd(), 0, instance.plugin.rnd())
             .multiply(1.5)
-            .setY(2.0);
+            .setY(1.5);
         target.setVelocity(target.getVelocity().add(vec));
         target.playSound(target.getEyeLocation(),
                          Sound.ENTITY_POLAR_BEAR_WARNING,
