@@ -514,7 +514,7 @@ final class BossFight {
                     .add(instance.plugin.rnd() * 8.0,
                          instance.plugin.rnd() * 8.0,
                          instance.plugin.rnd() * 8.0);
-                adds.add(mob.getWorld().spawn(loc, Vex.class, this::prepAdd));
+                adds.add(mob.getWorld().spawn(loc, Vex.class, this::prepVex));
             }
             break;
         case SKELLINGTON:
@@ -574,7 +574,7 @@ final class BossFight {
         case ICEKELLY:
             if (phaseTicks > 0 && phaseTicks % 20 == 0) {
                 adds.add(mob.getWorld().spawn(mob.getEyeLocation(),
-                                              Vex.class, this::prepAdd));
+                                              Vex.class, this::prepVex));
             }
             break;
         case SNOBEAR:
@@ -608,6 +608,12 @@ final class BossFight {
             eq.setItemInMainHandDropChance(0.0f);
             eq.setItemInOffHandDropChance(0.0f);
         }
+    }
+
+    void prepVex(@NonNull Vex e) {
+        EntityEquipment eq = e.getEquipment();
+        eq.setItemInMainHand(new ItemBuilder(Material.IRON_SWORD).create());
+        prepAdd(e);
     }
 
     void immobile() {
