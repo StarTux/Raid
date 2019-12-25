@@ -991,10 +991,9 @@ final class BossFight {
             phaseComplete = true;
             return;
         }
-        final double radius = 16.0;
-        Location to = loc.clone().add(instance.plugin.rnd() * radius,
-                                      instance.plugin.rnd() * radius,
-                                      instance.plugin.rnd() * radius);
+        Location to = loc.clone().add(instance.plugin.rnd() * 8.0,
+                                      instance.plugin.rnd() * 4.0,
+                                      instance.plugin.rnd() * 8.0);
         if (to.distanceSquared(center) > MAX_DISTANCE * MAX_DISTANCE) return;
         if (to.getY() < 5.0 && to.getY() > 250.0) return;
         if (!to.getBlock().getRelative(0, -1, 0).getType().isSolid()) return;
