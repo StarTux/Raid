@@ -133,14 +133,7 @@ final class EventListener implements Listener {
         Mob mob = (Mob) event.getEntity();
         Instance inst = plugin.raidInstance(mob.getWorld());
         if (inst == null) return;
-        Entity target = event.getTarget();
-        if (target == null) return;
-        switch (target.getType()) {
-        case PLAYER:
-        case WOLF:
-        case CAT:
-            return;
-        }
+        if (inst.isAcceptableMobTarget(event.getTarget())) return;
         Player newTarget = inst.findTarget(mob, inst.getPlayers());
         // May be null which will set NO target, NOT keep the previous one.
         event.setTarget(newTarget);

@@ -309,7 +309,7 @@ final class BossFight {
         }
         adds.removeIf(e -> !e.isValid());
         for (Mob add : adds) {
-            if (!(add.getTarget() instanceof Player)) {
+            if (!instance.isAcceptableMobTarget(add.getTarget())) {
                 Player target = instance.findTarget(add, players);
                 if (target != null) add.setTarget(target);
             }
@@ -385,7 +385,7 @@ final class BossFight {
             phaseTicks = 0;
         } else {
             phaseTicks += 1;
-            if (!(mob.getTarget() instanceof Player)) {
+            if (!instance.isAcceptableMobTarget(mob.getTarget())) {
                 Player target = instance.findTarget(mob, players);
                 if (target != null) mob.setTarget(target);
             }

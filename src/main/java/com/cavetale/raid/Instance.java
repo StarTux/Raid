@@ -21,6 +21,7 @@ import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.ExperienceOrb;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
@@ -221,6 +222,18 @@ final class Instance {
         }
     }
 
+    boolean isAcceptableMobTarget(Entity target) {
+        if (target == null) return false;
+        switch (target.getType()) {
+        case PLAYER:
+        case WOLF:
+        case CAT:
+            return true;
+        default:
+            return false;
+        }
+    }
+
     void tickWave(Wave wave, List<Player> players) {
         // Wave ticks
         if (waveTicks == 0) setupWave(wave, players);
@@ -265,7 +278,7 @@ final class Instance {
                                              Sound.ENTITY_ENDERMAN_TELEPORT, 0.1f, 2.0f);
                 }
             }
-            if (slot.isPresent() && !(slot.mob.getTarget() instanceof Player)) {
+            if (slot.isPresent() && !isAcceptableMobTarget(slot.mob.getTarget())) {
                 Player target = findTarget(slot.mob, players);
                 if (target != null) slot.mob.setTarget(target);
             }
@@ -502,13 +515,14 @@ final class Instance {
     }
 
     Player findTarget(@NonNull Mob mob, @NonNull List<Player> players) {
-        Location eye = mob.getLocation();
+        Location eye = mob.getEyeLocation();
         double min = Double.MAX_VALUE;
         Player target = null;
+        double max = 32 * 32;
         for (Player player : players) {
             if (!mob.hasLineOfSight(player)) continue;
-            double dist = player.getLocation().distanceSquared(eye);
-            if (dist > 32) continue;
+            double dist = player.getEyeLocation().distanceSquared(eye);
+            if (dist > max) continue;
             if (dist < min) {
                 min = dist;
                 target = player;
