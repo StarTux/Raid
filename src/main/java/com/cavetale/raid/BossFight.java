@@ -290,7 +290,7 @@ final class BossFight {
                         Phase.ARROWS, Phase.ADDS, Phase.PAUSE);
         case SNOBEAR:
             return Arrays
-                .asList(Phase.DIALOGUE, Phase.THROW, Phase.WARP,
+                .asList(Phase.DIALOGUE, Phase.THROW, Phase.PAUSE,
                         Phase.LEVITATE, Phase.ADDS);
         case QUEEN_BEE:
             return Arrays
