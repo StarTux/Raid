@@ -486,6 +486,7 @@ final class Instance {
                     e.setVisible(false);
                     e.setMarker(true);
                     e.setPersistent(false);
+                    e.setCustomName(ChatColor.BLUE + "Goal");
                 });
         }
         if (goalEntity != null) {
