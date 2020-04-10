@@ -513,8 +513,10 @@ final class Instance {
                                  0.1f, 2.0f);
             }
         }
-        double perc = Math.min(1.0, (double) aliveMobCount
-                               / (double) spawns.size());
+        double perc = !spawns.isEmpty()
+            ? Math.min(1.0, (double) aliveMobCount
+                       / (double) spawns.size())
+            : 0.0;
         getBossBar().setProgress(perc);
         getBossBar().setTitle(ChatColor.RED + "Kill all Mobs "
                               + ChatColor.WHITE + aliveMobCount);
