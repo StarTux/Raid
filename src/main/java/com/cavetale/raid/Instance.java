@@ -37,6 +37,7 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ExperienceOrb;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
@@ -433,6 +434,7 @@ final class Instance {
                         double mul = 1.0 + 0.25 * (double) (players.size() - 1);
                         double maxHealth = mob
                             .getAttribute(Attribute.GENERIC_MAX_HEALTH).getBaseValue();
+                        if (mob.getType() == EntityType.RABBIT) maxHealth = 20.0;
                         double health = maxHealth * mul;
                         mob.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(health);
                         mob.setHealth(health);
