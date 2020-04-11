@@ -37,7 +37,8 @@ final class RaidCommand implements TabExecutor {
         RELOAD,
         TP,
         SKIP,
-        DEBUG;
+        DEBUG,
+        SKULLS;
 
         final String key;
 
@@ -123,6 +124,7 @@ final class RaidCommand implements TabExecutor {
         case TP: return tpCommand(requirePlayer(sender), args);
         case SKIP: return skipCommand(requirePlayer(sender), args);
         case DEBUG: return debugCommand(requirePlayer(sender), args);
+        case SKULLS: return skullsCommand(requirePlayer(sender), args);
         default:
             throw new IllegalArgumentException(cmd.key);
         }
@@ -531,6 +533,14 @@ final class RaidCommand implements TabExecutor {
         inst.debug = !inst.debug;
         inst.updateDebugMode();
         player.sendMessage(y + "Debug mode: " + inst.debug);
+        return true;
+    }
+
+    boolean skullsCommand(@NonNull Player player, String[] args) throws Wrong {
+        Raid raid = requireRaid(player);
+        Instance inst = plugin.raidInstance(raid);
+        inst.giveSkulls(player);
+        player.sendMessage("Skulls given.");
         return true;
     }
 }

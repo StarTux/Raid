@@ -1,6 +1,7 @@
 package com.cavetale.raid;
 
 import lombok.RequiredArgsConstructor;
+import org.bukkit.block.Block;
 import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.ElderGuardian;
 import org.bukkit.entity.Entity;
@@ -18,6 +19,7 @@ import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.hanging.HangingBreakEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemDamageEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 
@@ -137,5 +139,17 @@ final class EventListener implements Listener {
         Player newTarget = inst.findTarget(mob, inst.getPlayers());
         // May be null which will set NO target, NOT keep the previous one.
         event.setTarget(newTarget);
+    }
+
+    @EventHandler
+    void onPlayerInteract(PlayerInteractEvent event) {
+        switch (event.getAction()) {
+        case RIGHT_CLICK_BLOCK: case LEFT_CLICK_BLOCK: break;
+        default: return;
+        }
+        Block block = event.getClickedBlock();
+        Instance inst = plugin.raidInstance(block.getWorld());
+        if (inst == null) return;
+        inst.interact(event.getPlayer(), block);
     }
 }

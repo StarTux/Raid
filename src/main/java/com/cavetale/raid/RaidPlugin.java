@@ -21,6 +21,8 @@ public final class RaidPlugin extends JavaPlugin {
     Gson prettyGson = new GsonBuilder().setPrettyPrinting().create();
     File raidFolder;
     Random random = new Random();
+    Json json = new Json(this);
+    Yaml yaml = new Yaml(this);
 
     @Override
     public void onEnable() {

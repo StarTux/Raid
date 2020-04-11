@@ -1,10 +1,17 @@
 package com.cavetale.raid;
 
+import com.destroystokyo.paper.profile.PlayerProfile;
+import com.destroystokyo.paper.profile.ProfileProperty;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.NonNull;
@@ -19,10 +26,14 @@ import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
+import org.bukkit.block.Skull;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarFlag;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
@@ -30,6 +41,8 @@ import org.bukkit.entity.ExperienceOrb;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.SkullMeta;
 
 final class Instance {
     final RaidPlugin plugin;
@@ -62,6 +75,14 @@ final class Instance {
                 new ItemBuilder(Material.ORANGE_BANNER),
                 new ItemBuilder(Material.LIGHT_BLUE_BANNER));
     BossBar bossBar;
+    // Skull stuff
+    boolean doSkulls;
+    Set<Long> scannedChunks = new TreeSet<>();
+    SkullLocations skullLocations;
+    Set<UUID> skullIds = new HashSet<>(); // found in world
+    Map<UUID, String> skulls = new HashMap<>(); // placed, texture
+    Map<UUID, String> skullNames = new HashMap<>(); // placed, name
+    Map<Vec3i, UUID> placeSkulls = new HashMap<>();
 
     Instance(@NonNull final RaidPlugin plugin,
              @NonNull final Raid raid,
@@ -72,6 +93,33 @@ final class Instance {
         for (Wave wave : raid.waves) {
             waveInsts.add(new WaveInst());
         }
+        loadSkulls();
+    }
+
+    void loadSkulls() {
+        doSkulls = false;
+        File dir = world.getWorldFolder();
+        File file = new File(dir, "skulls.json");
+        skullLocations = plugin.json.load(file, SkullLocations.class, SkullLocations::new);
+        if (skullLocations == null || skullLocations.skulls.isEmpty()) return;
+        file = new File(dir, "skulls.yml");
+        ConfigurationSection config = plugin.yaml.load(file);
+        skullIds.clear();
+        for (String str : config.getStringList("ids")) {
+            skullIds.add(UUID.fromString(str));
+        }
+        skulls.clear();
+        skullNames.clear();
+        for (Map<?, ?> map : config.getMapList("heads")) {
+            String id = (String) map.get("Id");
+            String texture = (String) map.get("Texture");
+            String name = (String) map.get("Name");
+            UUID uuid = UUID.fromString(id);
+            skulls.put(uuid, texture);
+            skullNames.put(uuid, name);
+        }
+        if (skulls.isEmpty()) return;
+        doSkulls = true;
     }
 
     @RequiredArgsConstructor
@@ -88,6 +136,10 @@ final class Instance {
 
     static class WaveInst {
         ArmorStand debugEntity;
+    }
+
+    static class SkullLocations {
+        Set<Vec3i> skulls = new HashSet<>();
     }
 
     Wave getWave(int index) {
@@ -160,6 +212,38 @@ final class Instance {
             }
             return;
         }
+        if (doSkulls) {
+            for (Chunk chunk : world.getLoadedChunks()) {
+                long key = chunk.getChunkKey();
+                if (scannedChunks.contains(key)) continue;
+                scannedChunks.add(key);
+                for (BlockState state : chunk.getTileEntities()) {
+                    if (state instanceof Skull) {
+                        Skull skull = (Skull) state;
+                        UUID id = skull.getPlayerProfile().getId();
+                        if (id == null || skullIds.contains(id)) {
+                            state.getBlock().setType(Material.AIR);
+                        }
+                    }
+                }
+                for (Vec3i vec : new ArrayList<>(placeSkulls.keySet())) {
+                    if (chunk.getX() != vec.x >> 4) continue;
+                    if (chunk.getZ() != vec.z >> 4) continue;
+                    Block block = world.getBlockAt(vec.x, vec.y, vec.z);
+                    block.setType(Material.AIR);
+                    block.setType(Material.PLAYER_HEAD);
+                    Skull skull = (Skull) block.getState();
+                    UUID id = placeSkulls.get(vec);
+                    String texture = skulls.get(id);
+                    String name = skullNames.get(id);
+                    PlayerProfile profile = plugin.getServer().createProfile(id, name);
+                    profile.setProperty(new ProfileProperty("textures", texture));
+                    skull.setPlayerProfile(profile);
+                    skull.update();
+                    placeSkulls.remove(vec);
+                }
+            }
+        }
         List<Player> bossBarPlayers = getBossBar().getPlayers();
         for (Player player : bossBarPlayers) {
             if (!players.contains(player)) {
@@ -175,6 +259,7 @@ final class Instance {
         if (wave == null) {
             waveIndex = 0;
             setupWave();
+            if (doSkulls) setupSkulls();
             return;
         }
         try {
@@ -193,6 +278,19 @@ final class Instance {
             e.printStackTrace();
             waveIndex = -1;
             waveTicks = 0;
+        }
+    }
+
+    void setupSkulls() {
+        scannedChunks.clear();
+        placeSkulls.clear();
+        List<Vec3i> list = new ArrayList<>(skullLocations.skulls);
+        Collections.shuffle(list, plugin.random);
+        while (list.size() > 100) list.remove(list.size() - 1);
+        List<UUID> idList = new ArrayList<>(skulls.keySet());
+        for (Vec3i vec : list) {
+            UUID id = idList.get(plugin.random.nextInt(idList.size()));
+            placeSkulls.put(vec, id);
         }
     }
 
@@ -620,5 +718,40 @@ final class Instance {
                                                    BarStyle.SOLID);
         bossBar.setVisible(true);
         return bossBar;
+    }
+
+    void giveSkulls(Player player) {
+        for (UUID uuid : new ArrayList<>(skulls.keySet())) {
+            giveSkull(player, uuid);
+        }
+    }
+
+    void giveSkull(Player player, UUID id) {
+        ItemStack item = makeSkull(id);
+        player.getInventory().addItem(item);
+    }
+
+    ItemStack makeSkull(UUID id) {
+        String texture = skulls.get(id);
+        String name = skullNames.get(id);
+        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
+        SkullMeta meta = (SkullMeta) item.getItemMeta();
+        PlayerProfile profile = plugin.getServer().createProfile(id, name);
+        profile.setProperty(new ProfileProperty("textures", texture));
+        meta.setPlayerProfile(profile);
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    void interact(Player player, Block block) {
+        if (block.getType() == Material.PLAYER_HEAD) {
+            Skull skull = (Skull) block.getState();
+            UUID id = skull.getPlayerProfile().getId();
+            String texture = skulls.get(id);
+            if (texture == null) return;
+            block.setType(Material.AIR);
+            world.dropItem(block.getLocation().add(0.5, 0.5, 0.5),
+                           makeSkull(id));
+        }
     }
 }
