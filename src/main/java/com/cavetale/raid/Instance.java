@@ -436,7 +436,7 @@ final class Instance {
                     AttributeInstance inst = mob.getAttribute(Attribute.GENERIC_MAX_HEALTH);
                     double maxHealth = inst.getBaseValue();
                     if (mob.getType() == EntityType.RABBIT) {
-                        maxHealth = 40.0;
+                        maxHealth = 20.0;
                     }
                     double health = maxHealth * multiplier;
                     inst.setBaseValue(health);
