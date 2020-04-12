@@ -442,13 +442,12 @@ final class Instance {
                     inst.setBaseValue(health);
                     mob.setHealth(health);
                     // Damage
-                    inst = mob.getAttribute(Attribute.GENERIC_ATTACK_DAMAGE);
                     if (inst != null) {
                         double damage = inst.getBaseValue();
                         if (mob.getType() == EntityType.BEE) {
-                            damage = 10.0;
+                            inst = mob.getAttribute(Attribute.GENERIC_ATTACK_DAMAGE);
+                            inst.setBaseValue(5.0);
                         }
-                        inst.setBaseValue(damage * multiplier);
                     } else {
                         plugin.getLogger().info("No attack damage: " + mob.getType());
                     }
