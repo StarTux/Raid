@@ -443,11 +443,15 @@ final class Instance {
                     mob.setHealth(health);
                     // Damage
                     inst = mob.getAttribute(Attribute.GENERIC_ATTACK_DAMAGE);
-                    double damage = inst.getBaseValue();
-                    if (mob.getType() == EntityType.BEE) {
-                        damage = 12.0;
+                    if (inst != null) {
+                        double damage = inst.getBaseValue();
+                        if (mob.getType() == EntityType.BEE) {
+                            damage = 12.0;
+                        }
+                        inst.setBaseValue(damage * multiplier);
+                    } else {
+                        plugin.getLogger().info("No attack damage: " + mob.getType());
                     }
-                    inst.setBaseValue(damage * multiplier);
                 }
             }
             if (slot.isPresent() && !isAcceptableMobTarget(slot.mob.getTarget())) {

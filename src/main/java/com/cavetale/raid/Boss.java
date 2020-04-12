@@ -19,7 +19,9 @@ final class Boss implements ShortInfo {
         ICE_GOLEM("Ice Golem"),
         ICEKELLY("Icekelly"),
         SNOBEAR("Snobear"),
-        QUEEN_BEE("Queen Bee");
+        QUEEN_BEE("Queen Bee"),
+        // Easter 2020
+        HEINOUS_HEN("Heinous Hen");
 
         public final String displayName;
 

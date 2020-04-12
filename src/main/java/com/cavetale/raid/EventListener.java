@@ -1,23 +1,28 @@
 package com.cavetale.raid;
 
+import com.destroystokyo.paper.event.entity.ThrownEggHatchEvent;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.block.Block;
 import org.bukkit.entity.AbstractArrow;
+import org.bukkit.entity.Egg;
 import org.bukkit.entity.ElderGuardian;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityTargetEvent;
+import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.hanging.HangingBreakEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -40,11 +45,13 @@ final class EventListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     void onEntityExplode(EntityExplodeEvent event) {
+        Instance inst = plugin.raidInstance(event.getEntity().getWorld());
+        if (inst == null) return;
+        event.blockList().clear();
         if (event.getEntity() instanceof Mob) {
             Mob mob = (Mob) event.getEntity();
-            Instance inst = plugin.raidInstance(mob.getWorld());
-            if (inst == null) return;
             inst.onDeath(mob);
+            return;
         }
     }
 
@@ -109,13 +116,19 @@ final class EventListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
+        Instance inst = plugin.raidInstance(event.getEntity().getWorld());
+        if (inst == null) return;
         if (event.getEntity() instanceof Player) {
             Player player = (Player) event.getEntity();
-            Instance inst = plugin.raidInstance(player.getWorld());
-            if (inst == null) return;
             if (event.getDamager() instanceof ElderGuardian) {
                 double dmg = event.getDamage();
                 if (dmg > 1.0) event.setDamage(1.0); // 4 times per second
+            }
+        }
+        if (plugin.metadata.has(event.getDamager(), BossFight.EXPLOSIVE_EGG)
+            && event.getCause() == DamageCause.ENTITY_EXPLOSION) {
+            if (!(event.getEntity() instanceof Player)) {
+                event.setCancelled(true);
             }
         }
     }
@@ -162,5 +175,22 @@ final class EventListener implements Listener {
         Instance inst = plugin.raidInstance(block.getWorld());
         if (inst == null) return;
         inst.interact(event.getPlayer(), block);
+    }
+
+    @EventHandler
+    void onProjectileLaunch(ProjectileHitEvent event) {
+        Projectile proj = event.getEntity();
+        Instance inst = plugin.raidInstance(proj.getWorld());
+        if (inst == null) return;
+        if (plugin.metadata.has(proj, BossFight.EXPLOSIVE_EGG)) {
+            proj.getWorld().createExplosion(proj, 1.0f);
+        }
+    }
+
+    @EventHandler
+    void onThrownEggHatch(ThrownEggHatchEvent event) {
+        Instance inst = plugin.raidInstance(event.getEgg().getWorld());
+        if (inst == null) return;
+        event.setHatching(false);
     }
 }

@@ -24,8 +24,10 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Bee;
 import org.bukkit.entity.Blaze;
+import org.bukkit.entity.Chicken;
 import org.bukkit.entity.Creeper;
 import org.bukkit.entity.Drowned;
+import org.bukkit.entity.Egg;
 import org.bukkit.entity.ElderGuardian;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Evoker;
@@ -39,6 +41,7 @@ import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.PolarBear;
 import org.bukkit.entity.PufferFish;
+import org.bukkit.entity.Rabbit;
 import org.bukkit.entity.Skeleton;
 import org.bukkit.entity.Snowman;
 import org.bukkit.entity.Spider;
@@ -89,6 +92,7 @@ final class BossFight {
     List<Place> lightningSpots = new ArrayList<>();
     static final int ADDS_LIMIT = 40;
     static final double MAX_DISTANCE = 32;
+    static final String EXPLOSIVE_EGG = "raid:explosive_egg";
 
     enum Phase {
         IDLE,
@@ -109,7 +113,8 @@ final class BossFight {
         SLIP_ICE,
         LLAMA_SPIT,
         THROW,
-        LEVITATE;
+        LEVITATE,
+        EGG_LAUNCHER;
     }
 
     boolean isPresent() {
@@ -191,6 +196,10 @@ final class BossFight {
                     e.setAnger(72000);
                     prep(e);
                 });
+        case HEINOUS_HEN:
+            return w.spawn(loc, Chicken.class, e -> {
+                    prep(e);
+                });
         default:
             throw new IllegalArgumentException(boss.type.name());
         }
@@ -253,6 +262,11 @@ final class BossFight {
                 .asList("Bzzzzz!",
                         "Bww bww bwwww buzzzzz!",
                         "Zzzzzzzzz...");
+        case HEINOUS_HEN:
+            return Arrays
+                .asList("Easter belongs to ME!",
+                        "You want eggs?  Here's some more!",
+                        "You won't stop me from hatching my plan!");
         default:
             return Arrays.asList("You'll never defeat StarTuuuuux!!!");
         }
@@ -296,6 +310,10 @@ final class BossFight {
             return Arrays
                 .asList(Phase.DIALOGUE, Phase.PAUSE,
                         Phase.ADDS, Phase.HOME);
+        case HEINOUS_HEN:
+            return Arrays
+                .asList(Phase.DIALOGUE, Phase.EGG_LAUNCHER,
+                        Phase.ADDS, Phase.PUSH);
         default: return Arrays.asList(Phase.PAUSE);
         }
     }
@@ -375,6 +393,7 @@ final class BossFight {
         case LLAMA_SPIT: tickLlamaSpit(wave, players); break;
         case THROW: tickThrow(wave, players); break;
         case LEVITATE: tickLevitate(wave, players); break;
+        case EGG_LAUNCHER: tickEggLauncher(wave, players); break;
         default: break;
         }
         if (phaseComplete) {
@@ -589,6 +608,22 @@ final class BossFight {
                                               Bee.class, e -> {
                                                   e.setAnger(72000);
                                                   prepAdd(e);
+                                              }));
+            }
+            break;
+        case HEINOUS_HEN:
+            if (phaseTicks > 0 && phaseTicks % 5 == 0) {
+                adds.add(mob.getWorld().spawn(mob.getEyeLocation(),
+                                              Bee.class, e -> {
+                                                  e.setAnger(72000);
+                                                  prepAdd(e);
+                                                  e.getAttribute(Attribute.GENERIC_ATTACK_DAMAGE).setBaseValue(12.0f);
+                                              }));
+                adds.add(mob.getWorld().spawn(mob.getEyeLocation(),
+                                              Rabbit.class, e -> {
+                                                  e.setRabbitType(Rabbit.Type.THE_KILLER_BUNNY);
+                                                  e.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(20.0f);
+                                                  e.setHealth(20.0f);
                                               }));
             }
             break;
@@ -1109,5 +1144,39 @@ final class BossFight {
                 player.addPotionEffect(effect, false);
             }
         }
+    }
+
+    void tickEggLauncher(@NonNull Wave wave, @NonNull List<Player> players) {
+        if (phaseTicks == 0) {
+            invulnerable = true;
+            immobile();
+        } else if (phaseTicks >= 200) {
+            invulnerable = false;
+            mobile();
+            phaseComplete = true;
+            return;
+        }
+        if (phaseTicks == 0) {
+            instance.world.spawnParticle(Particle.FLASH,
+                                         mob.getEyeLocation(),
+                                         5,
+                                         0.5, 0.5, 0.5,
+                                         0.0);
+        }
+        if (phaseTicks < 20) {
+            return; // Grace period
+        }
+        players.removeIf(p -> !mob.hasLineOfSight(p));
+        if (players.isEmpty()) return;
+        Player target = players.get(instance.plugin.random.nextInt(players.size()));
+        Vector velo = target.getEyeLocation()
+            .subtract(mob.getEyeLocation())
+            .toVector().normalize()
+            .add(new Vector(instance.plugin.rnd() * 0.1,
+                            instance.plugin.random.nextDouble() * 0.2,
+                            instance.plugin.rnd() * 0.1))
+            .multiply(2.0);
+        Egg egg = (Egg) mob.launchProjectile(Egg.class, velo);
+        instance.plugin.metadata.set(egg, EXPLOSIVE_EGG, true);
     }
 }

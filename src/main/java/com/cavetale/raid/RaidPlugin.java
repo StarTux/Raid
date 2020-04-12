@@ -23,6 +23,7 @@ public final class RaidPlugin extends JavaPlugin {
     Random random = new Random();
     Json json = new Json(this);
     Yaml yaml = new Yaml(this);
+    Metadata metadata = new Metadata(this);
 
     @Override
     public void onEnable() {
