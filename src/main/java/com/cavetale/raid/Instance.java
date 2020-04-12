@@ -26,6 +26,7 @@ import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Skull;
@@ -430,17 +431,23 @@ final class Instance {
                 Mob mob = slot.spawn.spawn(world);
                 if (mob != null) {
                     slot.mob = mob;
-                    if (players.size() > 1) {
-                        double mul = 1.0 + 0.25 * (double) (players.size() - 1);
-                        double maxHealth = mob
-                            .getAttribute(Attribute.GENERIC_MAX_HEALTH).getBaseValue();
-                        if (mob.getType() == EntityType.RABBIT) maxHealth = 20.0;
-                        double health = maxHealth * mul;
-                        mob.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(health);
-                        mob.setHealth(health);
+                    double multiplier = 1.0 + 0.25 * (double) players.size();
+                    // Health
+                    AttributeInstance inst = mob.getAttribute(Attribute.GENERIC_MAX_HEALTH);
+                    double maxHealth = inst.getBaseValue();
+                    if (mob.getType() == EntityType.RABBIT) {
+                        maxHealth = 40.0;
                     }
-                    mob.getWorld().playSound(mob.getEyeLocation(),
-                                             Sound.ENTITY_ENDERMAN_TELEPORT, 0.1f, 2.0f);
+                    double health = maxHealth * multiplier;
+                    inst.setBaseValue(health);
+                    mob.setHealth(health);
+                    // Damage
+                    inst = mob.getAttribute(Attribute.GENERIC_ATTACK_DAMAGE);
+                    double damage = inst.getBaseValue();
+                    if (mob.getType() == EntityType.BEE) {
+                        damage = 12.0;
+                    }
+                    inst.setBaseValue(damage * multiplier);
                 }
             }
             if (slot.isPresent() && !isAcceptableMobTarget(slot.mob.getTarget())) {
