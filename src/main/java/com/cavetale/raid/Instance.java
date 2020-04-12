@@ -446,7 +446,7 @@ final class Instance {
                     if (inst != null) {
                         double damage = inst.getBaseValue();
                         if (mob.getType() == EntityType.BEE) {
-                            damage = 12.0;
+                            damage = 10.0;
                         }
                         inst.setBaseValue(damage * multiplier);
                     } else {
