@@ -302,6 +302,9 @@ final class Instance {
         Wave wave = getWave(waveIndex);
         if (wave == null) return;
         switch (wave.type) {
+        case GOAL:
+            secondsLeft = 60;
+            break;
         case BOSS:
             getBossBar().addFlag(BarFlag.CREATE_FOG);
             getBossBar().addFlag(BarFlag.DARKEN_SKY);
