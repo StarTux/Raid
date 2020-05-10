@@ -84,9 +84,13 @@ final class EventListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     void onPlayerTeleport(PlayerTeleportEvent event) {
         Instance inst = plugin.raidInstance(event.getPlayer().getWorld());
-        if (inst != null
-            && event.getCause() == PlayerTeleportEvent.TeleportCause.ENDER_PEARL) {
-            event.setCancelled(true);
+        if (inst != null) {
+            switch (event.getCause()) {
+            case ENDER_PEARL:
+            case CHORUS_FRUIT:
+                event.setCancelled(true);
+            default: break;
+            }
         }
     }
 
