@@ -303,7 +303,10 @@ final class Instance {
         if (wave == null) return;
         switch (wave.type) {
         case GOAL:
-            secondsLeft = 60;
+            secondsLeft = wave.time > 0 ? wave.time : 60;
+            break;
+        case TIME:
+            secondsLeft = wave.time > 0 ? wave.time : 60;
             break;
         case BOSS:
             getBossBar().addFlag(BarFlag.CREATE_FOG);
@@ -375,7 +378,10 @@ final class Instance {
     void onDeath(@NonNull Mob mob) {
         for (SpawnSlot slot : spawns) {
             if (mob.equals(slot.mob)) {
-                slot.killed = true;
+                Wave wave = getWave(waveIndex);
+                if (wave != null && wave.type != Wave.Type.TIME) {
+                    slot.killed = true;
+                }
                 slot.mob = null;
                 return;
             }
@@ -487,6 +493,9 @@ final class Instance {
         case GOAL:
             tickGoal(wave, players);
             break;
+        case TIME:
+            tickTime(wave, players);
+            break;
         case BOSS: {
             if (bossFight == null || bossFight.killed) {
                 waveComplete = true;
@@ -537,6 +546,20 @@ final class Instance {
             break;
         }
         default: break;
+        }
+    }
+
+
+    void tickTime(Wave wave, List<Player> players) {
+        if (secondsLeft > 0 && waveTicks % 20 == 0) {
+            secondsLeft -= 1;
+        }
+        if (secondsLeft > 0) {
+            String timeString = String.format("%02d:%02d",
+                                              secondsLeft / 60, secondsLeft % 60);
+            getBossBar().setTitle(ChatColor.RED + timeString);
+        } else {
+            waveComplete = true;
         }
     }
 

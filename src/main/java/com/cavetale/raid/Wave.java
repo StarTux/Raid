@@ -9,11 +9,13 @@ final class Wave implements ShortInfo {
     double radius = 0;
     List<Spawn> spawns = new ArrayList<>();
     Boss boss;
+    int time = 0;
 
     enum Type {
         MOBS,
         GOAL,
         BOSS,
+        TIME,
         WIN;
     }
 

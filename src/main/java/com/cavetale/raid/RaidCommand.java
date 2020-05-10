@@ -146,7 +146,8 @@ final class RaidCommand implements TabExecutor {
                                + " - Set wave type.");
             break;
         case SET:
-            sender.sendMessage(y + "/raid set <key> [value] - Settings");
+            sender.sendMessage(y + "/raid set radius [value] - Set radius");
+            sender.sendMessage(y + "/raid set time [value] - Set timeSettings");
             break;
         case WAVE:
             sender.sendMessage(y + "/raid wave <index> - Select wave.");
@@ -470,6 +471,10 @@ final class RaidCommand implements TabExecutor {
         case "radius":
             wave.radius = value == null ? 0 : requireDouble(value);
             player.sendMessage(y + "Set radius=" + wave.radius);
+            return true;
+        case "time":
+            wave.time = value == null ? 0 : requireInt(value);
+            player.sendMessage(y + "Set time=" + wave.time);
             return true;
         default: throw new Wrong("Unknown key: " + key);
         }

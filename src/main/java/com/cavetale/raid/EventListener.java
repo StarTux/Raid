@@ -4,7 +4,6 @@ import com.destroystokyo.paper.event.entity.ThrownEggHatchEvent;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.block.Block;
 import org.bukkit.entity.AbstractArrow;
-import org.bukkit.entity.Egg;
 import org.bukkit.entity.ElderGuardian;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
