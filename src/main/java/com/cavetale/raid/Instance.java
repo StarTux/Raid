@@ -726,7 +726,7 @@ final class Instance {
                 }
             }
         }
-        return visible != null ? visible : blind;
+        return visible != null ? visible : null;
     }
 
     void updateDebugMode() {

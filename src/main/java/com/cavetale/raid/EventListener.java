@@ -161,7 +161,7 @@ final class EventListener implements Listener {
         if (inst.isAcceptableMobTarget(event.getTarget())) return;
         Player newTarget = inst.findTarget(mob, inst.getPlayers());
         // May be null which will set NO target, NOT keep the previous one.
-        event.setTarget(newTarget);
+        if (newTarget != null) event.setTarget(newTarget);
     }
 
     @EventHandler
