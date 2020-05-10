@@ -306,7 +306,7 @@ final class Instance {
             secondsLeft = wave.time > 0 ? wave.time : 60;
             break;
         case TIME:
-            secondsLeft = wave.time > 0 ? wave.time : 60;
+            secondsLeft = wave.time > 0 ? wave.time : 30;
             break;
         case BOSS:
             getBossBar().addFlag(BarFlag.CREATE_FOG);
