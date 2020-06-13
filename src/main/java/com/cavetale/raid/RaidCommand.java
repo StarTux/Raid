@@ -20,14 +20,29 @@ final class RaidCommand implements CommandExecutor {
         }
         Player player = (Player) sender;
         String mainRaid = plugin.getConfig().getString("MainRaid");
-        if (mainRaid == null) return false;
+        if (mainRaid == null) {
+            player.sendMessage(ChatColor.RED + "Raid not found");
+            return true;
+        }
         Raid raid = plugin.raids.get(mainRaid);
-        if (raid == null) return false;
+        if (raid == null) {
+            player.sendMessage(ChatColor.RED + "Raid not found: " + mainRaid);
+            return true;
+        }
         Instance instance = plugin.raidInstance(raid);
-        if (instance == null) return false;
-        if (player.getWorld().equals(instance.world)) return true;
+        if (instance == null) {
+            player.sendMessage(ChatColor.RED + "Instance not found");
+            return true;
+        }
+        if (player.getWorld().equals(instance.world)) {
+            player.sendMessage(ChatColor.RED + "Already joined");
+            return true;
+        }
         Wave wave = instance.getCurrentWave();
-        if (wave == null) return false;
+        if (wave == null || wave.type == Wave.Type.WIN) {
+            player.sendMessage(ChatColor.RED + "Bad wave");
+            return true;
+        }
         player.sendMessage(ChatColor.GREEN + "Joining " + raid.displayName + "...");
         player.teleport(wave.place.toLocation(instance.world));
         return true;

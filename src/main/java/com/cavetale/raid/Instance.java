@@ -293,8 +293,9 @@ final class Instance {
     }
 
     public Wave getCurrentWave() {
-        if (waveIndex < 0 || waveIndex > raid.waves.size()) return null;
-        return getWave(waveIndex);
+        if (waveIndex > raid.waves.size()) return null;
+        if (waveIndex < 1) return raid.waves.get(0);
+        return getWave(waveIndex - 1);
     }
 
     void setupSkulls() {

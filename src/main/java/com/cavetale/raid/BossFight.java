@@ -80,7 +80,7 @@ final class BossFight {
     double backupSpeed;
     double mountBackupSpeed;
     boolean phaseComplete = false;
-    int maxHealth = 1000;
+    int maxHealth = 500;
     final List<Mob> adds = new ArrayList<>();
     List<String> dialogue;
     int dialogueIndex;
@@ -203,7 +203,7 @@ final class BossFight {
                 });
         case SPECTER:
             return w.spawn(loc, Phantom.class, e -> {
-                    e.setSize(10);
+                    e.setSize(20);
                     prep(e);
                 });
         default:
@@ -469,7 +469,7 @@ final class BossFight {
             reward = new ItemBuilder(Material.BEE_NEST);
             break;
         case SPECTER:
-            reward = new ItemBuilder(Material.PHANTOM_MEMBRANE).amount(64);
+            reward = new ItemBuilder(Material.PHANTOM_MEMBRANE).amount(32);
             break;
         default:
             reward = new ItemBuilder(Material.DIAMOND_BLOCK);
@@ -496,7 +496,7 @@ final class BossFight {
     }
 
     void prep(@NonNull Mob entity) {
-        double health = 1000.0;
+        double health = (double) maxHealth;
         setAttr(entity, Attribute.GENERIC_MAX_HEALTH, health);
         entity.setHealth(health);
         setAttr(entity, Attribute.GENERIC_ATTACK_DAMAGE, 10.0);
@@ -646,8 +646,13 @@ final class BossFight {
             break;
         case SPECTER:
             if (phaseTicks > 0 && phaseTicks % 20 == 0) {
-                adds.add(mob.getWorld().spawn(mob.getEyeLocation(),
-                                              Blaze.class, this::prepAdd));
+                if (instance.plugin.random.nextBoolean()) {
+                    adds.add(mob.getWorld().spawn(mob.getEyeLocation(),
+                                                  Blaze.class, this::prepAdd));
+                } else {
+                    adds.add(mob.getWorld().spawn(mob.getEyeLocation(),
+                                                  Phantom.class, this::prepAdd));
+                }
             }
             break;
         default: break;
