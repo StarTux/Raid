@@ -38,6 +38,7 @@ import org.bukkit.entity.LargeFireball;
 import org.bukkit.entity.LlamaSpit;
 import org.bukkit.entity.MagmaCube;
 import org.bukkit.entity.Mob;
+import org.bukkit.entity.Phantom;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.PolarBear;
 import org.bukkit.entity.PufferFish;
@@ -200,6 +201,11 @@ final class BossFight {
             return w.spawn(loc, Chicken.class, e -> {
                     prep(e);
                 });
+        case SPECTER:
+            return w.spawn(loc, Phantom.class, e -> {
+                    e.setSize(10);
+                    prep(e);
+                });
         default:
             throw new IllegalArgumentException(boss.type.name());
         }
@@ -267,6 +273,11 @@ final class BossFight {
                 .asList("Easter belongs to ME!",
                         "You want eggs?  Here's some more!",
                         "You won't stop me from hatching my plan!");
+        case SPECTER:
+            return Arrays
+                .asList("Down here we all float",
+                        "You can run but you can't hide!",
+                        "Don't fall asleep");
         default:
             return Arrays.asList("You'll never defeat StarTuuuuux!!!");
         }
@@ -314,6 +325,9 @@ final class BossFight {
             return Arrays
                 .asList(Phase.DIALOGUE, Phase.EGG_LAUNCHER,
                         Phase.ADDS, Phase.PUSH);
+        case SPECTER:
+            return Arrays
+                .asList(Phase.DIALOGUE, Phase.PAUSE, Phase.FIREBALL, Phase.PAUSE, Phase.ADDS);
         default: return Arrays.asList(Phase.PAUSE);
         }
     }
@@ -453,6 +467,9 @@ final class BossFight {
             break;
         case QUEEN_BEE:
             reward = new ItemBuilder(Material.BEE_NEST);
+            break;
+        case SPECTER:
+            reward = new ItemBuilder(Material.PHANTOM_MEMBRANE).amount(64);
             break;
         default:
             reward = new ItemBuilder(Material.DIAMOND_BLOCK);
@@ -625,6 +642,12 @@ final class BossFight {
                                                   e.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(20.0f);
                                                   e.setHealth(20.0f);
                                               }));
+            }
+            break;
+        case SPECTER:
+            if (phaseTicks > 0 && phaseTicks % 20 == 0) {
+                adds.add(mob.getWorld().spawn(mob.getEyeLocation(),
+                                              Blaze.class, this::prepAdd));
             }
             break;
         default: break;

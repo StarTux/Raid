@@ -45,6 +45,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.potion.PotionEffectType;
 
 final class Instance {
     final RaidPlugin plugin;
@@ -255,6 +256,14 @@ final class Instance {
         for (Player player : players) {
             if (!bossBarPlayers.contains(player)) {
                 getBossBar().addPlayer(player);
+            }
+        }
+        if (ticks % 100 == 0) {
+            for (Player player : players) {
+                if (player.hasPotionEffect(PotionEffectType.FIRE_RESISTANCE)) {
+                    player.removePotionEffect(PotionEffectType.FIRE_RESISTANCE);
+                    player.sendActionBar(ChatColor.YELLOW + "Fire Resistance Removed");
+                }
             }
         }
         Wave wave = getWave(waveIndex);

@@ -21,7 +21,8 @@ final class Boss implements ShortInfo {
         SNOBEAR("Snobear"),
         QUEEN_BEE("Queen Bee"),
         // Easter 2020
-        HEINOUS_HEN("Heinous Hen");
+        HEINOUS_HEN("Heinous Hen"),
+        SPECTER("Specter");
 
         public final String displayName;
 
