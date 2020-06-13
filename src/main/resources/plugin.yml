@@ -8,15 +8,25 @@ website: https://cavetale.com
 depend: []
 softdepend: []
 commands:
+
   raid:
+    aliases: []
+    description: Join the Raid
+    permission: raid.raid
+    usage: /raid - Join the raid
+
+  raidedit:
     aliases: []
     description: Raid Editor Command
     permission: raid.raid
     permission-message: You do not have permission!
-    usage: /<command>
+    usage: /raidedit
+
 permissions:
   raid.raid:
     description: Use /raid
     default: op
-    children:
-      raid.child: true
+
+  raid.edit:
+    description: Use /raidedit
+    default: op

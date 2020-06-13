@@ -16,6 +16,7 @@ public final class RaidPlugin extends JavaPlugin {
     HashMap<String, Raid> raids = new HashMap<>();
     HashMap<String, Instance> instances = new HashMap<>();
     RaidCommand raidCommand = new RaidCommand(this);
+    RaidEditCommand raidEditCommand = new RaidEditCommand(this);
     EventListener eventListener = new EventListener(this);
     Gson gson = new Gson();
     Gson prettyGson = new GsonBuilder().setPrettyPrinting().create();
@@ -27,10 +28,13 @@ public final class RaidPlugin extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        saveDefaultConfig();
+        reloadConfig();
         raidFolder = new File(getDataFolder(), "raids");
         raidFolder.mkdirs();
         loadRaids();
         getCommand("raid").setExecutor(raidCommand);
+        getCommand("raidedit").setExecutor(raidEditCommand);
         getServer().getScheduler().runTaskTimer(this, this::onTick, 1L, 1L);
         getServer().getPluginManager().registerEvents(eventListener, this);
         // Raid instances

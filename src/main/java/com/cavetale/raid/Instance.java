@@ -292,6 +292,11 @@ final class Instance {
         }
     }
 
+    public Wave getCurrentWave() {
+        if (waveIndex < 0 || waveIndex > raid.waves.size()) return null;
+        return getWave(waveIndex);
+    }
+
     void setupSkulls() {
         scannedChunks.clear();
         placeSkulls.clear();
