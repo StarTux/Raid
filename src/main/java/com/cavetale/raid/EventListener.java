@@ -1,6 +1,7 @@
 package com.cavetale.raid;
 
 import com.destroystokyo.paper.event.entity.ThrownEggHatchEvent;
+import com.winthier.generic_events.PlayerCanBuildEvent;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.block.Block;
 import org.bukkit.entity.AbstractArrow;
@@ -195,5 +196,12 @@ final class EventListener implements Listener {
         Instance inst = plugin.raidInstance(event.getEgg().getWorld());
         if (inst == null) return;
         event.setHatching(false);
+    }
+
+    @EventHandler
+    void onPlayerCanBuild(PlayerCanBuildEvent event) {
+        Instance inst = plugin.raidInstance(event.getBlock().getWorld());
+        if (inst == null) return;
+        event.setCancelled(true);
     }
 }
