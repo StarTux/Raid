@@ -16,6 +16,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.entity.EntityDamageEvent;
@@ -200,6 +201,13 @@ final class EventListener implements Listener {
 
     @EventHandler
     void onPlayerCanBuild(PlayerCanBuildEvent event) {
+        Instance inst = plugin.raidInstance(event.getBlock().getWorld());
+        if (inst == null) return;
+        event.setCancelled(true);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    void onEntityChangeBlock(EntityChangeBlockEvent event) {
         Instance inst = plugin.raidInstance(event.getBlock().getWorld());
         if (inst == null) return;
         event.setCancelled(true);
