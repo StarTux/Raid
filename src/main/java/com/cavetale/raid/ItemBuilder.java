@@ -13,19 +13,19 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.potion.PotionType;
 
-final class ItemBuilder {
+public final class ItemBuilder {
     private final ItemStack item;
 
-    ItemBuilder(@NonNull final Material mat) {
+    public ItemBuilder(@NonNull final Material mat) {
         item = new ItemStack(mat);
     }
 
-    ItemBuilder amount(int amount) {
+    public ItemBuilder amount(int amount) {
         item.setAmount(amount);
         return this;
     }
 
-    ItemBuilder dmg(int dmg) {
+    public ItemBuilder dmg(int dmg) {
         ItemMeta meta = item.getItemMeta();
         if (meta instanceof Damageable) {
             Damageable damageable = (Damageable) meta;
@@ -37,12 +37,12 @@ final class ItemBuilder {
         return this;
     }
 
-    ItemBuilder ench(@NonNull Enchantment ench, int level) {
+    public ItemBuilder ench(@NonNull Enchantment ench, int level) {
         item.addUnsafeEnchantment(ench, level);
         return this;
     }
 
-    ItemBuilder enchStore(@NonNull Enchantment ench, int level) {
+    public ItemBuilder enchStore(@NonNull Enchantment ench, int level) {
         ItemMeta meta = item.getItemMeta();
         if (meta instanceof EnchantmentStorageMeta) {
             EnchantmentStorageMeta store = (EnchantmentStorageMeta) meta;
@@ -52,7 +52,7 @@ final class ItemBuilder {
         return this;
     }
 
-    ItemBuilder basePotion(@NonNull PotionType type, boolean extended, boolean upgraded) {
+    public ItemBuilder basePotion(@NonNull PotionType type, boolean extended, boolean upgraded) {
         ItemMeta meta = item.getItemMeta();
         if (meta instanceof PotionMeta) {
             PotionMeta potion = (PotionMeta) meta;
@@ -62,7 +62,7 @@ final class ItemBuilder {
         return this;
     }
 
-    ItemBuilder customEffect(@NonNull PotionEffectType type, int duration, int amplifier) {
+    public ItemBuilder customEffect(@NonNull PotionEffectType type, int duration, int amplifier) {
         ItemMeta meta = item.getItemMeta();
         if (meta instanceof PotionMeta) {
             PotionMeta potion = (PotionMeta) meta;
@@ -74,7 +74,7 @@ final class ItemBuilder {
         return this;
     }
 
-    ItemStack create() {
+    public ItemStack create() {
         return item.clone();
     }
 }

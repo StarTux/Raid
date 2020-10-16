@@ -425,7 +425,6 @@ final class BossFight {
         }
     }
 
-
     void onBossDeath() {
         Player killer = mob.getKiller();
         if (killer != null) damagers.add(killer.getUniqueId());
@@ -1165,8 +1164,7 @@ final class BossFight {
             phaseComplete = true;
             return;
         }
-        PotionEffect effect = new PotionEffect(PotionEffectType.LEVITATION,
-                                               200, 0);
+        PotionEffect effect = new PotionEffect(PotionEffectType.LEVITATION, 200, 0);
         if (phaseTicks == 10) {
             for (Player player : players) {
                 player.addPotionEffect(effect, false);
