@@ -45,7 +45,7 @@ public final class VengefulBoss extends LivingEnemy {
         FireworkAbility firework = phases.addAbility(new FireworkAbility(this, context));
         firework.setDuration(200);
         firework.setWarmup(0);
-        firework.setInterval(8);
+        firework.setInterval(10);
         firework.setFireworkEffects(1);
         SpawnAddsAbility adds = phases.addAbility(new SpawnAddsAbility(this, context));
         adds.setWarmup(20);

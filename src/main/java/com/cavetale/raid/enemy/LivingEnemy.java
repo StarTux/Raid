@@ -295,7 +295,7 @@ public abstract class LivingEnemy implements Enemy {
             return;
         } else if (damager instanceof Projectile) {
             Projectile projectile = (Projectile) damager;
-            if (!(projectile.getShooter() instanceof Entity)) {
+            if (projectile.getShooter() instanceof Entity) {
                 damagedBy((Entity) projectile.getShooter(), event);
             }
         } else {

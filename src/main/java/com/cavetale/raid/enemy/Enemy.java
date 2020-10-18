@@ -104,5 +104,4 @@ public interface Enemy {
     default List<ItemStack> getDrops() {
         return Collections.emptyList();
     }
-
 }
