@@ -73,6 +73,11 @@ final class EventListener implements Listener {
         if (inst != null) {
             switch (event.getCause()) {
             case ENDER_PEARL:
+                if (inst.getCurrentWave().getType() != Wave.Type.BOSS) {
+                    event.setCancelled(true);
+                    return;
+                }
+                break;
             case CHORUS_FRUIT:
                 event.setCancelled(true);
             default: break;

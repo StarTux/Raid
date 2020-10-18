@@ -22,6 +22,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
 import org.bukkit.GameMode;
@@ -545,7 +546,7 @@ final class Instance implements Context {
         }
         case WIN: {
             if (waveTicks == 1) {
-                String playerNames = players.stream()
+                String playerNames = Bukkit.getOnlinePlayers().stream()
                     .filter(p -> bossDamagers.contains(p.getUniqueId()))
                     .map(Player::getName)
                     .collect(Collectors.joining(", "));
@@ -555,7 +556,7 @@ final class Instance implements Context {
                 for (Player other : plugin.getServer().getOnlinePlayers()) {
                     other.sendMessage(msg);
                 }
-                for (Player player : players) {
+                for (Player player : Bukkit.getOnlinePlayers()) {
                     if (!bossDamagers.contains(player.getUniqueId())) continue;
                     player.playSound(player.getEyeLocation(),
                                      Sound.UI_TOAST_CHALLENGE_COMPLETE,
