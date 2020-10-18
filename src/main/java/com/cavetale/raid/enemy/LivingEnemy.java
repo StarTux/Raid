@@ -3,7 +3,6 @@ package com.cavetale.raid.enemy;
 import com.cavetale.worldmarker.EntityMarker;
 import com.cavetale.worldmarker.MarkTagContainer;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import lombok.Getter;
@@ -17,7 +16,6 @@ import org.bukkit.entity.Projectile;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
@@ -266,19 +264,11 @@ public abstract class LivingEnemy implements Enemy {
     }
 
     /**
-     * Customize drops if desired.
-     */
-    public List<ItemStack> getDrops() {
-        return Collections.emptyList();
-    }
-
-    /**
      * We're removing drops. Maybe reconsider.
      */
     public void onDeath(EntityDeathEvent event) {
         dead = true;
         event.getDrops().clear();
-        event.getDrops().addAll(getDrops());
     }
 
     /**

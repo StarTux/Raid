@@ -6,16 +6,18 @@ import com.cavetale.raid.ability.DialogueAbility;
 import com.cavetale.raid.ability.FireworkAbility;
 import com.cavetale.raid.ability.PauseAbility;
 import com.cavetale.raid.ability.SpawnAddsAbility;
+import java.util.Arrays;
+import java.util.List;
 import lombok.Getter;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.attribute.Attribute;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.WitherSkeleton;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.inventory.EntityEquipment;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class DecayedBoss extends LivingEnemy {
@@ -30,15 +32,7 @@ public final class DecayedBoss extends LivingEnemy {
 
     @Override
     public void spawn(Location location) {
-        living = location.getWorld().spawn(location, WitherSkeleton.class, e -> {
-                EntityEquipment eq = e.getEquipment();
-                eq.setHelmet(new ItemBuilder(Material.CARVED_PUMPKIN).create());
-                eq.setItemInMainHand(new ItemBuilder(Material.DIAMOND_SWORD)
-                                     .ench(Enchantment.KNOCKBACK, 2)
-                                     .ench(Enchantment.DAMAGE_ALL, 5)
-                                     .removeDamage().create());
-                prep(e);
-            });
+        living = location.getWorld().spawn(location, WitherSkeleton.class, this::prep);
         markLiving();
         phases = new AbilityPhases();
         DialogueAbility dialogue = phases.addAbility(new DialogueAbility(this, context));
@@ -60,7 +54,9 @@ public final class DecayedBoss extends LivingEnemy {
 
     @Override
     public void onRemove() {
-        phases.end();
+        if (phases != null) {
+            phases.end();
+        }
     }
 
     @Override
@@ -70,21 +66,25 @@ public final class DecayedBoss extends LivingEnemy {
     }
 
     private void prep(LivingEntity entity) {
-        Prep.health(entity, health, maxHealth);
-        Prep.attr(entity, Attribute.GENERIC_ATTACK_DAMAGE, 10.0);
-        Prep.attr(entity, Attribute.GENERIC_KNOCKBACK_RESISTANCE, 1.0);
-        Prep.attr(entity, Attribute.GENERIC_MOVEMENT_SPEED, 0.25);
-        Prep.attr(entity, Attribute.GENERIC_ARMOR, 20.0); // dia=20
-        Prep.attr(entity, Attribute.GENERIC_ARMOR_TOUGHNESS, 8.0); // dia=8
-        Prep.disableEquipmentDrop(entity);
+        EntityEquipment eq = entity.getEquipment();
+        eq.setHelmet(new ItemBuilder(Material.CARVED_PUMPKIN).create());
+        eq.setItemInMainHand(new ItemBuilder(Material.DIAMOND_SWORD)
+                             .ench(Enchantment.KNOCKBACK, 2)
+                             .ench(Enchantment.DAMAGE_ALL, 5)
+                             .removeDamage().create());
         entity.setCustomName(displayName);
-        entity.setCustomNameVisible(true);
-        entity.setPersistent(false);
+        Prep.health(entity, health, maxHealth);
+        Prep.boss(entity);
     }
 
     private void prepAdd(WitherSkeleton witherSkeleton) {
         Prep.disableEquipmentDrop(witherSkeleton);
         witherSkeleton.setPersistent(false);
         witherSkeleton.setRemoveWhenFarAway(true);
+    }
+
+    @Override
+    public List<ItemStack> getDrops() {
+        return Arrays.asList(new ItemStack(Material.WITHER_SKELETON_SKULL));
     }
 }

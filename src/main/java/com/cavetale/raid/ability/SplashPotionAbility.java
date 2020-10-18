@@ -15,7 +15,7 @@ import org.bukkit.potion.PotionType;
 import org.bukkit.util.Vector;
 
 public final class SplashPotionAbility extends AbstractAbility {
-    @Getter @Setter private int interval = 40;
+    @Getter @Setter private int interval = 10;
     private int intervalTicks = 0;
     private Random random = new Random();
 

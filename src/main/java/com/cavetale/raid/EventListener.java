@@ -1,5 +1,6 @@
 package com.cavetale.raid;
 
+import com.cavetale.worldmarker.EntityMarker;
 import com.destroystokyo.paper.event.entity.ThrownEggHatchEvent;
 import com.winthier.generic_events.PlayerCanBuildEvent;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 @RequiredArgsConstructor
 final class EventListener implements Listener {
     final RaidPlugin plugin;
+    static final String MOB_PROJECTILE_ID = "raid:mob_projectile";
 
     @EventHandler(priority = EventPriority.MONITOR)
     void onEntityExplode(EntityExplodeEvent event) {
@@ -103,18 +105,26 @@ final class EventListener implements Listener {
                 double dmg = event.getDamage();
                 if (dmg > 1.0) event.setDamage(1.0); // 4 times per second
             }
+            if (EntityMarker.hasId(event.getDamager(), MOB_PROJECTILE_ID)) {
+                double base = event.getDamage(EntityDamageEvent.DamageModifier.BASE);
+                event.setDamage(EntityDamageEvent.DamageModifier.BASE, base * 1.25);
+            }
         }
     }
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.MONITOR)
     void onProjectileLaunch(ProjectileLaunchEvent event) {
-        if (!(event.getEntity() instanceof AbstractArrow)) return;
-        AbstractArrow arrow = (AbstractArrow) event.getEntity();
-        Instance inst = plugin.raidInstance(arrow.getWorld());
+        Instance inst = plugin.raidInstance(event.getEntity().getWorld());
         if (inst == null) return;
-        if (!(arrow.getShooter() instanceof Mob)) return;
-        arrow.setPersistent(false);
-        inst.arrows.add(arrow);
+        if (event.getEntity() instanceof AbstractArrow) {
+            AbstractArrow arrow = (AbstractArrow) event.getEntity();
+            if (!(arrow.getShooter() instanceof Mob)) return;
+            arrow.setPersistent(false);
+            inst.arrows.add(arrow);
+        }
+        if (event.getEntity().getShooter() instanceof Mob) {
+            EntityMarker.setId(event.getEntity(), MOB_PROJECTILE_ID);
+        }
     }
 
     @EventHandler(ignoreCancelled = true)

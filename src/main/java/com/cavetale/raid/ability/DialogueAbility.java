@@ -30,7 +30,7 @@ public final class DialogueAbility extends AbstractAbility {
         if (ticks != warmup) return true;
         if (dialogues.isEmpty()) return true;
         String line = dialogues.get(dialogueIndex);
-        String message = "" + ChatColor.WHITE + ": " + ChatColor.YELLOW + ChatColor.ITALIC + line;
+        String message = "" + ChatColor.GRAY + ": " + ChatColor.RED + ChatColor.ITALIC + line;
         dialogueIndex += 1;
         if (dialogueIndex >= dialogues.size()) dialogueIndex = 0;
         for (Player player : context.getPlayers()) {

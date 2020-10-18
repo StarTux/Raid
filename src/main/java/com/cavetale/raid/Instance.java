@@ -3,6 +3,9 @@ package com.cavetale.raid;
 import com.cavetale.raid.enemy.Context;
 import com.cavetale.raid.enemy.DecayedBoss;
 import com.cavetale.raid.enemy.Enemy;
+import com.cavetale.raid.enemy.ForgottenBoss;
+import com.cavetale.raid.enemy.VengefulBoss;
+import com.cavetale.worldmarker.EntityMarker;
 import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
 import java.io.File;
@@ -394,10 +397,15 @@ final class Instance implements Context {
         }
         if (wave.boss != null) {
             switch (wave.boss.type) {
+            case VENGEFUL:
+                bosses.add(new VengefulBoss(plugin, this));
+                break;
+            case FORGOTTEN:
+                bosses.add(new ForgottenBoss(plugin, this));
+                break;
             case DECAYED:
             default:
-                DecayedBoss decayed = new DecayedBoss(plugin, this);
-                bosses.add(decayed);
+                bosses.add(new DecayedBoss(plugin, this));
             }
         }
     }
@@ -417,6 +425,7 @@ final class Instance implements Context {
 
     boolean isAcceptableMobTarget(Entity target) {
         if (target == null) return false;
+        if (EntityMarker.hasId(target, Enemy.WORLD_MARKER_ID)) return false;
         switch (target.getType()) {
         case PLAYER:
         case WOLF:
@@ -847,6 +856,13 @@ final class Instance implements Context {
     @Override // Context
     public void onDeath(Enemy enemy) {
         if (bosses.contains(enemy)) {
+            for (Player player : enemy.getPlayerDamagers()) {
+                for (ItemStack item : enemy.getDrops()) {
+                    for (ItemStack drop : player.getInventory().addItem(item).values()) {
+                        player.getWorld().dropItem(player.getEyeLocation(), drop).setPickupDelay(0);
+                    }
+                }
+            }
             enemy.onRemove();
             bosses.remove(enemy);
             if (bosses.isEmpty()) {

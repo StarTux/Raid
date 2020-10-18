@@ -9,21 +9,18 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
 public final class PullAbility extends AbstractAbility {
-    @Getter @Setter private int interval;
+    @Getter @Setter private int interval = 40;
     private int intervalTicks = 0;
 
     public PullAbility(final Enemy enemy, final Context context) {
         super(enemy, context);
         duration = 100;
-        warmup = 50;
-        interval = 100;
+        warmup = 10;
     }
 
     @Override
     public void onBegin() {
         enemy.setImmobile(true);
-        duration = 100;
-        warmup = 60;
     }
 
     @Override

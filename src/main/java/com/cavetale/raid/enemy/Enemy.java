@@ -1,6 +1,7 @@
 package com.cavetale.raid.enemy;
 
 import com.cavetale.worldmarker.EntityMarker;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -13,6 +14,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
@@ -94,4 +96,12 @@ public interface Enemy {
         if (handle == null) return null;
         return handle.getEnemy();
     }
+
+    /**
+     * Customize drops if desired.
+     */
+    default List<ItemStack> getDrops() {
+        return Collections.emptyList();
+    }
+
 }

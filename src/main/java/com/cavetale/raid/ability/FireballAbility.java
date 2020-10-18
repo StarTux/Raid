@@ -39,8 +39,8 @@ public final class FireballAbility extends AbstractAbility {
         Location eye = enemy.getEyeLocation();
         for (Player player : context.getPlayers()) {
             if (!enemy.hasLineOfSight(player)) continue;
-            Location loc = player.getEyeLocation();
-            Vector vec = loc.subtract(eye).toVector().normalize().multiply(1.5);
+            Location target = player.getEyeLocation();
+            Vector vec = target.subtract(eye).toVector().normalize().multiply(2.5);
             LargeFireball fireball = enemy.launchProjectile(LargeFireball.class, vec);
             fireball.setPersistent(false);
             context.registerTemporaryEntity(fireball);

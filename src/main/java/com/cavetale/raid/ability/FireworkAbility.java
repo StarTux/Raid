@@ -21,7 +21,7 @@ import org.bukkit.util.Vector;
  * Immobilizing.
  */
 public final class FireworkAbility extends AbstractAbility {
-    @Getter @Setter private int interval = 40;
+    @Getter @Setter private int interval = 30;
     @Getter @Setter private int fireworkEffects = 3;
     private int intervalTicks = 0;
     private final Random random = new Random();
@@ -30,7 +30,7 @@ public final class FireworkAbility extends AbstractAbility {
     public FireworkAbility(final Enemy enemy, final Context context) {
         super(enemy, context);
         duration = 100;
-        warmup = 40;
+        warmup = 20;
     }
 
     @Override
@@ -66,16 +66,16 @@ public final class FireworkAbility extends AbstractAbility {
                         FireworkEffect.Builder builder = FireworkEffect.builder();
                         switch (random.nextInt(4)) {
                         case 0:
-                            builder.with(FireworkEffect.Type.BALL).withColor(Color.BLACK).withTrail();
+                            builder.with(FireworkEffect.Type.BALL).withColor(Color.BLACK);
                             break;
                         case 1:
-                            builder.with(FireworkEffect.Type.BALL).withColor(Color.RED).withTrail();
+                            builder.with(FireworkEffect.Type.BALL).withColor(Color.RED);
                             break;
                         case 2:
-                            builder.with(FireworkEffect.Type.BALL).withColor(Color.ORANGE).withTrail();
+                            builder.with(FireworkEffect.Type.BALL).withColor(Color.ORANGE);
                             break;
                         case 3:
-                            builder.with(FireworkEffect.Type.BALL).withColor(Color.YELLOW).withTrail();
+                            builder.with(FireworkEffect.Type.BALL).withColor(Color.YELLOW);
                             break;
                         default: break;
                         }

@@ -11,6 +11,7 @@ import org.bukkit.entity.Mob;
 import org.bukkit.entity.Rabbit;
 
 /**
+ * Configuration.
  * A mob to be spawned in a location.
  */
 final class Spawn implements ShortInfo {
@@ -18,6 +19,7 @@ final class Spawn implements ShortInfo {
     Place place;
     int amount = 1;
     double health = 0;
+    double attributeFactor = 1.0;
 
     Spawn() { }
 
