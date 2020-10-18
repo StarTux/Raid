@@ -1,6 +1,7 @@
 package com.cavetale.raid.ability;
 
 import com.cavetale.raid.ItemBuilder;
+import com.cavetale.raid.enemy.Context;
 import com.cavetale.raid.enemy.Enemy;
 import java.util.Random;
 import lombok.Getter;

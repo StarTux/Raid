@@ -6,6 +6,10 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.ComponentBuilder;
+import net.md_5.bungee.api.chat.HoverEvent;
+import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.ChatColor;
 import org.bukkit.World;
 import org.bukkit.command.Command;
@@ -337,11 +341,15 @@ final class RaidEditCommand implements TabExecutor {
             return true;
         }
         case LIST: {
-            player.sendMessage(y + "" + y + raid.waves.size() + " waves:");
+            ComponentBuilder cb = new ComponentBuilder(y + "" + y + raid.waves.size() + " waves:");
             for (int i = 0; i < raid.waves.size(); i += 1) {
                 Wave wave = raid.waves.get(i);
-                player.sendMessage(y + "" + i + ") " + y + ShortInfo.of(wave));
+                cb.append(" " + wave.type.color + i + ":" + wave.type.key + "(" + wave.spawns.size() + ")");
+                String tooltip = wave.getShortInfo();
+                cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText(tooltip)));
+                cb.event(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/raidedit wave " + i));
             }
+            player.sendMessage(cb.create());
             return true;
         }
         case TP: {

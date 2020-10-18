@@ -1,5 +1,6 @@
 package com.cavetale.raid.ability;
 
+import com.cavetale.raid.enemy.Context;
 import com.cavetale.raid.enemy.Enemy;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,6 +24,7 @@ public final class SpawnAddsAbility extends AbstractAbility {
 
     public SpawnAddsAbility(final Enemy enemy, final Context context) {
         super(enemy, context);
+        duration = 200;
     }
 
     @Value
@@ -65,14 +67,16 @@ public final class SpawnAddsAbility extends AbstractAbility {
 
     int spawnAdd(Add add) {
         int count = context.countTemporaryEntities(add.type);
-        while (count < add.maximum && count < add.simultaneous) {
+        int spawned = 0;
+        while (count < add.maximum && spawned < add.simultaneous) {
             Entity entity = enemy.getWorld().spawn(enemy.getLocation(), add.type, e -> spawnCallback(e, add));
             if (entity != null) {
                 count += 1;
+                spawned += 1;
                 context.registerTemporaryEntity(entity);
             }
         }
-        return count;
+        return spawned;
     }
 
     private <T extends Entity> void spawnCallback(T entity, Add<T> add) {

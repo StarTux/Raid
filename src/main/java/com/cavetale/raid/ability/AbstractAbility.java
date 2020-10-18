@@ -1,5 +1,6 @@
 package com.cavetale.raid.ability;
 
+import com.cavetale.raid.enemy.Context;
 import com.cavetale.raid.enemy.Enemy;
 import lombok.Getter;
 import lombok.Setter;
@@ -26,12 +27,14 @@ public abstract class AbstractAbility implements Ability {
 
     @Override
     public final void begin() {
+        System.out.println("ABILITY: Begin: " + getClass().getSimpleName() + " " + duration);
         ticks = 0;
         onBegin();
     }
 
     @Override
     public final void end() {
+        System.out.println("ABILITY: End: " + getClass().getSimpleName() + " " + ticks);
         onEnd();
     }
 

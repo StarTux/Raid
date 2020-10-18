@@ -1,5 +1,6 @@
 package com.cavetale.raid.ability;
 
+import com.cavetale.raid.enemy.Context;
 import com.cavetale.raid.enemy.Enemy;
 import com.cavetale.worldmarker.EntityMarker;
 import java.util.List;

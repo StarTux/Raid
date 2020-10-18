@@ -1,11 +1,16 @@
-package com.cavetale.raid.ability;
+package com.cavetale.raid.enemy;
 
-import com.cavetale.raid.enemy.Enemy;
 import java.util.List;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
+/**
+ * Provide some context for an enemy and its abilities. A context
+ * includes some contextual information, and callbacks. A context is
+ * intended to be provided by the client plugin in order to integrate
+ * enemies and abilities into the mode of play.
+ */
 public interface Context {
     /**
      * List players eligible for combat. Maybe within range, maybe
@@ -15,7 +20,7 @@ public interface Context {
 
     /**
      * The spawn of the current battle, or the desired spawn location
-     * for the ability receiving this context.
+     * for the enemy receiving this context.
      * NOT the world spawn.
      */
     Location getSpawnLocation();
@@ -40,4 +45,6 @@ public interface Context {
      * entities.
      */
     int countTemporaryEntities(Class<? extends Entity> type);
+
+    void onDeath(Enemy enemy);
 }

@@ -1,7 +1,10 @@
 package com.cavetale.raid;
 
+import java.util.UUID;
 import lombok.NonNull;
 import org.bukkit.Material;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
@@ -71,6 +74,26 @@ public final class ItemBuilder {
             potion.addCustomEffect(effect, true);
             item.setItemMeta(potion);
         }
+        return this;
+    }
+
+    public ItemBuilder removeArmor() {
+        ItemMeta meta = item.getItemMeta();
+        AttributeModifier attr;
+        attr = new AttributeModifier(UUID.randomUUID(), "raid:remove_armor", 0.0, AttributeModifier.Operation.ADD_NUMBER);
+        meta.addAttributeModifier(Attribute.GENERIC_ARMOR, attr);
+        attr = new AttributeModifier(UUID.randomUUID(), "raid:remove_armor_toughness", 0.0, AttributeModifier.Operation.ADD_NUMBER);
+        meta.addAttributeModifier(Attribute.GENERIC_ARMOR_TOUGHNESS, attr);
+        item.setItemMeta(meta);
+        return this;
+    }
+
+    public ItemBuilder removeDamage() {
+        ItemMeta meta = item.getItemMeta();
+        AttributeModifier attr;
+        attr = new AttributeModifier(UUID.randomUUID(), "raid:remove_damage", 0.0, AttributeModifier.Operation.ADD_NUMBER);
+        meta.addAttributeModifier(Attribute.GENERIC_ATTACK_DAMAGE, attr);
+        item.setItemMeta(meta);
         return this;
     }
 

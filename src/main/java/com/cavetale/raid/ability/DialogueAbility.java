@@ -1,5 +1,6 @@
 package com.cavetale.raid.ability;
 
+import com.cavetale.raid.enemy.Context;
 import com.cavetale.raid.enemy.Enemy;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,14 +30,12 @@ public final class DialogueAbility extends AbstractAbility {
         if (ticks != warmup) return true;
         if (dialogues.isEmpty()) return true;
         String line = dialogues.get(dialogueIndex);
-        String message = ""
-            + ChatColor.DARK_RED + enemy.getDisplayName()
-            + ChatColor.WHITE + ": "
-            + ChatColor.YELLOW + ChatColor.ITALIC + line;
+        String message = "" + ChatColor.WHITE + ": " + ChatColor.YELLOW + ChatColor.ITALIC + line;
         dialogueIndex += 1;
         if (dialogueIndex >= dialogues.size()) dialogueIndex = 0;
         for (Player player : context.getPlayers()) {
-            player.sendMessage(message);
+            player.sendMessage(enemy.getDisplayName() + message);
+            player.sendActionBar(enemy.getDisplayName() + message);
         }
         return true;
     }

@@ -1,5 +1,6 @@
 package com.cavetale.raid;
 
+import com.cavetale.raid.enemy.EnemyListener;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import java.io.File;
@@ -18,6 +19,7 @@ public final class RaidPlugin extends JavaPlugin {
     RaidCommand raidCommand = new RaidCommand(this);
     RaidEditCommand raidEditCommand = new RaidEditCommand(this);
     EventListener eventListener = new EventListener(this);
+    EnemyListener enemyListener;
     Gson gson = new Gson();
     Gson prettyGson = new GsonBuilder().setPrettyPrinting().create();
     File raidFolder;
@@ -37,6 +39,7 @@ public final class RaidPlugin extends JavaPlugin {
         getCommand("raidedit").setExecutor(raidEditCommand);
         getServer().getScheduler().runTaskTimer(this, this::onTick, 1L, 1L);
         getServer().getPluginManager().registerEvents(eventListener, this);
+        enemyListener = new EnemyListener(this).enable();
         // Raid instances
         for (World world : getServer().getWorlds()) {
             Raid raid = raids.get(world.getName());

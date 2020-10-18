@@ -10,7 +10,6 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -18,12 +17,9 @@ import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
-import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityTargetEvent;
-import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.hanging.HangingBreakEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -33,16 +29,6 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 @RequiredArgsConstructor
 final class EventListener implements Listener {
     final RaidPlugin plugin;
-
-    @EventHandler(priority = EventPriority.MONITOR)
-    void onEntityDeath(EntityDeathEvent event) {
-        if (event.getEntity() instanceof Mob) {
-            Mob mob = (Mob) event.getEntity();
-            Instance inst = plugin.raidInstance(mob.getWorld());
-            if (inst == null) return;
-            inst.onDeath(mob);
-        }
-    }
 
     @EventHandler(priority = EventPriority.MONITOR)
     void onEntityExplode(EntityExplodeEvent event) {
@@ -62,15 +48,10 @@ final class EventListener implements Listener {
         Mob mob = (Mob) event.getEntity();
         Instance inst = plugin.raidInstance(mob.getWorld());
         if (inst != null) {
-            if (mob.getType() == EntityType.VEX
-                && event.getSpawnReason() == SpawnReason.DEFAULT) {
+            if (mob.getType() == EntityType.VEX && event.getSpawnReason() == SpawnReason.DEFAULT) {
                 event.setCancelled(true);
             } else if (event.getSpawnReason() == SpawnReason.SLIME_SPLIT) {
-                if (inst.bossFight != null) {
-                    inst.bossFight.adds.add(mob);
-                } else {
-                    inst.adds.add(mob);
-                }
+                inst.adds.add(mob);
             }
         }
     }
@@ -98,14 +79,7 @@ final class EventListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     void onEntityDamage(EntityDamageEvent event) {
-        if (event.getEntity() instanceof Mob) {
-            Mob mob = (Mob) event.getEntity();
-            Instance inst = plugin.raidInstance(mob.getWorld());
-            if (inst == null) return;
-            if (inst.bossFight != null && mob.equals(inst.bossFight.mob)) {
-                inst.bossFight.onBossDamage(event);
-            }
-        } else if (event.getEntity() instanceof Player) {
+        if (event.getEntity() instanceof Player) {
             Player player = (Player) event.getEntity();
             Instance inst = plugin.raidInstance(player.getWorld());
             if (inst == null) return;
@@ -128,12 +102,6 @@ final class EventListener implements Listener {
             if (event.getDamager() instanceof ElderGuardian) {
                 double dmg = event.getDamage();
                 if (dmg > 1.0) event.setDamage(1.0); // 4 times per second
-            }
-        }
-        if (plugin.metadata.has(event.getDamager(), BossFight.EXPLOSIVE_EGG)
-            && event.getCause() == DamageCause.ENTITY_EXPLOSION) {
-            if (!(event.getEntity() instanceof Player)) {
-                event.setCancelled(true);
             }
         }
     }
@@ -180,16 +148,6 @@ final class EventListener implements Listener {
         Instance inst = plugin.raidInstance(block.getWorld());
         if (inst == null) return;
         inst.interact(event.getPlayer(), block);
-    }
-
-    @EventHandler
-    void onProjectileLaunch(ProjectileHitEvent event) {
-        Projectile proj = event.getEntity();
-        Instance inst = plugin.raidInstance(proj.getWorld());
-        if (inst == null) return;
-        if (plugin.metadata.has(proj, BossFight.EXPLOSIVE_EGG)) {
-            proj.getWorld().createExplosion(proj, 1.0f);
-        }
     }
 
     @EventHandler

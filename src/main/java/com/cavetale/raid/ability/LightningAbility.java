@@ -1,15 +1,16 @@
 package com.cavetale.raid.ability;
 
 import com.cavetale.raid.Place;
+import com.cavetale.raid.enemy.Context;
 import com.cavetale.raid.enemy.Enemy;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
-import org.bukkit.entity.Player;
 import org.bukkit.Particle;
+import org.bukkit.entity.Player;
 
 public final class LightningAbility extends AbstractAbility {
     @Getter @Setter private int interval = 40;

@@ -1,14 +1,19 @@
 package com.cavetale.raid.ability;
 
+import com.cavetale.raid.enemy.Context;
 import com.cavetale.raid.enemy.Enemy;
 
 /**
  * Do nothing for a while.
  */
 public final class PauseAbility extends AbstractAbility {
-    public PauseAbility(final Enemy enemy, final Context context) {
+    public PauseAbility(final Enemy enemy, final Context context, final int duration) {
         super(enemy, context);
-        duration = 200;
+        this.duration = duration;
+    }
+
+    public PauseAbility(final Enemy enemy, final Context context) {
+        this(enemy, context, 100);
     }
 
     @Override

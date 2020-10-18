@@ -1,5 +1,8 @@
 package com.cavetale.raid;
 
+import com.cavetale.raid.enemy.Context;
+import com.cavetale.raid.enemy.DecayedBoss;
+import com.cavetale.raid.enemy.Enemy;
 import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
 import java.io.File;
@@ -47,7 +50,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.potion.PotionEffectType;
 
-final class Instance {
+final class Instance implements Context {
     final RaidPlugin plugin;
     final Raid raid;
     final World world;
@@ -60,10 +63,10 @@ final class Instance {
     long waveTicks = 0;
     boolean waveComplete = false;
     final List<SpawnSlot> spawns = new ArrayList<>();
-    BossFight bossFight;
     boolean debug;
     final List<WaveInst> waveInsts = new ArrayList<>();
     final List<Mob> adds = new ArrayList<>();
+    final List<Enemy> bosses = new ArrayList<>();
     final List<AbstractArrow> arrows = new ArrayList<>();
     final Set<UUID> bossDamagers = new HashSet<>(); // last boss battle
     int secondsLeft;
@@ -132,8 +135,7 @@ final class Instance {
         boolean killed = false;
 
         boolean isPresent() {
-            return mob != null
-                && mob.isValid();
+            return mob != null && mob.isValid();
         }
     }
 
@@ -153,7 +155,8 @@ final class Instance {
         }
     }
 
-    List<Player> getPlayers() {
+    @Override // Context
+    public List<Player> getPlayers() {
         return world.getPlayers().stream()
             .filter(p -> !p.isDead())
             .filter(p -> p.getGameMode() == GameMode.SURVIVAL
@@ -338,18 +341,22 @@ final class Instance {
     }
 
     void clearWave() {
+        // Spawns
         for (SpawnSlot slot : spawns) {
             if (slot.isPresent()) slot.mob.remove();
         }
         spawns.clear();
+        // Adds
         for (Mob add : adds) {
             if (add.isValid()) add.remove();
         }
         adds.clear();
-        if (bossFight != null) {
-            bossFight.cleanup();
-            bossFight = null;
+        // Bosses
+        for (Enemy boss : bosses) {
+            boss.onRemove();
+            boss.remove();
         }
+        bosses.clear();
         if (debug) {
             debug = false;
             updateDebugMode();
@@ -386,7 +393,12 @@ final class Instance {
             }
         }
         if (wave.boss != null) {
-            bossFight = new BossFight(this, wave.boss);
+            switch (wave.boss.type) {
+            case DECAYED:
+            default:
+                DecayedBoss decayed = new DecayedBoss(plugin, this);
+                bosses.add(decayed);
+            }
         }
     }
 
@@ -400,14 +412,6 @@ final class Instance {
                 slot.mob = null;
                 return;
             }
-        }
-        if (bossFight != null && mob.equals(bossFight.mob)) {
-            bossFight.onBossDeath();
-            bossDamagers.clear();
-            bossDamagers.addAll(bossFight.damagers);
-            bossFight.killed = true;
-            bossFight.mob.remove();
-            bossFight.mob = null;
         }
     }
 
@@ -492,13 +496,15 @@ final class Instance {
             }
         }
         arrows.removeIf(arrow -> !arrow.isValid());
-        // Boss Fight
-        if (bossFight != null) {
-            if (!bossFight.killed && !bossFight.isPresent()
-                && spawnChunks.contains(wave.place.getChunk())) {
-                bossFight.mob = bossFight.spawn(wave.place.toLocation(world));
+        // Bosses
+        bosses.removeIf(Enemy::isDead);
+        for (Enemy boss : bosses) {
+            if (!boss.isValid()) {
+                Location loc = getSpawnLocation();
+                if (loc.isChunkLoaded()) {
+                    boss.spawn(loc);
+                }
             }
-            if (bossFight.isPresent()) bossFight.onTick(wave, players);
         }
         // Complete condition
         switch (wave.type) {
@@ -512,15 +518,17 @@ final class Instance {
             tickTime(wave, players);
             break;
         case BOSS: {
-            if (bossFight == null || bossFight.killed) {
-                waveComplete = true;
-            } else if (bossFight != null && bossFight.isPresent()) {
-                double health = bossFight.mob.getHealth();
-                double maxHealth = bossFight.mob
-                    .getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue();
-                getBossBar().setProgress(health / maxHealth);
-                getBossBar().setTitle(ChatColor.DARK_RED + bossFight.boss.type.displayName
-                                      + ChatColor.RED + " " + ((int) health));
+            double health = 0;
+            double maxHealth = 0;
+            for (Enemy boss : bosses) {
+                health += boss.getHealth();
+                maxHealth += boss.getMaxHealth();
+            }
+            getBossBar().setProgress(health / maxHealth);
+            waveComplete = bosses.isEmpty();
+            if (!bosses.isEmpty()) {
+                Enemy boss = bosses.get(0);
+                getBossBar().setTitle(ChatColor.DARK_RED + boss.getDisplayName() + ChatColor.RED + " " + ((int) health));
             }
             break;
         }
@@ -805,6 +813,47 @@ final class Instance {
             block.setType(Material.AIR);
             world.dropItem(block.getLocation().add(0.5, 0.5, 0.5),
                            makeSkull(id));
+        }
+    }
+
+    @Override // Context
+    public Location getSpawnLocation() {
+        return getCurrentWave().getPlace().toLocation(world);
+    }
+
+    @Override // Context
+    public void registerNewEnemy(Enemy enemy) {
+        // TODO
+    }
+
+    @Override // Context
+    public void registerTemporaryEntity(Entity entity) {
+        if (entity instanceof Mob) {
+            adds.add((Mob) entity);
+        } else if (entity instanceof AbstractArrow) {
+            arrows.add((AbstractArrow) entity);
+        }
+    }
+
+    @Override // Context
+    public int countTemporaryEntities(Class<? extends Entity> type) {
+        int count = 0;
+        for (Mob mob : adds) {
+            if (type.isInstance(mob)) count += 1;
+        }
+        return count;
+    }
+
+    @Override // Context
+    public void onDeath(Enemy enemy) {
+        if (bosses.contains(enemy)) {
+            enemy.onRemove();
+            bosses.remove(enemy);
+            if (bosses.isEmpty()) {
+                bossDamagers.clear();
+                bossDamagers.addAll(enemy.getDamagers());
+                waveComplete = true;
+            }
         }
     }
 }
