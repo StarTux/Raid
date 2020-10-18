@@ -55,7 +55,8 @@ final class RaidEditCommand implements TabExecutor {
         ADD,
         REMOVE,
         LIST,
-        TP;
+        TP,
+        MOVE;
 
         final String key;
 
@@ -357,6 +358,18 @@ final class RaidEditCommand implements TabExecutor {
             Wave wave = requireWave(player);
             player.teleport(wave.place.toLocation(inst.world));
             player.sendMessage(y + "Teleported to wave #" + inst.editWave);
+            return true;
+        }
+        case MOVE: {
+            if (args.length != 2) return false;
+            int indexA = requireInt(args[0]);
+            int indexB = requireInt(args[1]);
+            if (indexA < 0 || indexA >= raid.waves.size()) throw new Wrong("Out of bounds: " + indexA);
+            if (indexB < 0 || indexB >= raid.waves.size()) throw new Wrong("Out of bounds: " + indexB);
+            Wave wave = raid.waves.remove(indexA);
+            raid.waves.add(indexB, wave);
+            plugin.saveRaid(raid);
+            player.sendMessage(y + "Wave #" + indexA + " moved to #" + indexB);
             return true;
         }
         default: throw new IllegalArgumentException(cmd.key);
