@@ -19,6 +19,7 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
@@ -76,6 +77,16 @@ final class EventListener implements Listener {
                 event.setCancelled(true);
             default: break;
             }
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    void onEntityDeath(EntityDeathEvent event) {
+        if (event.getEntity() instanceof Mob) {
+            Mob mob = (Mob) event.getEntity();
+            Instance inst = plugin.raidInstance(mob.getWorld());
+            if (inst == null) return;
+            inst.onDeath(mob);
         }
     }
 
