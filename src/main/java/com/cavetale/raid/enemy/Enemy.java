@@ -1,6 +1,7 @@
 package com.cavetale.raid.enemy;
 
 import com.cavetale.worldmarker.EntityMarker;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -67,7 +68,7 @@ public interface Enemy {
 
     BoundingBox getBoundingBox();
 
-    List<UUID> getDamagers();
+    Collection<UUID> getDamagers();
 
     boolean isValid();
 

@@ -533,7 +533,9 @@ final class Instance implements Context {
                 health += boss.getHealth();
                 maxHealth += boss.getMaxHealth();
             }
-            getBossBar().setProgress(health / maxHealth);
+            if (maxHealth > 0) {
+                getBossBar().setProgress(health / maxHealth);
+            }
             waveComplete = bosses.isEmpty();
             if (!bosses.isEmpty()) {
                 Enemy boss = bosses.get(0);
@@ -856,6 +858,8 @@ final class Instance implements Context {
     @Override // Context
     public void onDeath(Enemy enemy) {
         if (bosses.contains(enemy)) {
+            enemy.onRemove();
+            bosses.remove(enemy);
             for (Player player : enemy.getPlayerDamagers()) {
                 for (ItemStack item : enemy.getDrops()) {
                     for (ItemStack drop : player.getInventory().addItem(item).values()) {
@@ -863,8 +867,6 @@ final class Instance implements Context {
                     }
                 }
             }
-            enemy.onRemove();
-            bosses.remove(enemy);
             if (bosses.isEmpty()) {
                 bossDamagers.clear();
                 bossDamagers.addAll(enemy.getDamagers());

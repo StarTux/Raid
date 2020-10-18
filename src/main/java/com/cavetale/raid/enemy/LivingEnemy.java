@@ -3,7 +3,9 @@ package com.cavetale.raid.enemy;
 import com.cavetale.worldmarker.EntityMarker;
 import com.cavetale.worldmarker.MarkTagContainer;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import lombok.Getter;
 import org.bukkit.Location;
@@ -31,7 +33,7 @@ public abstract class LivingEnemy implements Enemy {
     private double mountBackupSpeed;
     private boolean invulnerable;
     private boolean dead;
-    @Getter private final List<UUID> damagers = new ArrayList<>();
+    @Getter private final Set<UUID> damagers = new HashSet<>();
 
     public LivingEnemy(final JavaPlugin plugin, final Context context) {
         this.plugin = plugin;
@@ -94,8 +96,10 @@ public abstract class LivingEnemy implements Enemy {
 
         @Override
         public void onEntityDeath(EntityDeathEvent event) {
-            onDeath(event);
-            context.onDeath(LivingEnemy.this);
+            if (isAlive()) {
+                onDeath(event);
+                context.onDeath(LivingEnemy.this);
+            }
         }
 
         @Override
