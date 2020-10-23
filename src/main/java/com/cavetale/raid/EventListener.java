@@ -1,6 +1,7 @@
 package com.cavetale.raid;
 
 import com.cavetale.worldmarker.EntityMarker;
+import com.destroystokyo.paper.event.entity.EntityPathfindEvent;
 import com.destroystokyo.paper.event.entity.ThrownEggHatchEvent;
 import com.winthier.generic_events.PlayerCanBuildEvent;
 import lombok.RequiredArgsConstructor;
@@ -106,6 +107,10 @@ final class EventListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     void onEntityDamage(EntityDamageEvent event) {
+        if (EscortMarker.of(event.getEntity()) != null) {
+            event.setCancelled(true);
+            return;
+        }
         if (event.getEntity() instanceof Player) {
             Player player = (Player) event.getEntity();
             Instance inst = plugin.raidInstance(player.getWorld());
@@ -270,5 +275,14 @@ final class EventListener implements Listener {
             wave.addRoadblock(rb);
             player.sendMessage(ChatColor.YELLOW + "Roadblock added: " + rb);
         }
+    }
+
+    @EventHandler
+    void onEntityPathfind(EntityPathfindEvent event) {
+        EscortMarker escortMarker = EscortMarker.of(event.getEntity());
+        if (escortMarker == null) return;
+        if (escortMarker.isPathing()) return;
+        event.setCancelled(true);
+        escortMarker.refreshPath();
     }
 }

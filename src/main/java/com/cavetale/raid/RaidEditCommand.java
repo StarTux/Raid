@@ -1,5 +1,6 @@
 package com.cavetale.raid;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -44,7 +45,8 @@ final class RaidEditCommand implements TabExecutor {
         SKIP,
         DEBUG,
         SKULLS,
-        ROADBLOCK;
+        ROADBLOCK,
+        ESCORT;
 
         final String key;
 
@@ -72,6 +74,15 @@ final class RaidEditCommand implements TabExecutor {
             }
             return null;
         }
+    }
+
+    enum EscortCmd {
+        INFO,
+        CREATE,
+        REMOVE,
+        PLACE,
+        DIALOGUE,
+        DISAPPEAR;
     }
 
     @Override
@@ -167,6 +178,7 @@ final class RaidEditCommand implements TabExecutor {
         case DEBUG: return debugCommand(requirePlayer(sender), args);
         case SKULLS: return skullsCommand(requirePlayer(sender), args);
         case ROADBLOCK: return roadblockCommand(requirePlayer(sender), args);
+        case ESCORT: return escortCommand(requirePlayer(sender), args);
         default:
             throw new IllegalArgumentException(cmd.key);
         }
@@ -216,6 +228,12 @@ final class RaidEditCommand implements TabExecutor {
             break;
         case DEBUG:
             sender.sendMessage(y + "/raidedit debug - Toggle debug mode.");
+            break;
+        case ROADBLOCK:
+            sender.sendMessage(y + "/raidedit roadblock add|clear - Edit roadblocks");
+            break;
+        case ESCORT:
+            sender.sendMessage(y + "/raidedit escort <name> info|create|remove|place|dialogue|disappear - Edit escorts");
             break;
         default:
             sender.sendMessage(y + "/raidedit " + cmd.key);
@@ -637,6 +655,92 @@ final class RaidEditCommand implements TabExecutor {
             }
             return true;
         default: throw new Wrong("Unknown command: " + args[0]);
+        }
+    }
+
+    boolean escortCommand(Player player, String[] args) throws Wrong {
+        if (args.length == 0) {
+            Wave wave = requireWave(player);
+            List<Escort> escorts = wave.getEscorts();
+            player.sendMessage(y + "Wave has " + escorts.size() + " escorts:");
+            for (Escort escort : escorts) {
+                player.sendMessage("- " + escort.getShortInfo());
+            }
+            return true;
+        }
+        if (args.length < 2) return false;
+        Wave wave = requireWave(player);
+        String escortArg = args[1];
+        EscortCmd escortCmd;
+        try {
+            escortCmd = EscortCmd.valueOf(escortArg.toUpperCase());
+        } catch (IllegalArgumentException iae) {
+            throw new Wrong("Invalid escort command: " + escortArg);
+        }
+        Escort escort = null;
+        String name = args[0];
+        for (Escort it : wave.getEscorts()) {
+            if (name.equals(it.getName())) {
+                escort = it;
+                break;
+            }
+        }
+        if (escortCmd != EscortCmd.CREATE && escort == null) throw new Wrong("Escort not found: " + name);
+        switch (escortCmd) {
+        case INFO: {
+            player.sendMessage(y + "Escort: " + escort.getShortInfo());
+            return true;
+        }
+        case CREATE: {
+            if (args.length != 2) return false;
+            if (escort != null) {
+                wave.getEscorts().remove(escort);
+            }
+            escort = new Escort();
+            escort.setName(name);
+            wave.getEscorts().add(escort);
+            plugin.saveRaid(requireRaid(player));
+            player.sendMessage(y + "Escort created: " + name);
+            return true;
+        }
+        case PLACE: {
+            if (args.length != 2) return false;
+            Place place = Place.of(player.getLocation());
+            escort.setPlace(place);
+            plugin.saveRaid(requireRaid(player));
+            player.sendMessage(y + "Updated escort place: " + place.getShortInfo());
+            return true;
+        }
+        case DIALOGUE: {
+            List<String> dialogue = escort.getDialogue();
+            if (args.length > 2) {
+                if (dialogue == null) {
+                    dialogue = new ArrayList<>();
+                    escort.setDialogue(dialogue);
+                }
+                String line = String.join(" ", Arrays.copyOfRange(args, 2, args.length));
+                dialogue.add(line);
+                plugin.saveRaid(requireRaid(player));
+                player.sendMessage(y + "Dialogue added: " + line);
+            } else {
+                if (dialogue == null) {
+                    throw new Wrong("No dialogue!");
+                }
+                player.sendMessage("" + dialogue.size() + " lines:");
+                for (String line : dialogue) {
+                    player.sendMessage("- " + line);
+                }
+            }
+            return true;
+        }
+        case DISAPPEAR:
+            if (args.length != 2) return false;
+            boolean newValue = !escort.isDisappear();
+            escort.setDisappear(newValue);
+            plugin.saveRaid(requireRaid(player));
+            player.sendMessage(y + "Disappear: " + newValue);
+            return true;
+        default: throw new IllegalStateException("escortCmd=" + escortCmd);
         }
     }
 }

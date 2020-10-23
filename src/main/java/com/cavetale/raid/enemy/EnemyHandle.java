@@ -10,6 +10,11 @@ import org.bukkit.event.entity.EntityDeathEvent;
 public interface EnemyHandle extends Persistent {
     Enemy getEnemy();
 
+    @Override
+    default boolean shouldSave() {
+        return false;
+    }
+
     default void onEntityDeath(EntityDeathEvent event) { }
 
     default void onEntityDamage(EntityDamageEvent event) { }

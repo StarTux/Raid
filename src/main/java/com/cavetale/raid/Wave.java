@@ -16,6 +16,7 @@ final class Wave implements ShortInfo {
     int time = 0;
     private List<Spawn> spawns;
     private List<Roadblock> roadblocks;
+    private List<Escort> escorts;
     private Set<Flag> flags;
 
     enum Type {
@@ -50,7 +51,8 @@ final class Wave implements ShortInfo {
             + (radius == 0 ? "" : " radius=" + radius)
             + (getSpawns().isEmpty() ? "" : " mobs=" + getSpawns().size())
             + (getRoadblocks().isEmpty() ? "" : " rblocks=" + getRoadblocks().size())
-            + (boss == null ? "" : " boss=" + ShortInfo.of(boss));
+            + (boss == null ? "" : " boss=" + ShortInfo.of(boss))
+            + (getEscorts().isEmpty() ? "" : " escort=" + getEscorts().size());
     }
 
     public void onSave() {
@@ -72,6 +74,11 @@ final class Wave implements ShortInfo {
     public Set<Flag> getFlags() {
         if (flags == null) flags = EnumSet.noneOf(Flag.class);
         return flags;
+    }
+
+    public List<Escort> getEscorts() {
+        if (escorts == null) escorts = new ArrayList<>();
+        return escorts;
     }
 
     public void addRoadblock(Roadblock roadblock) {

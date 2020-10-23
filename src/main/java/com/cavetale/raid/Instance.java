@@ -51,6 +51,7 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ExperienceOrb;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Villager;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
@@ -87,6 +88,7 @@ final class Instance implements Context {
                 new ItemBuilder(Material.LIGHT_BLUE_BANNER));
     BossBar bossBar;
     Random random = new Random();
+    Map<String, EscortMarker> escorts = new HashMap<>();
     // Skull stuff
     boolean doSkulls;
     Set<Long> scannedChunks = new TreeSet<>();
@@ -158,6 +160,7 @@ final class Instance implements Context {
         waveIndex = 0;
         ticks = 0;
         phase = Phase.RUN;
+        setupWave();
     }
 
     public void resetRun() {
@@ -169,6 +172,10 @@ final class Instance implements Context {
             waveIndex = -1;
             waveTicks = 0;
         }
+        for (EscortMarker escortMarker : escorts.values()) {
+            escortMarker.remove();
+        }
+        escorts.clear();
         return;
     }
 
@@ -448,6 +455,45 @@ final class Instance implements Context {
             break;
         default: break;
         }
+        for (Escort escort : wave.getEscorts()) {
+            EscortMarker escortMarker = escorts.get(escort.getName());
+            boolean placeIsSpecified = false;
+            Location destination = null;
+            if (escort.getPlace() != null) {
+                destination = escort.getPlace().toLocation(world);
+                placeIsSpecified = true;
+            } else if (wave.getPlace() != null) {
+                destination = wave.getPlace().toLocation(world);
+            }
+            if (destination != null) {
+                if (escortMarker == null || !escortMarker.isValid()) {
+                    if (escortMarker != null) escortMarker.remove();
+                    // (Re)spawn
+                    Villager villager = world.spawn(destination,  Villager.class, e -> {
+                            e.setProfession(Villager.Profession.FARMER);
+                            e.setVillagerType(Villager.Type.PLAINS);
+                            e.setVillagerLevel(5);
+                            e.setPersistent(false);
+                        });
+                    escortMarker = new EscortMarker(plugin, villager).enable();
+                    escorts.put(escort.getName(), escortMarker);
+                } else {
+                    // Walk
+                    if (placeIsSpecified) {
+                        escortMarker.pathTo(destination);
+                    }
+                }
+            }
+            if (escortMarker != null && escortMarker.isValid()) {
+                escortMarker.setDialogue(escort.getDialogue());
+                escortMarker.setDialogueIndex(0);
+                escortMarker.setDialogueCooldown(40);
+            }
+            if (escort.isDisappear()) {
+                escortMarker.remove();
+                escorts.remove(escort.getName());
+            }
+        }
     }
 
     void clearWave() {
@@ -617,6 +663,10 @@ final class Instance implements Context {
                     boss.spawn(loc);
                 }
             }
+        }
+        // Escorts
+        for (EscortMarker escortMarker : escorts.values()) {
+            escortMarker.tick(players);
         }
         // Complete condition
         switch (wave.type) {
