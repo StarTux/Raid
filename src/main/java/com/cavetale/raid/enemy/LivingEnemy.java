@@ -2,9 +2,7 @@ package com.cavetale.raid.enemy;
 
 import com.cavetale.worldmarker.EntityMarker;
 import com.cavetale.worldmarker.MarkTagContainer;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import lombok.Getter;

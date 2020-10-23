@@ -8,7 +8,6 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.Random;
 import lombok.NonNull;
 import org.bukkit.World;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -23,10 +22,9 @@ public final class RaidPlugin extends JavaPlugin {
     Gson gson = new Gson();
     Gson prettyGson = new GsonBuilder().setPrettyPrinting().create();
     File raidFolder;
-    Random random = new Random();
     Json json = new Json(this);
     Yaml yaml = new Yaml(this);
-    Metadata metadata = new Metadata(this);
+    Sessions sessions;
 
     @Override
     public void onEnable() {
@@ -37,9 +35,10 @@ public final class RaidPlugin extends JavaPlugin {
         loadRaids();
         getCommand("raid").setExecutor(raidCommand);
         getCommand("raidedit").setExecutor(raidEditCommand);
-        getServer().getScheduler().runTaskTimer(this, this::onTick, 1L, 1L);
+        getServer().getScheduler().runTaskTimer(this, this::tick, 1L, 1L);
         getServer().getPluginManager().registerEvents(eventListener, this);
         enemyListener = new EnemyListener(this).enable();
+        sessions = new Sessions(this).enable();
         // Raid instances
         for (World world : getServer().getWorlds()) {
             Raid raid = raids.get(world.getName());
@@ -52,6 +51,9 @@ public final class RaidPlugin extends JavaPlugin {
         for (Instance instance : instances.values()) {
             instance.clear();
         }
+        instances.clear();
+        raids.clear();
+        sessions.disable();
     }
 
     void loadRaids() {
@@ -70,6 +72,7 @@ public final class RaidPlugin extends JavaPlugin {
     }
 
     boolean saveRaid(@NonNull Raid raid) {
+        raid.onSave();
         File file = new File(raidFolder, raid.worldName + ".json");
         try (FileWriter writer = new FileWriter(file)) {
             prettyGson.toJson(raid, writer);
@@ -83,10 +86,12 @@ public final class RaidPlugin extends JavaPlugin {
     Instance raidInstance(@NonNull Raid raid) {
         Instance inst = instances.get(raid.worldName);
         if (inst == null) {
-            World world = getServer().getWorld(raid.worldName);
-            if (world == null) return null;
-            inst = new Instance(this, raid, world);
+            inst = new Instance(this, raid);
             instances.put(raid.worldName, inst);
+            World world = raid.getWorld();
+            if (world != null) {
+                inst.onWorldLoaded(world);
+            }
         }
         return inst;
     }
@@ -97,15 +102,10 @@ public final class RaidPlugin extends JavaPlugin {
         return raidInstance(raid);
     }
 
-    void onTick() {
+    void tick() {
         for (Instance instance : instances.values()) {
-            instance.onTick();
+            instance.tick();
         }
-    }
-
-    double rnd() {
-        return random.nextBoolean()
-            ? random.nextDouble()
-            : -random.nextDouble();
+        sessions.tick();
     }
 }

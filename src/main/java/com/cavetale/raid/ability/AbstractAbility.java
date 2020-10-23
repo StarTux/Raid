@@ -27,14 +27,12 @@ public abstract class AbstractAbility implements Ability {
 
     @Override
     public final void begin() {
-        System.out.println("ABILITY: Begin: " + getClass().getSimpleName() + " " + duration);
         ticks = 0;
         onBegin();
     }
 
     @Override
     public final void end() {
-        System.out.println("ABILITY: End: " + getClass().getSimpleName() + " " + ticks);
         onEnd();
     }
 

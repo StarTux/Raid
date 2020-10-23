@@ -4,6 +4,9 @@ import com.cavetale.worldmarker.EntityMarker;
 import com.destroystokyo.paper.event.entity.ThrownEggHatchEvent;
 import com.winthier.generic_events.PlayerCanBuildEvent;
 import lombok.RequiredArgsConstructor;
+import net.md_5.bungee.api.ChatColor;
+import org.bukkit.GameMode;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.ElderGuardian;
@@ -14,6 +17,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
@@ -26,7 +31,11 @@ import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.hanging.HangingBreakEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemDamageEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.event.world.WorldLoadEvent;
+import org.bukkit.event.world.WorldUnloadEvent;
 
 @RequiredArgsConstructor
 final class EventListener implements Listener {
@@ -195,5 +204,71 @@ final class EventListener implements Listener {
         Instance inst = plugin.raidInstance(event.getBlock().getWorld());
         if (inst == null) return;
         event.setCancelled(true);
+    }
+
+    @EventHandler
+    void onWorldLoad(WorldLoadEvent event) {
+        Instance inst = plugin.raidInstance(event.getWorld());
+        if (inst != null) {
+            inst.onWorldLoaded(event.getWorld());
+        }
+    }
+
+    @EventHandler
+    void onWorldUnload(WorldUnloadEvent event) {
+        Instance inst = plugin.raidInstance(event.getWorld());
+        if (inst != null) {
+            inst.onWorldUnload();
+        }
+    }
+
+    @EventHandler
+    void onPlayerJoin(PlayerJoinEvent event) {
+        plugin.sessions.enter(event.getPlayer());
+    }
+
+    @EventHandler
+    void onPlayerQuit(PlayerQuitEvent event) {
+        plugin.sessions.exit(event.getPlayer());
+    }
+
+    @EventHandler
+    void onBlockPlace(BlockPlaceEvent event) {
+        Player player = event.getPlayer();
+        Instance inst = plugin.raidInstance(player.getWorld());
+        if (inst == null) return;
+        if (player.getGameMode() != GameMode.CREATIVE) {
+            event.setCancelled(true);
+            return;
+        }
+        Session session = plugin.sessions.of(player);
+        if (session.isPlacingRoadblocks()) {
+            Wave wave = inst.getWave(session.getEditWave());
+            if (wave == null) return;
+            Block block = event.getBlock();
+            Roadblock rb = new Roadblock(block, block.getBlockData(), event.getBlockReplacedState().getBlockData());
+            wave.addRoadblock(rb);
+            player.sendMessage(ChatColor.YELLOW + "Roadblock added: " + rb);
+        }
+    }
+
+    @EventHandler
+    void onBlockBreak(BlockBreakEvent event) {
+        Player player = event.getPlayer();
+        Instance inst = plugin.raidInstance(player.getWorld());
+        if (inst == null) return;
+        if (player.getGameMode() != GameMode.CREATIVE) {
+            event.setCancelled(true);
+            return;
+        }
+        Session session = plugin.sessions.of(player);
+        if (session.isPlacingRoadblocks()) {
+            Wave wave = inst.getWave(session.getEditWave());
+            if (wave == null) return;
+            Block block = event.getBlock();
+            Roadblock rb = new Roadblock(block, Material.AIR.createBlockData(), block.getBlockData());
+            wave.addRoadblock(rb);
+            player.sendMessage(ChatColor.YELLOW + "Roadblock added: " + rb);
+        }
     }
 }

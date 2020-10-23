@@ -1,6 +1,7 @@
 package com.cavetale.raid;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -42,7 +43,8 @@ final class RaidEditCommand implements TabExecutor {
         TP,
         SKIP,
         DEBUG,
-        SKULLS;
+        SKULLS,
+        ROADBLOCK;
 
         final String key;
 
@@ -104,15 +106,49 @@ final class RaidEditCommand implements TabExecutor {
                                       final String alias,
                                       final String[] args) {
         if (args.length == 0) return null;
-        String arg = args[0];
+        String cmds = args[0].toLowerCase();
         if (args.length == 1) {
             return Stream.of(Cmd.values())
                 .map(Enum::name)
                 .map(String::toLowerCase)
-                .filter(f -> f.startsWith(arg))
+                .filter(f -> f.startsWith(cmds))
                 .collect(Collectors.toList());
         }
-        return null;
+        String arg = args[args.length - 1].toLowerCase();
+        Cmd cmd;
+        try {
+            cmd = Cmd.valueOf(cmds.toUpperCase());
+        } catch (IllegalArgumentException iae) {
+            return Collections.emptyList();
+        }
+        switch (cmd) {
+        case WAVE:
+        case MOB:
+            if (args.length == 2) {
+                return Stream.of(ListCmd.values())
+                    .map(Enum::name)
+                    .map(String::toLowerCase)
+                    .filter(f -> f.startsWith(arg))
+                    .collect(Collectors.toList());
+            }
+            return Collections.emptyList();
+        case TYPE:
+            if (args.length == 2) {
+                return Stream.of(Wave.Type.values())
+                    .map(Enum::name)
+                    .map(String::toLowerCase)
+                    .filter(f -> f.startsWith(arg))
+                    .collect(Collectors.toList());
+            }
+            return Collections.emptyList();
+        case ROADBLOCK:
+            if (args.length == 2) {
+                return Arrays.asList("add", "clear");
+            }
+            return Collections.emptyList();
+        default:
+            return Collections.emptyList();
+        }
     }
 
     boolean onCommand(CommandSender sender, Cmd cmd, String[] args) throws Wrong {
@@ -130,6 +166,7 @@ final class RaidEditCommand implements TabExecutor {
         case SKIP: return skipCommand(requirePlayer(sender), args);
         case DEBUG: return debugCommand(requirePlayer(sender), args);
         case SKULLS: return skullsCommand(requirePlayer(sender), args);
+        case ROADBLOCK: return roadblockCommand(requirePlayer(sender), args);
         default:
             throw new IllegalArgumentException(cmd.key);
         }
@@ -206,7 +243,7 @@ final class RaidEditCommand implements TabExecutor {
         Raid raid = requireRaid(player);
         Instance instance = plugin.raidInstance(raid);
         try {
-            return raid.waves.get(instance.editWave);
+            return raid.waves.get(plugin.sessions.of(player).getEditWave());
         } catch (IndexOutOfBoundsException ioobe) {
             throw new Wrong("No wave selected!");
         }
@@ -291,7 +328,7 @@ final class RaidEditCommand implements TabExecutor {
         Raid raid = requireRaid(player);
         Instance inst = plugin.raidInstance(raid);
         if (args.length == 0) {
-            int waveIndex = inst.editWave;
+            int waveIndex = plugin.sessions.of(player).getEditWave();
             if (waveIndex >= 0 && waveIndex < raid.waves.size()) {
                 Wave wave = raid.waves.get(waveIndex);
                 player.sendMessage(y + "Wave " + waveIndex
@@ -304,7 +341,7 @@ final class RaidEditCommand implements TabExecutor {
             try {
                 int waveIndex = Integer.parseInt(args[0]);
                 Wave wave = requireWave(player, waveIndex);
-                inst.editWave = waveIndex;
+                plugin.sessions.of(player).setEditWave(waveIndex);
                 player.sendMessage(y + "Wave " + waveIndex
                                    + " selected: " + ShortInfo.of(wave));
                 return true;
@@ -326,7 +363,7 @@ final class RaidEditCommand implements TabExecutor {
             } else {
                 index = raid.waves.size();
             }
-            inst.editWave = index;
+            plugin.sessions.of(player).setEditWave(index);
             raid.waves.add(index, wave);
             plugin.saveRaid(raid);
             player.sendMessage(y + "Wave #" + index + " created.");
@@ -337,7 +374,7 @@ final class RaidEditCommand implements TabExecutor {
             Wave wave = requireWave(player);
             raid.waves.remove(wave);
             plugin.saveRaid(raid);
-            player.sendMessage(y + "Wave #" + inst.editWave + " removed: "
+            player.sendMessage(y + "Wave #" + plugin.sessions.of(player).getEditWave() + " removed: "
                                + ShortInfo.of(wave));
             return true;
         }
@@ -345,7 +382,8 @@ final class RaidEditCommand implements TabExecutor {
             ComponentBuilder cb = new ComponentBuilder(y + "" + y + raid.waves.size() + " waves:");
             for (int i = 0; i < raid.waves.size(); i += 1) {
                 Wave wave = raid.waves.get(i);
-                cb.append(" " + wave.type.color + i + ":" + wave.type.key + "(" + wave.spawns.size() + ")");
+                int count = wave.getSpawns().size();
+                cb.append(" " + wave.type.color + i + ":" + wave.type.key + (count > 0 ? "(" + count + ")" : ""));
                 String tooltip = wave.getShortInfo();
                 cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText(tooltip)));
                 cb.event(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/raidedit wave " + i));
@@ -356,8 +394,8 @@ final class RaidEditCommand implements TabExecutor {
         case TP: {
             if (args.length > 1) return false;
             Wave wave = requireWave(player);
-            player.teleport(wave.place.toLocation(inst.world));
-            player.sendMessage(y + "Teleported to wave #" + inst.editWave);
+            player.teleport(wave.place.toLocation(inst.getWorld()));
+            player.sendMessage(y + "Teleported to wave #" + plugin.sessions.of(player).getEditWave());
             return true;
         }
         case MOVE: {
@@ -404,16 +442,17 @@ final class RaidEditCommand implements TabExecutor {
                 }
             }
             Spawn spawn = new Spawn(et, player.getLocation(), amount);
-            int index = wave.spawns.size();
-            wave.spawns.add(spawn);
+            List<Spawn> list = wave.getSpawns();
+            int index = list.size();
+            list.add(spawn);
             plugin.saveRaid(raid);
-            player.sendMessage(y + "Mob #" + index + " added: "
-                               + ShortInfo.of(spawn));
+            player.sendMessage(y + "Mob #" + index + " added: " + ShortInfo.of(spawn));
             return true;
         }
         case REMOVE: {
             if (args.length > 2) return false;
-            int index = wave.spawns.size() - 1;
+            List<Spawn> list = wave.getSpawns();
+            int index = list.size() - 1;
             if (args.length >= 2) {
                 try {
                     index = Integer.parseInt(args[1]);
@@ -421,18 +460,20 @@ final class RaidEditCommand implements TabExecutor {
                     index = -1;
                 }
             }
-            if (index < 0 || index >= wave.spawns.size()) {
+            if (index < 0 || index >= list.size()) {
                 throw new Wrong("Invalid index: " + args[1]);
             }
-            Spawn spawn = wave.spawns.remove(index);
+            Spawn spawn = list.remove(index);
             plugin.saveRaid(raid);
             player.sendMessage(y + "Mob #" + index + " removed: " + ShortInfo.of(spawn));
             return true;
         }
         case LIST: {
-            player.sendMessage(y + "Wave #" + inst.editWave + ": " + wave.spawns.size() + " mobs:");
-            for (int i = 0; i < wave.spawns.size(); i += 1) {
-                player.sendMessage(i + ") " + y + ShortInfo.of(wave.spawns.get(i)));
+            List<Spawn> list = wave.getSpawns();
+            int size = list.size();
+            player.sendMessage(y + "Wave #" + plugin.sessions.of(player).getEditWave() + ": " + size + " mobs:");
+            for (int i = 0; i < size; i += 1) {
+                player.sendMessage(i + ") " + y + ShortInfo.of(list.get(i)));
             }
             return true;
         }
@@ -444,11 +485,12 @@ final class RaidEditCommand implements TabExecutor {
             } catch (NumberFormatException iae) {
                 index = -1;
             }
-            if (index < 0 || index >= wave.spawns.size()) {
+            List<Spawn> list = wave.getSpawns();
+            if (index < 0 || index >= list.size()) {
                 throw new Wrong("Invalid index: " + args[1]);
             }
-            Spawn spawn = wave.spawns.get(index);
-            player.teleport(spawn.place.toLocation(inst.world));
+            Spawn spawn = list.get(index);
+            player.teleport(spawn.place.toLocation(inst.getWorld()));
             player.sendMessage(y + "Teleported to mob #" + index);
             return true;
         }
@@ -529,8 +571,8 @@ final class RaidEditCommand implements TabExecutor {
         Raid raid = requireRaid(player);
         int index = requireInt(args[0]);
         Wave wave = raid.waves.get(index); // aioobe
-        Instance instance = plugin.raidInstance(raid);
-        player.teleport(wave.place.toLocation(instance.world));
+        Instance inst = plugin.raidInstance(raid);
+        player.teleport(wave.place.toLocation(inst.getWorld()));
         player.sendMessage(y + "Teleported to wave " + index + ".");
         return true;
     }
@@ -544,10 +586,7 @@ final class RaidEditCommand implements TabExecutor {
             player.sendMessage(y + "Skipping wave...");
         } else {
             int newWave = Integer.parseInt(args[0]);
-            inst.clearWave();
-            inst.waveIndex = newWave;
-            inst.waveComplete = false;
-            inst.waveTicks = 0;
+            inst.skipWave(newWave);
             player.sendMessage(y + "Jumping to wave " + newWave + ".");
         }
         return true;
@@ -557,7 +596,7 @@ final class RaidEditCommand implements TabExecutor {
         Raid raid = requireRaid(player);
         Instance inst = plugin.raidInstance(raid);
         inst.debug = !inst.debug;
-        inst.updateDebugMode();
+        if (!inst.debug) inst.clearDebug();
         player.sendMessage(y + "Debug mode: " + inst.debug);
         return true;
     }
@@ -568,5 +607,36 @@ final class RaidEditCommand implements TabExecutor {
         inst.giveSkulls(player);
         player.sendMessage("Skulls given.");
         return true;
+    }
+
+    boolean roadblockCommand(Player player, String[] args) throws Wrong {
+        if (args.length != 1) return false;
+        Session session = plugin.sessions.of(player);
+        switch (args[0]) {
+        case "clear":
+            requireWave(player).getRoadblocks().clear();
+            player.sendMessage(y + "Roadblocks cleared");
+            return true;
+        case "add":
+            if (session.isPlacingRoadblocks()) {
+                session.setPlacingRoadblocks(false);
+                Instance inst = plugin.raidInstance(player.getWorld());
+                player.sendMessage(y + "Roadblock placement disabled.");
+                if (inst != null) {
+                    plugin.saveRaid(inst.getRaid());
+                    Wave wave = inst.getWave(session.getEditWave());
+                    if (wave != null) {
+                        for (Roadblock roadblock : wave.getRoadblocks()) {
+                            roadblock.unblock(inst.getWorld());
+                        }
+                    }
+                }
+            } else {
+                session.setPlacingRoadblocks(true);
+                player.sendMessage(y + "Roadblock placement enabled. Place roadblocks, break bridges. Re-enter command to disable.");
+            }
+            return true;
+        default: throw new Wrong("Unknown command: " + args[0]);
+        }
     }
 }
