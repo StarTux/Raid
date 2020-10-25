@@ -209,6 +209,7 @@ final class RaidEditCommand implements TabExecutor {
             sender.sendMessage(y + "/raidedit wave remove - Remove current wave.");
             sender.sendMessage(y + "/raidedit wave list - List waves.");
             sender.sendMessage(y + "/raidedit wave tp - Teleport to wave.");
+            sender.sendMessage(y + "/raidedit wave move <index> <index2> - Move wave.");
             break;
         case MOB:
             sender.sendMessage(y + "/raidedit mob add <type> [amount] - Add mob.");
@@ -417,9 +418,9 @@ final class RaidEditCommand implements TabExecutor {
             return true;
         }
         case MOVE: {
-            if (args.length != 2) return false;
-            int indexA = requireInt(args[0]);
-            int indexB = requireInt(args[1]);
+            if (args.length != 3) return false;
+            int indexA = requireInt(args[1]);
+            int indexB = requireInt(args[2]);
             if (indexA < 0 || indexA >= raid.waves.size()) throw new Wrong("Out of bounds: " + indexA);
             if (indexB < 0 || indexB >= raid.waves.size()) throw new Wrong("Out of bounds: " + indexB);
             Wave wave = raid.waves.remove(indexA);
