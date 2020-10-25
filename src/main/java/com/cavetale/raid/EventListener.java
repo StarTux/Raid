@@ -19,6 +19,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockIgniteEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.CreatureSpawnEvent;
@@ -30,6 +31,7 @@ import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.hanging.HangingBreakEvent;
+import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemDamageEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -37,6 +39,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
+import org.bukkit.inventory.ItemStack;
 
 @RequiredArgsConstructor
 final class EventListener implements Listener {
@@ -284,5 +287,28 @@ final class EventListener implements Listener {
         if (escortMarker.isPathing()) return;
         event.setCancelled(true);
         escortMarker.refreshPath();
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    void onPlayerDropItem(PlayerDropItemEvent event) {
+        Player player = event.getPlayer();
+        if (player.getGameMode() == GameMode.CREATIVE) return;
+        Instance inst = plugin.raidInstance(player.getWorld());
+        if (inst == null) return;
+        ItemStack stack = event.getItemDrop().getItemStack();
+        // Whitelist simple items
+        if (stack.isSimilar(new ItemStack(stack.getType()))) return;
+        event.setCancelled(true);
+        player.sendMessage(ChatColor.RED + "Can't drop this item in a raid!");
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    void onBlockIgnite(BlockIgniteEvent event) {
+        Instance inst = plugin.raidInstance(event.getBlock().getWorld());
+        if (event.getIgnitingEntity() instanceof Player) {
+            Player player = (Player) event.getIgnitingEntity();
+            if (player.getGameMode() == GameMode.CREATIVE) return;
+        }
+        event.setCancelled(true);
     }
 }
