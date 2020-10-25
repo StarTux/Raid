@@ -152,7 +152,8 @@ final class Instance implements Context {
      * Called when the run is started by any eligible player entering.
      */
     public void setupRun() {
-        for (Wave wave : raid.waves) {
+        for (int i = raid.waves.size() - 1; i >= 0; i -= 1) {
+            Wave wave = raid.waves.get(i);
             for (Roadblock roadblock: wave.getRoadblocks()) {
                 roadblock.block(world);
             }
@@ -193,7 +194,7 @@ final class Instance implements Context {
         waveIndex = newWave;
         waveComplete = false;
         waveTicks = 0;
-        for (int i = 0; i < raid.waves.size(); i += 1) {
+        for (int i = raid.waves.size() - 1; i >= 0; i -= 1) {
             Wave wave = raid.waves.get(i);
             for (Roadblock rb : wave.getRoadblocks()) {
                 if (i < newWave) {
