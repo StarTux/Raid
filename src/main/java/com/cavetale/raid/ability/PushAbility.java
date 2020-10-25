@@ -41,7 +41,8 @@ public final class PushAbility extends AbstractAbility {
         Location eye = enemy.getEyeLocation();
         for (Player player : context.getPlayers()) {
             Location loc = player.getLocation();
-            if (loc.distance(eye) < 8) continue;
+            if (loc.distance(eye) > 48) continue;
+            if (!enemy.hasLineOfSight(player)) continue;
             Vector vec = loc.subtract(eye)
                 .toVector()
                 .setY(0)
