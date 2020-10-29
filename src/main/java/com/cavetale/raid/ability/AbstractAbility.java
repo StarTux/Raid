@@ -17,7 +17,7 @@ public abstract class AbstractAbility implements Ability {
     @Getter protected final Enemy enemy; // owner
     @Getter protected final Context context;
     @Getter private int ticks = 0;
-    @Getter @Setter protected int duration = 100;
+    @Getter @Setter protected int duration = 100; // 5 seconds
     @Getter @Setter protected int warmup = 0;
 
     protected AbstractAbility(final Enemy enemy, final Context context) {

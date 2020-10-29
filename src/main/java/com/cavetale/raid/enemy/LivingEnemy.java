@@ -2,10 +2,12 @@ package com.cavetale.raid.enemy;
 
 import com.cavetale.worldmarker.EntityMarker;
 import com.cavetale.worldmarker.MarkTagContainer;
+import com.destroystokyo.paper.event.entity.EntityPathfindEvent;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import lombok.Getter;
+import lombok.Setter;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
@@ -17,6 +19,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.entity.EntitySpellCastEvent;
 import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.BoundingBox;
@@ -33,6 +36,7 @@ public abstract class LivingEnemy implements Enemy {
     private boolean invulnerable;
     @Getter private boolean dead = false; // overrides
     @Getter private final Set<UUID> damagers = new HashSet<>();
+    @Setter Location spawnLocation;
 
     public LivingEnemy(final Context context) {
         this.context = context;
@@ -41,6 +45,14 @@ public abstract class LivingEnemy implements Enemy {
     public final void markLiving() {
         EntityMarker.setId(living, WORLD_MARKER_ID);
         EntityMarker.getEntity(living).getPersistent(context.getPlugin(), WORLD_MARKER_ID, Handle.class, () -> new Handle());
+    }
+
+    /**
+     * The location where this enemy should spawn or respawn, or go home.
+     */
+    @Override
+    public Location getSpawnLocation() {
+        return spawnLocation != null ? spawnLocation : context.getSpawnLocation();
     }
 
     /**
@@ -112,6 +124,16 @@ public abstract class LivingEnemy implements Enemy {
         @Override
         public void onEntityTarget(EntityTargetEvent event) {
             onTarget(event);
+        }
+
+        @Override
+        public void onEntityPathfind(EntityPathfindEvent event) {
+            onPathfind(event);
+        }
+
+        @Override
+        public void onEntitySpellCast(EntitySpellCastEvent event) {
+            onSpellCast(event);
         }
     }
 
@@ -186,6 +208,15 @@ public abstract class LivingEnemy implements Enemy {
     public double getHealth() {
         if (living == null) return 0;
         return living.getHealth();
+    }
+
+    /**
+     * Passthrough.
+     */
+    @Override
+    public void setHealth(double health) {
+        if (living == null) return;
+        living.setHealth(health);
     }
 
     /**
@@ -306,4 +337,8 @@ public abstract class LivingEnemy implements Enemy {
     }
 
     protected void onTarget(EntityTargetEvent event) { }
+
+    protected void onPathfind(EntityPathfindEvent event) { }
+
+    protected void onSpellCast(EntitySpellCastEvent event) { }
 }

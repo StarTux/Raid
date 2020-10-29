@@ -53,4 +53,6 @@ public interface Context {
     int countTemporaryEntities(Class<? extends Entity> type);
 
     void onDeath(Enemy enemy);
+
+    List<Enemy> getEnemies();
 }

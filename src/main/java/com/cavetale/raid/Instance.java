@@ -529,9 +529,10 @@ final class Instance implements Context {
                 Enemy enemy = spawn.createEnemy(this);
                 if (enemy == null) {
                     plugin.getLogger().warning(name + ": invalid spawn: " + spawn.getShortInfo());
-                } else {
-                    spawns.add(enemy);
+                    continue;
                 }
+                enemy.setSpawnLocation(spawn.place.toLocation(world));
+                spawns.add(enemy);
             }
         }
         if (wave.boss != null) {
@@ -920,6 +921,13 @@ final class Instance implements Context {
                 waveComplete = true;
             }
         }
+    }
+
+    @Override // Context
+    public List<Enemy> getEnemies() {
+        List<Enemy> result = new ArrayList<>(spawns);
+        result.addAll(bosses);
+        return result;
     }
 
     public boolean isRunning() {

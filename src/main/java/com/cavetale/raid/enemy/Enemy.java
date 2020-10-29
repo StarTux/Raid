@@ -32,8 +32,14 @@ public interface Enemy {
     void spawn(Location location);
 
     default void spawn() {
-        spawn(getContext().getSpawnLocation());
+        spawn(getSpawnLocation());
     }
+
+    default Location getSpawnLocation() {
+        return getContext().getSpawnLocation();
+    }
+
+    void setSpawnLocation(Location location);
 
     void remove();
 
@@ -85,6 +91,8 @@ public interface Enemy {
     }
 
     double getHealth();
+
+    void setHealth(double h);
 
     double getMaxHealth();
 

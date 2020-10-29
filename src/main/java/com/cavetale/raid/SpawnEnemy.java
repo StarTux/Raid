@@ -19,26 +19,19 @@ import org.bukkit.event.entity.EntityTargetEvent;
  * They will mostly do their vanilla thing.
  */
 public final class SpawnEnemy extends LivingEnemy {
-    private final Location location;
     private Class<? extends Mob> type;
     private boolean targeting;
 
-    public SpawnEnemy(final Context context, final Class<? extends Mob> type, final Location location) {
+    public SpawnEnemy(final Context context, final Class<? extends Mob> type) {
         super(context);
         this.type = type;
-        this.location = location;
     }
 
     @Override
-    public void spawn(Location location2) {
-        if (!location2.isChunkLoaded()) return;
-        living = location.getWorld().spawn(location2, type, this::prep);
+    public void spawn(Location location) {
+        if (!location.isChunkLoaded()) return;
+        living = location.getWorld().spawn(location, type, this::prep);
         markLiving();
-    }
-
-    @Override
-    public void spawn() {
-        spawn(location);
     }
 
     @Override

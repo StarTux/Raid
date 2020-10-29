@@ -46,7 +46,7 @@ final class Spawn implements ShortInfo {
         if (enemyType != null) return enemyType.create(context);
         EntityType bukkitType = getBukkitType();
         if (bukkitType != null && Mob.class.isAssignableFrom(bukkitType.getEntityClass())) {
-            return new SpawnEnemy(context, (Class<? extends Mob>) bukkitType.getEntityClass(), place.toLocation(context.getWorld()));
+            return new SpawnEnemy(context, (Class<? extends Mob>) bukkitType.getEntityClass());
         }
         return null;
     }

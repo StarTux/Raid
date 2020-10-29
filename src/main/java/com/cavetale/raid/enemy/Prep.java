@@ -1,9 +1,11 @@
 package com.cavetale.raid.enemy;
 
+import org.bukkit.Bukkit;
 import org.bukkit.attribute.Attributable;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Mob;
 import org.bukkit.inventory.EntityEquipment;
 
 public final class Prep {
@@ -49,5 +51,9 @@ public final class Prep {
     public static void add(LivingEntity entity) {
         entity.setPersistent(false);
         disableEquipmentDrop(entity);
+    }
+
+    public static void removeGoals(Mob mob) {
+        Bukkit.getMobGoals().removeAllGoals(mob);
     }
 }

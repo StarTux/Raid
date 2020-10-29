@@ -21,7 +21,7 @@ public final class HomeAbility extends AbstractAbility {
 
     @Override
     public boolean onTick(int ticks) {
-        enemy.teleport(context.getSpawnLocation());
+        enemy.teleport(enemy.getSpawnLocation());
         done = true;
         return true;
     }

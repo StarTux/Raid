@@ -3,6 +3,7 @@ package com.cavetale.raid.enemy;
 import com.cavetale.raid.ability.EggLauncherAbility;
 import com.cavetale.raid.ability.FireworkAbility;
 import com.cavetale.worldmarker.EntityMarker;
+import com.destroystokyo.paper.event.entity.EntityPathfindEvent;
 import com.destroystokyo.paper.event.entity.ProjectileCollideEvent;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.Bukkit;
@@ -16,6 +17,7 @@ import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.entity.EntitySpellCastEvent;
 import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -105,5 +107,19 @@ public final class EnemyListener implements Listener {
         EnemyHandle handle = EnemyHandle.of(event.getEntity());
         if (handle == null) return;
         handle.onEntityTarget(event);
+    }
+
+    @EventHandler
+    void onEntityPathfind(EntityPathfindEvent event) {
+        EnemyHandle handle = EnemyHandle.of(event.getEntity());
+        if (handle == null) return;
+        handle.onEntityPathfind(event);
+    }
+
+    @EventHandler
+    void onEntitySpellCat(EntitySpellCastEvent event) {
+        EnemyHandle handle = EnemyHandle.of(event.getEntity());
+        if (handle == null) return;
+        handle.onEntitySpellCast(event);
     }
 }

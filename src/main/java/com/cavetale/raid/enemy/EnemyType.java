@@ -24,7 +24,10 @@ public enum EnemyType {
     QUEEN_BEE("Queen Bee"),
     // Easter 2020
     HEINOUS_HEN("Heinous Hen"),
-    SPECTER("Specter");
+    SPECTER("Specter"),
+    // Halloween 2020
+    VAMPIRE_BAT("Vampire Bat", VampireBat::new),
+    HEAL_EVOKER("Heal Evoker", HealEvoker::new);
 
     public final String displayName;
     private final Function<Context, Enemy> ctor;

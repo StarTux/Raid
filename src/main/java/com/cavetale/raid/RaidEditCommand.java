@@ -18,6 +18,7 @@ import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 
 @RequiredArgsConstructor
@@ -140,6 +141,13 @@ final class RaidEditCommand implements TabExecutor {
                     .map(Enum::name)
                     .map(String::toLowerCase)
                     .filter(f -> f.startsWith(arg))
+                    .collect(Collectors.toList());
+            }
+            if (args.length == 3) {
+                return Stream.concat(Stream.of(EnemyType.values()).map(Enum::name),
+                                     Stream.of(EntityType.values()).map(Enum::name))
+                    .map(String::toLowerCase)
+                    .filter(f -> f.contains(arg))
                     .collect(Collectors.toList());
             }
             return Collections.emptyList();
