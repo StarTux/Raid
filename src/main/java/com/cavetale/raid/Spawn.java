@@ -5,6 +5,7 @@ import com.cavetale.raid.enemy.Enemy;
 import com.cavetale.raid.enemy.EnemyType;
 import lombok.NonNull;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Mob;
 
@@ -16,6 +17,14 @@ final class Spawn implements ShortInfo {
     String entityType;
     Place place;
     int amount = 1;
+    EntityType mount;
+    Material helmet;
+    Material chestplate;
+    Material leggings;
+    Material boots;
+    Material hand;
+    boolean baby;
+    boolean powered;
 
     Spawn() { }
 
@@ -46,13 +55,19 @@ final class Spawn implements ShortInfo {
         if (enemyType != null) return enemyType.create(context);
         EntityType bukkitType = getBukkitType();
         if (bukkitType != null && Mob.class.isAssignableFrom(bukkitType.getEntityClass())) {
-            return new SpawnEnemy(context, (Class<? extends Mob>) bukkitType.getEntityClass());
+            return new SpawnEnemy(context, (Class<? extends Mob>) bukkitType.getEntityClass(), this);
         }
         return null;
     }
 
     @Override
     public String getShortInfo() {
-        return entityType + " " + place.getShortInfo() + " " + amount;
+        return entityType + " " + place.getShortInfo()
+            + (amount != 1 ? " x" + amount : "")
+            + (mount != null ? " mount=" + mount : "")
+            + (helmet != null ? " helmet=" + helmet : "")
+            + (chestplate != null ? " chestplate=" + chestplate : "")
+            + (leggings != null ? " leggings=" + leggings : "")
+            + (boots != null ? " boots=" + boots : "");
     }
 }

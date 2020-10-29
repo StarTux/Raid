@@ -1,6 +1,7 @@
 package com.cavetale.raid;
 
 import com.cavetale.raid.enemy.EnemyType;
+import com.destroystokyo.paper.MaterialTags;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -14,11 +15,14 @@ import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.ChatColor;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 
 @RequiredArgsConstructor
@@ -135,6 +139,14 @@ final class RaidEditCommand implements TabExecutor {
         }
         switch (cmd) {
         case WAVE:
+            if (args.length == 2) {
+                return Stream.of(ListCmd.values())
+                    .map(Enum::name)
+                    .map(String::toLowerCase)
+                    .filter(f -> f.startsWith(arg))
+                    .collect(Collectors.toList());
+            }
+            return Collections.emptyList();
         case MOB:
             if (args.length == 2) {
                 return Stream.of(ListCmd.values())
@@ -149,6 +161,35 @@ final class RaidEditCommand implements TabExecutor {
                     .map(String::toLowerCase)
                     .filter(f -> f.contains(arg))
                     .collect(Collectors.toList());
+            }
+            if (args.length == 4) {
+                return Arrays.asList(arg, arg + 0);
+            }
+            if (args.length > 4) {
+                List<String> result = new ArrayList<>();
+                for (EntityType entityType : EntityType.values()) {
+                    Class<? extends Entity> type = entityType.getEntityClass();
+                    if (type == null || !Mob.class.isAssignableFrom(type)) continue;
+                    result.add("mount=" + entityType.name().toLowerCase());
+                }
+                for (Material mat : MaterialTags.HEAD_EQUIPPABLE.getValues()) {
+                    result.add("head=" + mat.name().toLowerCase());
+                }
+                for (Material mat : MaterialTags.CHEST_EQUIPPABLE.getValues()) {
+                    result.add("chest=" + mat.name().toLowerCase());
+                }
+                for (Material mat : MaterialTags.LEGGINGS.getValues()) {
+                    result.add("legs=" + mat.name().toLowerCase());
+                }
+                for (Material mat : MaterialTags.BOOTS.getValues()) {
+                    result.add("feet=" + mat.name().toLowerCase());
+                }
+                for (String val : Arrays.asList("true", "false")) {
+                    result.add("baby=" + val);
+                    result.add("powered=" + val);
+                }
+                result.removeIf(it -> !it.startsWith(arg));
+                return result;
             }
             return Collections.emptyList();
         case TYPE:
@@ -220,7 +261,7 @@ final class RaidEditCommand implements TabExecutor {
             sender.sendMessage(y + "/raidedit wave move <index> <index2> - Move wave.");
             break;
         case MOB:
-            sender.sendMessage(y + "/raidedit mob add <type> [amount] - Add mob.");
+            sender.sendMessage(y + "/raidedit mob add <type> [amount] [<key>=<value>] - Add mob.");
             sender.sendMessage(y + "/raidedit mob remove [index] - Remove mob.");
             sender.sendMessage(y + "/raidedit mob list - List mobs.");
             sender.sendMessage(y + "/raidedit mob tp <index> - Teleport to mob.");
@@ -450,7 +491,7 @@ final class RaidEditCommand implements TabExecutor {
         if (cmd == null) return false;
         switch (cmd) {
         case ADD: {
-            if (args.length < 2 || args.length > 3) return false;
+            if (args.length < 2) return false;
             String entityType = args[1];
             int amount = 1;
             if (args.length >= 3) {
@@ -464,6 +505,41 @@ final class RaidEditCommand implements TabExecutor {
                 }
             }
             Spawn spawn = new Spawn(entityType, player.getLocation(), amount);
+            for (int i = 3; i < args.length; i += 1) {
+                String arg = args[i];
+                String[] toks = arg.split("=", 2);
+                if (toks.length != 2) throw new Wrong("Invalid setting: " + arg);
+                String key = toks[0];
+                String value = toks[1];
+                try {
+                    switch (key) {
+                    case "mount":
+                        spawn.mount = EntityType.valueOf(value.toUpperCase());
+                        break;
+                    case "head":
+                        spawn.helmet = Material.valueOf(value.toUpperCase());
+                        break;
+                    case "chest":
+                        spawn.chestplate = Material.valueOf(value.toUpperCase());
+                        break;
+                    case "legs":
+                        spawn.leggings = Material.valueOf(value.toUpperCase());
+                        break;
+                    case "feet":
+                        spawn.boots = Material.valueOf(value.toUpperCase());
+                        break;
+                    case "baby":
+                        spawn.baby = Boolean.parseBoolean(value);
+                        break;
+                    case "powered":
+                        spawn.powered = Boolean.parseBoolean(value);
+                        break;
+                    default: throw new Wrong("Illegal key: " + key);
+                    }
+                } catch (IllegalArgumentException iae) {
+                    throw new Wrong("Illegal value: " + key + "=" + value);
+                }
+            }
             List<Spawn> list = wave.getSpawns();
             int index = list.size();
             list.add(spawn);

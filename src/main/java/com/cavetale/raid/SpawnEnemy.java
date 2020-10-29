@@ -3,16 +3,21 @@ package com.cavetale.raid;
 import com.cavetale.raid.enemy.Context;
 import com.cavetale.raid.enemy.Enemy;
 import com.cavetale.raid.enemy.LivingEnemy;
+import com.cavetale.raid.enemy.Prep;
 import com.cavetale.worldmarker.EntityMarker;
 import org.bukkit.Location;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.entity.Ageable;
 import org.bukkit.entity.Bee;
+import org.bukkit.entity.Creeper;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Rabbit;
 import org.bukkit.event.entity.EntityTargetEvent;
+import org.bukkit.inventory.EntityEquipment;
+import org.bukkit.inventory.ItemStack;
 
 /**
  * An enemy based on a regular bukkit entity type.
@@ -20,11 +25,14 @@ import org.bukkit.event.entity.EntityTargetEvent;
  */
 public final class SpawnEnemy extends LivingEnemy {
     private Class<? extends Mob> type;
+    private Spawn spawn;
     private boolean targeting;
+    private Entity mount;
 
-    public SpawnEnemy(final Context context, final Class<? extends Mob> type) {
+    public SpawnEnemy(final Context context, final Class<? extends Mob> type, final Spawn spawn) {
         super(context);
         this.type = type;
+        this.spawn = spawn;
     }
 
     @Override
@@ -32,6 +40,11 @@ public final class SpawnEnemy extends LivingEnemy {
         if (!location.isChunkLoaded()) return;
         living = location.getWorld().spawn(location, type, this::prep);
         markLiving();
+        if (spawn.mount != null) {
+            mount = location.getWorld().spawn(location, spawn.mount.getEntityClass(), this::prepMount);
+            context.registerTemporaryEntity(mount);
+            mount.addPassenger(living);
+        }
     }
 
     @Override
@@ -48,9 +61,20 @@ public final class SpawnEnemy extends LivingEnemy {
 
     @Override
     public void onRemove() {
+        if (mount != null) {
+            mount.remove();
+            mount = null;
+        }
     }
 
     private void prep(Mob mob) {
+        mob.setPersistent(false);
+        EntityEquipment equipment = mob.getEquipment();
+        equipment.setHelmet(spawn.helmet != null ? new ItemStack(spawn.helmet) : null);
+        equipment.setChestplate(spawn.chestplate != null ? new ItemStack(spawn.chestplate) : null);
+        equipment.setLeggings(spawn.leggings != null ? new ItemStack(spawn.leggings) : null);
+        equipment.setBoots(spawn.boots != null ? new ItemStack(spawn.boots) : null);
+        Prep.disableEquipmentDrop(mob);
         if (mob instanceof Bee) {
             Bee bee = (Bee) mob;
             bee.setAnger(12000);
@@ -76,6 +100,27 @@ public final class SpawnEnemy extends LivingEnemy {
             }
         } else {
             context.getPlugin().getLogger().info("No attack damage: " + mob.getType());
+        }
+        if (mob instanceof Creeper) {
+            Creeper creeper = (Creeper) mob;
+            creeper.setPowered(spawn.powered);
+        }
+        if (mob instanceof Ageable) {
+            Ageable ageable = (Ageable) mob;
+            if (spawn.baby) {
+                ageable.setBaby();
+            } else {
+                ageable.setAdult();
+            }
+            ageable.setAgeLock(true);
+        }
+    }
+
+    private void prepMount(Entity entity) {
+        entity.setPersistent(false);
+        if (entity instanceof Mob) {
+            Mob mob = (Mob) entity;
+            Prep.disableEquipmentDrop(mob);
         }
     }
 

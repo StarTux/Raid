@@ -881,7 +881,7 @@ final class Instance implements Context {
 
     @Override // Context
     public void registerNewEnemy(Enemy enemy) {
-        // TODO
+        spawns.add(enemy);
     }
 
     @Override // Context

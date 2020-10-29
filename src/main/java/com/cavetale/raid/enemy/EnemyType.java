@@ -13,18 +13,18 @@ public enum EnemyType {
     FORGOTTEN("The Forgotten", ForgottenBoss::new),
     VENGEFUL("The Vengeful", VengefulBoss::new),
     // Halloween 2018 (Legacy)
-    SKELLINGTON("Skellington"),
-    DEEP_FEAR("Deep Fear"),
-    LAVA_LORD("Lava Lord"),
+    // SKELLINGTON("Skellington"),
+    // DEEP_FEAR("Deep Fear"),
+    // LAVA_LORD("Lava Lord"),
     // Christmas 2019
-    FROSTWRECKER("Frostwrecker"),
-    ICE_GOLEM("Ice Golem"),
-    ICEKELLY("Icekelly"),
-    SNOBEAR("Snobear"),
-    QUEEN_BEE("Queen Bee"),
+    // FROSTWRECKER("Frostwrecker"),
+    // ICE_GOLEM("Ice Golem"),
+    // ICEKELLY("Icekelly"),
+    // SNOBEAR("Snobear"),
+    // QUEEN_BEE("Queen Bee"),
     // Easter 2020
-    HEINOUS_HEN("Heinous Hen"),
-    SPECTER("Specter"),
+    // HEINOUS_HEN("Heinous Hen"),
+    // SPECTER("Specter"),
     // Halloween 2020
     VAMPIRE_BAT("Vampire Bat", VampireBat::new),
     HEAL_EVOKER("Heal Evoker", HealEvoker::new);
