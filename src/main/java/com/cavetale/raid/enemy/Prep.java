@@ -8,6 +8,9 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
 import org.bukkit.inventory.EntityEquipment;
 
+/**
+ * Utility class to prepare an entity for battle, quickly.
+ */
 public final class Prep {
     private Prep() { }
 
@@ -55,5 +58,9 @@ public final class Prep {
 
     public static void removeGoals(Mob mob) {
         Bukkit.getMobGoals().removeAllGoals(mob);
+    }
+
+    public static void movementSpeed(LivingEntity entity, double speed) {
+        entity.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(speed);
     }
 }

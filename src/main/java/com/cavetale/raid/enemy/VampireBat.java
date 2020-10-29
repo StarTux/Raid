@@ -38,9 +38,13 @@ public final class VampireBat extends LivingEnemy {
             vampirism.end();
             vampirism.begin();
         }
+        Bat bat = (Bat) living;
+        if (!bat.isAwake()) {
+            bat.setAwake(true);
+        }
         Location location = living.getLocation();
         Location spawn = getSpawnLocation();
-        if (!location.getWorld().equals(spawnLocation)) {
+        if (!location.getWorld().equals(spawnLocation.getWorld())) {
             safeLocation = spawnLocation;
             living.teleport(safeLocation);
         } else if (location.distanceSquared(spawnLocation) > 25.0) {
@@ -53,6 +57,5 @@ public final class VampireBat extends LivingEnemy {
     private void prep(Bat bat) {
         bat.setPersistent(false);
         Prep.health(bat, 20);
-        bat.setGlowing(true);
     }
 }

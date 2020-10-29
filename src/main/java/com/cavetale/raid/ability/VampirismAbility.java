@@ -9,6 +9,8 @@ import lombok.Setter;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Particle;
+import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
@@ -41,22 +43,30 @@ public final class VampirismAbility extends AbstractAbility {
         }
         if (activeTicks > 0) {
             activeTicks -= 1;
-            if (activeTicks == 0) {
-                intervalTicks = interval;
-            }
+        } else {
+            intervalTicks = interval;
         }
         Location eye = enemy.getEyeLocation();
         for (Player player : context.getPlayers()) {
             if (!enemy.hasLineOfSight(player)) continue;
             Vector vec = player.getEyeLocation().subtract(eye).toVector().multiply(Math.random());
             Location particleLocation = eye.clone().add(vec);
-            if (MytemsPlugin.getInstance().getEquipment(player).hasSetBonus(AculaItemSet.getInstance().vampirismResistance)) {
+            if (isImmune(player)) {
                 enemy.getWorld().spawnParticle(Particle.REDSTONE, particleLocation, 1, 0, 0, 0, 0, new Particle.DustOptions(Color.BLUE, 1.0f));
             } else {
-                player.setHealth(Math.max(0, player.getHealth() - damagePerTick));
+                double damage = Math.min(player.getHealth(), damagePerTick);
+                player.setHealth(player.getHealth() - damage);
+                enemy.setHealth(Math.min(enemy.getMaxHealth(), enemy.getHealth() + damage));
                 enemy.getWorld().spawnParticle(Particle.REDSTONE, particleLocation, 1, 0, 0, 0, 0, new Particle.DustOptions(Color.RED, 0.5f));
+                if (activeTicks % 16 == 0) {
+                    player.getWorld().playSound(player.getLocation(), Sound.ENTITY_EVOKER_CAST_SPELL, SoundCategory.PLAYERS, 0.5f, 2.0f);
+                }
             }
         }
         return true;
+    }
+
+    public boolean isImmune(Player player) {
+        return MytemsPlugin.getInstance().getEquipment(player).hasSetBonus(AculaItemSet.getInstance().vampirismResistance);
     }
 }
