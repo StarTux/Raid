@@ -15,10 +15,8 @@ import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.WitherSkeleton;
-import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.java.JavaPlugin;
 
 public final class DecayedBoss extends LivingEnemy {
     @Getter private double maxHealth = 500;
@@ -26,8 +24,8 @@ public final class DecayedBoss extends LivingEnemy {
     @Getter private final String displayName = "" + ChatColor.DARK_RED + ChatColor.BOLD + "The Decayed";
     private AbilityPhases phases;
 
-    public DecayedBoss(final JavaPlugin plugin, final Context context) {
-        super(plugin, context);
+    public DecayedBoss(final Context context) {
+        super(context);
     }
 
     @Override
@@ -46,11 +44,6 @@ public final class DecayedBoss extends LivingEnemy {
         SpawnAddsAbility adds = phases.addAbility(new SpawnAddsAbility(this, context));
         adds.add(WitherSkeleton.class, 8, 1, this::prepAdd);
         phases.begin();
-    }
-
-    @Override
-    public void onDeath(EntityDeathEvent event) {
-        super.onDeath(event);
     }
 
     @Override

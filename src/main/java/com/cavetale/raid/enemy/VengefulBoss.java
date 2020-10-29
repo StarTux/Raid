@@ -17,7 +17,6 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Ghast;
 import org.bukkit.entity.Wither;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.java.JavaPlugin;
 
 public final class VengefulBoss extends LivingEnemy {
     @Getter private double maxHealth = 500;
@@ -25,8 +24,8 @@ public final class VengefulBoss extends LivingEnemy {
     @Getter private final String displayName = "" + ChatColor.DARK_GRAY + ChatColor.BOLD + "The Vengeful";
     AbilityPhases phases = new AbilityPhases();
 
-    public VengefulBoss(final JavaPlugin plugin, final Context context) {
-        super(plugin, context);
+    public VengefulBoss(final Context context) {
+        super(context);
     }
 
     @Override

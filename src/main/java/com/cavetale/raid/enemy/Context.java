@@ -2,8 +2,10 @@ package com.cavetale.raid.enemy;
 
 import java.util.List;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.java.JavaPlugin;
 
 /**
  * Provide some context for an enemy and its abilities. A context
@@ -12,11 +14,15 @@ import org.bukkit.entity.Player;
  * enemies and abilities into the mode of play.
  */
 public interface Context {
+    JavaPlugin getPlugin();
+
     /**
      * List players eligible for combat. Maybe within range, maybe
      * not.
      */
     List<Player> getPlayers();
+
+    World getWorld();
 
     /**
      * The spawn of the current battle, or the desired spawn location

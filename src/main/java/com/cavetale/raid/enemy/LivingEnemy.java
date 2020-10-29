@@ -16,6 +16,8 @@ import org.bukkit.entity.Projectile;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
@@ -24,33 +26,25 @@ import org.bukkit.util.Vector;
  * An enemy wrapping a LivingEntity.
  */
 public abstract class LivingEnemy implements Enemy {
-    @Getter protected final JavaPlugin plugin;
-    @Getter protected Context context;
+    @Getter protected final Context context;
     protected LivingEntity living;
     private double backupSpeed;
     private double mountBackupSpeed;
     private boolean invulnerable;
-    private boolean dead;
+    @Getter private boolean dead = false; // overrides
     @Getter private final Set<UUID> damagers = new HashSet<>();
 
-    public LivingEnemy(final JavaPlugin plugin, final Context context) {
-        this.plugin = plugin;
+    public LivingEnemy(final Context context) {
         this.context = context;
-    }
-
-    public LivingEnemy(final JavaPlugin plugin, final LivingEntity living) {
-        this.plugin = plugin;
-        this.living = living;
-        markLiving();
     }
 
     public final void markLiving() {
         EntityMarker.setId(living, WORLD_MARKER_ID);
-        EntityMarker.getEntity(living).getPersistent(plugin, WORLD_MARKER_ID, Handle.class, () -> new Handle());
+        EntityMarker.getEntity(living).getPersistent(context.getPlugin(), WORLD_MARKER_ID, Handle.class, () -> new Handle());
     }
 
     /**
-     * Called every tick.
+     * Called every tick while the LivingEntity is valid.
      */
     public abstract void tick();
 
@@ -70,7 +64,7 @@ public abstract class LivingEnemy implements Enemy {
      */
     public final class Handle implements EnemyHandle {
         public JavaPlugin getPlugin() {
-            return plugin;
+            return context.getPlugin();
         }
 
         @Override
@@ -94,10 +88,15 @@ public abstract class LivingEnemy implements Enemy {
 
         @Override
         public void onEntityDeath(EntityDeathEvent event) {
-            if (isAlive()) {
-                onDeath(event);
-                context.onDeath(LivingEnemy.this);
-            }
+            event.getDrops().clear();
+            onDeath();
+            context.onDeath(LivingEnemy.this);
+        }
+
+        @Override
+        public void onEntityExplode(EntityExplodeEvent event) {
+            onDeath();
+            context.onDeath(LivingEnemy.this);
         }
 
         @Override
@@ -108,6 +107,11 @@ public abstract class LivingEnemy implements Enemy {
         @Override
         public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
             onDamageByEntity(event);
+        }
+
+        @Override
+        public void onEntityTarget(EntityTargetEvent event) {
+            onTarget(event);
         }
     }
 
@@ -266,11 +270,11 @@ public abstract class LivingEnemy implements Enemy {
     }
 
     /**
-     * We're removing drops. Maybe reconsider.
+     * What happens on death? Overriders must call super:onDeath or
+     * set dead to true.
      */
-    public void onDeath(EntityDeathEvent event) {
+    protected void onDeath() {
         dead = true;
-        event.getDrops().clear();
     }
 
     /**
@@ -300,4 +304,6 @@ public abstract class LivingEnemy implements Enemy {
             damagers.add(damager.getUniqueId());
         }
     }
+
+    protected void onTarget(EntityTargetEvent event) { }
 }

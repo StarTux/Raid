@@ -1,65 +1,54 @@
 package com.cavetale.raid;
 
+import com.cavetale.raid.enemy.Context;
+import com.cavetale.raid.enemy.Enemy;
+import com.cavetale.raid.enemy.EnemyType;
 import lombok.NonNull;
 import org.bukkit.Location;
-import org.bukkit.World;
-import org.bukkit.attribute.Attribute;
-import org.bukkit.entity.Bee;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Mob;
-import org.bukkit.entity.Rabbit;
 
 /**
  * Configuration.
  * A mob to be spawned in a location.
  */
 final class Spawn implements ShortInfo {
-    EntityType entityType;
+    String entityType;
     Place place;
     int amount = 1;
-    double health = 0;
-    double attributeFactor = 1.0;
 
     Spawn() { }
 
-    Spawn(@NonNull final EntityType entityType,
-          @NonNull final Location location,
-          final int amount) {
+    Spawn(@NonNull final String entityType, @NonNull final Location location, final int amount) {
         this.entityType = entityType;
         this.place = Place.of(location);
         this.amount = amount;
     }
 
-    Mob spawn(Location loc) {
-        World w = loc.getWorld();
-        Entity entity = w.spawn(loc, entityType.getEntityClass(), this::prep);
-        return entity instanceof Mob ? (Mob) entity : null;
+    public EnemyType getEnemyType() {
+        try {
+            return EnemyType.valueOf(entityType.toUpperCase());
+        } catch (IllegalArgumentException iae) {
+            return null;
+        }
     }
 
-    Mob spawn(@NonNull World world) {
-        Location loc = place.toLocation(world);
-        return spawn(loc);
+    public EntityType getBukkitType() {
+        try {
+            return EntityType.valueOf(entityType.toUpperCase());
+        } catch (IllegalArgumentException iae) {
+            return null;
+        }
     }
 
-    void prep(Entity entity) {
-        entity.setPersistent(false);
-        if (entity instanceof Mob) prep((Mob) entity);
-    }
-
-    void prep(Mob mob) {
-        if (health > 0) {
-            mob.getAttribute(Attribute.GENERIC_MAX_HEALTH).setBaseValue(health);
-            mob.setHealth(health);
+    public Enemy createEnemy(Context context) {
+        EnemyType enemyType = getEnemyType();
+        if (enemyType != null) return enemyType.create(context);
+        EntityType bukkitType = getBukkitType();
+        if (bukkitType != null && Mob.class.isAssignableFrom(bukkitType.getEntityClass())) {
+            return new SpawnEnemy(context, (Class<? extends Mob>) bukkitType.getEntityClass(), place.toLocation(context.getWorld()));
         }
-        if (mob instanceof Rabbit) {
-            Rabbit rabbit = (Rabbit) mob;
-            rabbit.setRabbitType(Rabbit.Type.THE_KILLER_BUNNY);
-        }
-        if (mob instanceof Bee) {
-            Bee bee = (Bee) mob;
-            bee.setAnger(12000);
-        }
+        return null;
     }
 
     @Override

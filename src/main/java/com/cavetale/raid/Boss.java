@@ -1,39 +1,14 @@
 package com.cavetale.raid;
 
+import com.cavetale.raid.enemy.EnemyType;
 import lombok.NonNull;
 
 final class Boss implements ShortInfo {
-    Type type;
-
-    enum Type {
-        // Halloween 2019
-        DECAYED("The Decayed"),
-        FORGOTTEN("The Forgotten"),
-        VENGEFUL("The Vengeful"),
-        // Halloween 2018 (Legacy)
-        SKELLINGTON("Skellington"),
-        DEEP_FEAR("Deep Fear"),
-        LAVA_LORD("Lava Lord"),
-        // Christmas 2019
-        FROSTWRECKER("Frostwrecker"),
-        ICE_GOLEM("Ice Golem"),
-        ICEKELLY("Icekelly"),
-        SNOBEAR("Snobear"),
-        QUEEN_BEE("Queen Bee"),
-        // Easter 2020
-        HEINOUS_HEN("Heinous Hen"),
-        SPECTER("Specter");
-
-        public final String displayName;
-
-        Type(@NonNull final String displayName) {
-            this.displayName = displayName;
-        }
-    }
+    EnemyType type;
 
     Boss() { }
 
-    Boss(@NonNull final Type type) {
+    Boss(@NonNull final EnemyType type) {
         this.type = type;
     }
 

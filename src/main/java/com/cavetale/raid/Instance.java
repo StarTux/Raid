@@ -1,11 +1,7 @@
 package com.cavetale.raid;
 
 import com.cavetale.raid.enemy.Context;
-import com.cavetale.raid.enemy.DecayedBoss;
 import com.cavetale.raid.enemy.Enemy;
-import com.cavetale.raid.enemy.ForgottenBoss;
-import com.cavetale.raid.enemy.VengefulBoss;
-import com.cavetale.worldmarker.EntityMarker;
 import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
 import java.io.File;
@@ -23,19 +19,17 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.NonNull;
-import lombok.RequiredArgsConstructor;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
 import org.bukkit.GameMode;
+import org.bukkit.GameRule;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.World;
-import org.bukkit.attribute.Attribute;
-import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Skull;
@@ -47,7 +41,6 @@ import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ExperienceOrb;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
@@ -57,7 +50,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
 
 final class Instance implements Context {
-    final RaidPlugin plugin;
+    @Getter final RaidPlugin plugin;
     final String name;
     @Getter private Raid raid;
     @Getter private World world;
@@ -68,7 +61,7 @@ final class Instance implements Context {
     int waveTicks = 0;
     int roadblockIndex = 0; // timed roadblock removal
     boolean waveComplete = false;
-    final List<SpawnSlot> spawns = new ArrayList<>();
+    final List<Enemy> spawns = new ArrayList<>();
     boolean debug;
     List<WaveInst> waveInsts = null; // debug
     final List<Mob> adds = new ArrayList<>();
@@ -130,17 +123,6 @@ final class Instance implements Context {
         doSkulls = true;
     }
 
-    @RequiredArgsConstructor
-    static class SpawnSlot {
-        final Spawn spawn;
-        Mob mob = null;
-        boolean killed = false;
-
-        boolean isPresent() {
-            return mob != null && mob.isValid();
-        }
-    }
-
     public enum Phase {
         PRE_WORLD,
         STANDBY, // no players
@@ -161,6 +143,7 @@ final class Instance implements Context {
         waveIndex = 0;
         ticks = 0;
         phase = Phase.RUN;
+        world.setGameRule(GameRule.MOB_GRIEFING, true);
         setupWave();
     }
 
@@ -177,6 +160,7 @@ final class Instance implements Context {
             escortMarker.remove();
         }
         escorts.clear();
+        world.setGameRule(GameRule.MOB_GRIEFING, false);
         return;
     }
 
@@ -499,8 +483,8 @@ final class Instance implements Context {
 
     void clearWave() {
         // Spawns
-        for (SpawnSlot slot : spawns) {
-            if (slot.isPresent()) slot.mob.remove();
+        for (Enemy enemy : spawns) {
+            enemy.remove();
         }
         spawns.clear();
         // Adds
@@ -542,47 +526,16 @@ final class Instance implements Context {
     void setupWave(@NonNull Wave wave, List<Player> players) {
         for (Spawn spawn : wave.getSpawns()) {
             for (int i = 0; i < spawn.amount; i += 1) {
-                spawns.add(new SpawnSlot(spawn));
+                Enemy enemy = spawn.createEnemy(this);
+                if (enemy == null) {
+                    plugin.getLogger().warning(name + ": invalid spawn: " + spawn.getShortInfo());
+                } else {
+                    spawns.add(enemy);
+                }
             }
         }
         if (wave.boss != null) {
-            switch (wave.boss.type) {
-            case VENGEFUL:
-                bosses.add(new VengefulBoss(plugin, this));
-                break;
-            case FORGOTTEN:
-                bosses.add(new ForgottenBoss(plugin, this));
-                break;
-            case DECAYED:
-            default:
-                bosses.add(new DecayedBoss(plugin, this));
-            }
-        }
-    }
-
-    void onDeath(@NonNull Mob mob) {
-        for (SpawnSlot slot : spawns) {
-            if (mob.equals(slot.mob)) {
-                Wave wave = getWave(waveIndex);
-                if (wave != null && wave.type != Wave.Type.TIME) {
-                    slot.killed = true;
-                }
-                slot.mob = null;
-                return;
-            }
-        }
-    }
-
-    boolean isAcceptableMobTarget(Entity target) {
-        if (target == null) return false;
-        if (EntityMarker.hasId(target, Enemy.WORLD_MARKER_ID)) return false;
-        switch (target.getType()) {
-        case PLAYER:
-        case WOLF:
-        case CAT:
-            return true;
-        default:
-            return false;
+            bosses.add(wave.boss.type.create(this));
         }
     }
 
@@ -607,42 +560,10 @@ final class Instance implements Context {
         }
         // Count alive mobs
         aliveMobCount = 0;
-        for (SpawnSlot slot : spawns) {
-            if (slot.mob != null && !slot.mob.isValid()) {
-                slot.mob = null;
-            }
-            if (!slot.killed) aliveMobCount += 1;
-            // Spawn Mob
-            if (!slot.killed && !slot.isPresent()
-                && spawnChunks.contains(slot.spawn.place.getChunk())) {
-                Mob mob = slot.spawn.spawn(world);
-                if (mob != null) {
-                    slot.mob = mob;
-                    double multiplier = 1.0 + 0.25 * (double) players.size();
-                    // Health
-                    AttributeInstance inst = mob.getAttribute(Attribute.GENERIC_MAX_HEALTH);
-                    double maxHealth = inst.getBaseValue();
-                    if (mob.getType() == EntityType.RABBIT) {
-                        maxHealth = 20.0;
-                    }
-                    double health = maxHealth * multiplier;
-                    inst.setBaseValue(health);
-                    mob.setHealth(health);
-                    // Damage
-                    if (inst != null) {
-                        double damage = inst.getBaseValue();
-                        if (mob.getType() == EntityType.BEE) {
-                            inst = mob.getAttribute(Attribute.GENERIC_ATTACK_DAMAGE);
-                            inst.setBaseValue(5.0);
-                        }
-                    } else {
-                        plugin.getLogger().info("No attack damage: " + mob.getType());
-                    }
-                }
-            }
-            if (slot.isPresent() && !isAcceptableMobTarget(slot.mob.getTarget())) {
-                Player target = findTarget(slot.mob, players);
-                if (target != null) slot.mob.setTarget(target);
+        for (Enemy enemy : spawns) {
+            if (enemy.isAlive()) {
+                aliveMobCount += 1;
+                if (!enemy.isValid()) enemy.spawn();
             }
         }
         adds.removeIf(add -> !add.isValid());
@@ -867,8 +788,9 @@ final class Instance implements Context {
             }
         }
         if (waveTicks > 1200 && waveTicks % 100 == 0) {
-            for (SpawnSlot slot : spawns) {
-                if (slot.isPresent()) slot.mob.setGlowing(true);
+            for (Enemy enemy : spawns) {
+                Mob mob = enemy.getMob();
+                if (mob != null) mob.setGlowing(true);
             }
             for (Mob mob : adds) {
                 if (mob.isValid()) mob.setGlowing(true);
@@ -896,35 +818,6 @@ final class Instance implements Context {
                 world.spawnParticle(Particle.FLAME, p2, 1, 0, 0, 0, 0);
             }
         }
-    }
-
-    /**
-     * Return the closest visible player within 32 blocks distance.
-     * If none exists, pick the closest non-visible player within 16 blocks.
-     */
-    Player findTarget(@NonNull Mob mob, @NonNull List<Player> players) {
-        Location eye = mob.getEyeLocation();
-        double minVisible = Double.MAX_VALUE;
-        double minBlind = Double.MAX_VALUE;
-        Player visible = null;
-        Player blind = null;
-        final double maxVisible = 32 * 32;
-        final double maxBlind = 16 * 16;
-        for (Player player : players) {
-            double dist = player.getEyeLocation().distanceSquared(eye);
-            if (mob.hasLineOfSight(player)) {
-                if (dist < minVisible && dist < maxVisible) {
-                    visible = player;
-                    minVisible = dist;
-                }
-            } else {
-                if (dist < minBlind && dist < maxBlind) {
-                    blind = player;
-                    minBlind = dist;
-                }
-            }
-        }
-        return visible != null ? visible : null;
     }
 
     void removePlayer(Player player) {
@@ -1012,6 +905,7 @@ final class Instance implements Context {
     public void onDeath(Enemy enemy) {
         if (bosses.contains(enemy)) {
             enemy.onRemove();
+            enemy.remove();
             bosses.remove(enemy);
             for (Player player : enemy.getPlayerDamagers()) {
                 for (ItemStack item : enemy.getDrops()) {
@@ -1026,5 +920,9 @@ final class Instance implements Context {
                 waveComplete = true;
             }
         }
+    }
+
+    public boolean isRunning() {
+        return phase == Phase.RUN;
     }
 }

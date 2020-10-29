@@ -6,6 +6,8 @@ import org.bukkit.entity.Entity;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.entity.EntityTargetEvent;
 
 public interface EnemyHandle extends Persistent {
     Enemy getEnemy();
@@ -17,9 +19,13 @@ public interface EnemyHandle extends Persistent {
 
     default void onEntityDeath(EntityDeathEvent event) { }
 
+    default void onEntityExplode(EntityExplodeEvent event) { }
+
     default void onEntityDamage(EntityDamageEvent event) { }
 
     default void onEntityDamageByEntity(EntityDamageByEntityEvent event) { }
+
+    default void onEntityTarget(EntityTargetEvent event) { }
 
     static EnemyHandle of(Entity entity) {
         return EntityMarker.getEntity(entity).getPersistent(Enemy.WORLD_MARKER_ID, EnemyHandle.class);

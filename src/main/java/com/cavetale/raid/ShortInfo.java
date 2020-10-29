@@ -1,6 +1,6 @@
 package com.cavetale.raid;
 
-interface ShortInfo {
+public interface ShortInfo {
     String getShortInfo();
 
     static String of(ShortInfo inst) {

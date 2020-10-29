@@ -15,6 +15,8 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent.DamageCause;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -32,6 +34,18 @@ public final class EnemyListener implements Listener {
         EnemyHandle handle = EnemyHandle.of(event.getEntity());
         if (handle == null) return;
         handle.onEntityDeath(event);
+    }
+
+    /**
+     * WHen an entity explodes.
+     * NOTE: This will not be called if mobGriefing is set to false...
+     * We set the GameRule in Instance::setupRun.
+     */
+    @EventHandler(priority = EventPriority.HIGHEST)
+    void onEntityExplode(EntityExplodeEvent event) {
+        EnemyHandle handle = EnemyHandle.of(event.getEntity());
+        if (handle == null) return;
+        handle.onEntityExplode(event);
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -83,5 +97,13 @@ public final class EnemyListener implements Listener {
             proj.getWorld().createExplosion(proj, 1.0f);
             proj.remove();
         }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    void onEntityTarget(EntityTargetEvent event) {
+        if (event.getReason() == EntityTargetEvent.TargetReason.CUSTOM) return;
+        EnemyHandle handle = EnemyHandle.of(event.getEntity());
+        if (handle == null) return;
+        handle.onEntityTarget(event);
     }
 }

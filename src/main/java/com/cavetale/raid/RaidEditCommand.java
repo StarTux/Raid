@@ -1,5 +1,6 @@
 package com.cavetale.raid;
 
+import com.cavetale.raid.enemy.EnemyType;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -17,7 +18,6 @@ import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 
 @RequiredArgsConstructor
@@ -443,12 +443,7 @@ final class RaidEditCommand implements TabExecutor {
         switch (cmd) {
         case ADD: {
             if (args.length < 2 || args.length > 3) return false;
-            EntityType et;
-            try {
-                et = EntityType.valueOf(args[1].toUpperCase());
-            } catch (IllegalArgumentException iae) {
-                throw new Wrong("No such EntityType: " + args[1]);
-            }
+            String entityType = args[1];
             int amount = 1;
             if (args.length >= 3) {
                 try {
@@ -460,7 +455,7 @@ final class RaidEditCommand implements TabExecutor {
                     throw new Wrong("Bad amount: " + args[2]);
                 }
             }
-            Spawn spawn = new Spawn(et, player.getLocation(), amount);
+            Spawn spawn = new Spawn(entityType, player.getLocation(), amount);
             List<Spawn> list = wave.getSpawns();
             int index = list.size();
             list.add(spawn);
@@ -525,12 +520,12 @@ final class RaidEditCommand implements TabExecutor {
             wave.boss = null;
             player.sendMessage(y + "Wave boss=-");
         } else if (args.length == 1) {
-            Boss.Type type;
+            EnemyType type;
             try {
-                type = Boss.Type.valueOf(args[0].toUpperCase());
+                type = EnemyType.valueOf(args[0].toUpperCase());
             } catch (IllegalArgumentException iae) {
                 throw new Wrong("Invalid boss type: " + args[0] + "("
-                                + Stream.of(Boss.Type.values()).map(Enum::name)
+                                + Stream.of(EnemyType.values()).map(Enum::name)
                                 .collect(Collectors.joining("|"))
                                 + ")");
             }

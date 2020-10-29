@@ -17,7 +17,6 @@ import org.bukkit.entity.Evoker;
 import org.bukkit.entity.Vex;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.java.JavaPlugin;
 
 public final class ForgottenBoss extends LivingEnemy {
     @Getter private double maxHealth = 500;
@@ -25,8 +24,8 @@ public final class ForgottenBoss extends LivingEnemy {
     @Getter private final String displayName = "" + ChatColor.DARK_PURPLE + ChatColor.BOLD + "The Forgotten";
     AbilityPhases phases = new AbilityPhases();
 
-    public ForgottenBoss(final JavaPlugin plugin, final Context context) {
-        super(plugin, context);
+    public ForgottenBoss(final Context context) {
+        super(context);
     }
 
     @Override

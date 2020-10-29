@@ -26,10 +26,9 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
-import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
+import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 import org.bukkit.event.hanging.HangingBreakEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -51,11 +50,6 @@ final class EventListener implements Listener {
         Instance inst = plugin.raidInstance(event.getEntity().getWorld());
         if (inst == null) return;
         event.blockList().clear();
-        if (event.getEntity() instanceof Mob) {
-            Mob mob = (Mob) event.getEntity();
-            inst.onDeath(mob);
-            return;
-        }
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -95,16 +89,6 @@ final class EventListener implements Listener {
                 event.setCancelled(true);
             default: break;
             }
-        }
-    }
-
-    @EventHandler(ignoreCancelled = true)
-    void onEntityDeath(EntityDeathEvent event) {
-        if (event.getEntity() instanceof Mob) {
-            Mob mob = (Mob) event.getEntity();
-            Instance inst = plugin.raidInstance(mob.getWorld());
-            if (inst == null) return;
-            inst.onDeath(mob);
         }
     }
 
@@ -165,20 +149,13 @@ final class EventListener implements Listener {
         Entity entity = event.getEntity();
         Instance inst = plugin.raidInstance(entity.getWorld());
         if (inst == null) return;
+        if (event instanceof HangingBreakByEntityEvent) {
+            Entity remover = ((HangingBreakByEntityEvent) event).getRemover();
+            if (remover instanceof Player && ((Player) remover).getGameMode() == GameMode.CREATIVE) {
+                return;
+            }
+        }
         event.setCancelled(true);
-    }
-
-    @EventHandler(ignoreCancelled = true)
-    void onEntityTarget(EntityTargetEvent event) {
-        if (event.getReason() == EntityTargetEvent.TargetReason.CUSTOM) return;
-        if (!(event.getEntity() instanceof Mob)) return;
-        Mob mob = (Mob) event.getEntity();
-        Instance inst = plugin.raidInstance(mob.getWorld());
-        if (inst == null) return;
-        if (inst.isAcceptableMobTarget(event.getTarget())) return;
-        Player newTarget = inst.findTarget(mob, inst.getPlayers());
-        // May be null which will set NO target, NOT keep the previous one.
-        if (newTarget != null) event.setTarget(newTarget);
     }
 
     @EventHandler

@@ -16,18 +16,24 @@ import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Vector;
 
+/**
+ * An Enemy instance represents a unit which fights the player and
+ * vice versa. It could be a wrapper for a literal bukkit Entity, a
+ * collection of entities, or entirely virtual.
+ */
 public interface Enemy {
     String WORLD_MARKER_ID = "raid:enemy";
-
-    JavaPlugin getPlugin();
 
     Context getContext();
 
     void spawn(Location location);
+
+    default void spawn() {
+        spawn(getContext().getSpawnLocation());
+    }
 
     void remove();
 
