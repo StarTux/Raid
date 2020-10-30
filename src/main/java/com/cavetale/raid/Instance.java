@@ -191,10 +191,8 @@ final class Instance implements Context {
     }
 
     public void onWorldLoaded(World theWorld) {
-        if (phase != Phase.PRE_WORLD) {
-            throw new IllegalStateException(name + ": Instance::onWorldLoaded: phase=" + phase);
-        }
         world = theWorld;
+        if (phase != Phase.PRE_WORLD) return;
         phase = Phase.STANDBY;
     }
 
