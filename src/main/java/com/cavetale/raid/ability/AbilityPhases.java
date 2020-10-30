@@ -16,6 +16,10 @@ public final class AbilityPhases implements Ability {
     @Override
     public void begin() { }
 
+    /**
+     * Despite the contract of Ability, this will return false when
+     * the abilities wrap around.
+     */
     @Override
     public boolean tick() {
         if (abilities.isEmpty()) return false;
@@ -27,8 +31,11 @@ public final class AbilityPhases implements Ability {
         if (!ability.tick()) {
             ability.end();
             abilityIndex += 1;
-            if (abilityIndex >= abilities.size()) abilityIndex = 0;
             abilityIsNew = true;
+            if (abilityIndex >= abilities.size()) {
+                abilityIndex = 0;
+                return false;
+            }
         }
         return true;
     }

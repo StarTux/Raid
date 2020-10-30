@@ -2,6 +2,7 @@ package com.cavetale.raid;
 
 import com.cavetale.raid.enemy.Context;
 import com.cavetale.raid.enemy.Enemy;
+import com.cavetale.raid.enemy.SadisticVampireBoss;
 import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
 import java.io.File;
@@ -596,12 +597,12 @@ final class Instance implements Context {
             tickTime(wave, players);
             break;
         case BOSS: {
-            if (!bosses.isEmpty()) {
-                getBossBar().setTitle(bosses.get(0).getDisplayName());
-            }
             double health = 0;
             double maxHealth = 0;
             for (Enemy boss : bosses) {
+                if (boss instanceof SadisticVampireBoss) {
+                    ((SadisticVampireBoss) boss).tickBossFight();
+                }
                 health += boss.getHealth();
                 maxHealth += boss.getMaxHealth();
             }

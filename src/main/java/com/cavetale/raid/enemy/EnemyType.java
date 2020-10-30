@@ -27,7 +27,9 @@ public enum EnemyType {
     // SPECTER("Specter"),
     // Halloween 2020
     VAMPIRE_BAT(VampireBat::new),
-    HEAL_EVOKER(HealEvoker::new);
+    HEAL_EVOKER(HealEvoker::new),
+    // Bosses
+    SADISTIC_VAMPIRE(SadisticVampireBoss::new);
 
     private final Function<Context, Enemy> ctor;
 

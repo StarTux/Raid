@@ -19,6 +19,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockIgniteEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
@@ -45,9 +46,16 @@ final class EventListener implements Listener {
     final RaidPlugin plugin;
     static final String MOB_PROJECTILE_ID = "raid:mob_projectile";
 
-    @EventHandler(priority = EventPriority.MONITOR)
+    @EventHandler(priority = EventPriority.LOW)
     void onEntityExplode(EntityExplodeEvent event) {
         Instance inst = plugin.raidInstance(event.getEntity().getWorld());
+        if (inst == null) return;
+        event.blockList().clear();
+    }
+
+    @EventHandler(priority = EventPriority.LOW)
+    void onBlockExplode(BlockExplodeEvent event) {
+        Instance inst = plugin.raidInstance(event.getBlock().getWorld());
         if (inst == null) return;
         event.blockList().clear();
     }

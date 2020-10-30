@@ -158,6 +158,7 @@ public abstract class LivingEnemy implements Enemy {
      */
     @Override
     public void teleport(Location to) {
+        if (living == null) return;
         living.teleport(to);
     }
 
@@ -166,6 +167,7 @@ public abstract class LivingEnemy implements Enemy {
      */
     @Override
     public World getWorld() {
+        if (living == null) return context.getWorld();
         return living.getWorld();
     }
 
@@ -174,6 +176,7 @@ public abstract class LivingEnemy implements Enemy {
      */
     @Override
     public Location getLocation() {
+        if (living == null) return getSpawnLocation();
         return living.getLocation();
     }
 
@@ -182,6 +185,7 @@ public abstract class LivingEnemy implements Enemy {
      */
     @Override
     public Location getEyeLocation() {
+        if (living == null) return getSpawnLocation();
         return living.getEyeLocation();
     }
 
@@ -190,6 +194,7 @@ public abstract class LivingEnemy implements Enemy {
      */
     @Override
     public boolean hasLineOfSight(Entity other) {
+        if (living == null) return false;
         return living.hasLineOfSight(other);
     }
 
@@ -198,6 +203,7 @@ public abstract class LivingEnemy implements Enemy {
      */
     @Override
     public String getDisplayName() {
+        if (living == null) return "";
         return living.getCustomName();
     }
 
@@ -249,6 +255,7 @@ public abstract class LivingEnemy implements Enemy {
      */
     @Override
     public <T extends Projectile> T launchProjectile(Class<T> projectile, Vector velocity) {
+        if (living == null) return null;
         return living.launchProjectile(projectile, velocity);
     }
 
@@ -273,6 +280,7 @@ public abstract class LivingEnemy implements Enemy {
      */
     @Override
     public void setImmobile(boolean immobile) {
+        if (living == null) return;
         if (immobile) {
             backupSpeed = living.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).getBaseValue();
             living.getAttribute(Attribute.GENERIC_MOVEMENT_SPEED).setBaseValue(0);
@@ -297,6 +305,7 @@ public abstract class LivingEnemy implements Enemy {
      */
     @Override
     public BoundingBox getBoundingBox() {
+        if (living == null) return null;
         return living.getBoundingBox();
     }
 
