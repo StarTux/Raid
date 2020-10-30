@@ -21,10 +21,10 @@ public final class VampireBat extends LivingEnemy {
         vampirism.setDuration(9999);
         vampirism.setWarmup(20);
         vampirism.setActive(100);
-        vampirism.setInterval(20);
-        vampirism.setDamagePerTick(0.05);
-        vampirism.setFoodPerSecond(1);
-        vampirism.setSaturationPerTick(0.1f);
+        vampirism.setInterval(40);
+        vampirism.setDamagePerTick(0.025);
+        vampirism.setTicksPerHunger(40);
+        vampirism.setSaturationPerTick(0.05f);
         vampirism.begin();
         safeLocation = location;
     }

@@ -68,11 +68,11 @@ public final class SadisticVampireBoss extends LivingEnemy {
             batDialogue.addDialogue("So many meals await before me!");
             VampirismAbility vampirism = batPhases.addAbility(new VampirismAbility(this, context));
             vampirism.setDamagePerTick(0.1);
-            vampirism.setFoodPerSecond(2);
+            vampirism.setTicksPerHunger(10);
             vampirism.setSaturationPerTick(0.2f);
             vampirism.setWarmup(0);
             vampirism.setDuration(200);
-            vampirism.setActive(100);
+            vampirism.setActive(200);
         }
         if (evokerPhases == null) {
             evokerPhases = new AbilityPhases();
