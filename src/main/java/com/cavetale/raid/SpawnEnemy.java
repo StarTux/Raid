@@ -11,6 +11,7 @@ import org.bukkit.entity.Ageable;
 import org.bukkit.entity.Bee;
 import org.bukkit.entity.Creeper;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Rabbit;
@@ -48,8 +49,8 @@ public final class SpawnEnemy extends LivingEnemy {
 
     @Override
     public void tick() {
-        if (!isAcceptableMobTarget(((Mob) living).getTarget())) {
-            Player target = findTarget();
+        if (!isAcceptableMobTarget(((Mob) living).getTarget(), context)) {
+            Player target = findTarget(living, context);
             if (target != null) {
                 targeting = true;
                 ((Mob) living).setTarget(target);
@@ -135,7 +136,7 @@ public final class SpawnEnemy extends LivingEnemy {
      * Return the closest visible player within 32 blocks distance.
      * If none exists, pick the closest non-visible player within 16 blocks.
      */
-    public Player findTarget() {
+    public static Player findTarget(LivingEntity living, Context context) {
         Location eye = living.getEyeLocation();
         double minVisible = Double.MAX_VALUE;
         double minBlind = Double.MAX_VALUE;
@@ -160,9 +161,10 @@ public final class SpawnEnemy extends LivingEnemy {
         return visible != null ? visible : null;
     }
 
-    static boolean isAcceptableMobTarget(Entity target) {
+    public static boolean isAcceptableMobTarget(Entity target, Context context) {
         if (target == null) return false;
         if (EntityMarker.hasId(target, Enemy.WORLD_MARKER_ID)) return false;
+        if (context.isTemporaryEntity(target)) return false;
         switch (target.getType()) {
         case PLAYER:
         case WOLF:
@@ -176,8 +178,8 @@ public final class SpawnEnemy extends LivingEnemy {
     @Override
     public void onTarget(EntityTargetEvent event) {
         if (targeting) return;
-        if (isAcceptableMobTarget(event.getTarget())) return;
-        Player newTarget = findTarget();
+        if (isAcceptableMobTarget(event.getTarget(), context)) return;
+        Player newTarget = findTarget(living, context);
         if (newTarget != null) event.setTarget(newTarget);
     }
 }

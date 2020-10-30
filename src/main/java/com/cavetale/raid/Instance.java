@@ -891,6 +891,11 @@ final class Instance implements Context {
     }
 
     @Override // Context
+    public boolean isTemporaryEntity(Entity entity) {
+        return adds.contains(entity) || arrows.contains(entity);
+    }
+
+    @Override // Context
     public int countTemporaryEntities(Class<? extends Entity> type) {
         int count = 0;
         for (Mob mob : adds) {

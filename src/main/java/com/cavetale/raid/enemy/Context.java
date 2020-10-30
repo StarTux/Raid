@@ -46,6 +46,8 @@ public interface Context {
      */
     void registerTemporaryEntity(Entity entity);
 
+    boolean isTemporaryEntity(Entity entity);
+
     /**
      * Count previously registered, and still valid, temporary
      * entities.

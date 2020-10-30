@@ -13,6 +13,7 @@ import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.ElderGuardian;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -28,6 +29,7 @@ import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 import org.bukkit.event.hanging.HangingBreakEvent;
@@ -295,5 +297,27 @@ final class EventListener implements Listener {
             if (player.getGameMode() == GameMode.CREATIVE) return;
         }
         event.setCancelled(true);
+    }
+
+    /**
+     * Enemies are already taken care of, but temporary entities also
+     * need to be stopped from targetting each other or any entities.
+     */
+    @EventHandler(ignoreCancelled = true)
+    void onEntityTarget(EntityTargetEvent event) {
+        if (!(event.getEntity() instanceof LivingEntity)) return;
+        LivingEntity living = (LivingEntity) event.getEntity();
+        Instance inst = plugin.raidInstance(living.getWorld());
+        if (inst == null) return;
+        if (inst.isTemporaryEntity(event.getEntity())) {
+            if (!SpawnEnemy.isAcceptableMobTarget(event.getTarget(), inst)) {
+                Player target = SpawnEnemy.findTarget(living, inst);
+                if (target != null) {
+                    event.setTarget(target);
+                } else {
+                    event.setCancelled(true);
+                }
+            }
+        }
     }
 }

@@ -7,11 +7,15 @@ import lombok.Setter;
 import org.bukkit.Location;
 import org.bukkit.entity.LargeFireball;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.SizedFireball;
+import org.bukkit.entity.SmallFireball;
 import org.bukkit.util.Vector;
 
 public final class FireballAbility extends AbstractAbility {
     @Getter @Setter private int interval;
     private int intervalTicks = 0;
+    @Getter @Setter private double velocity = 2.5;
+    @Getter @Setter private double largeChance = 1.0f;
 
     public FireballAbility(final Enemy enemy, final Context context) {
         super(enemy, context);
@@ -40,8 +44,13 @@ public final class FireballAbility extends AbstractAbility {
         for (Player player : context.getPlayers()) {
             if (!enemy.hasLineOfSight(player)) continue;
             Location target = player.getEyeLocation();
-            Vector vec = target.subtract(eye).toVector().normalize().multiply(2.5);
-            LargeFireball fireball = enemy.launchProjectile(LargeFireball.class, vec);
+            Vector vec = target.subtract(eye).toVector().normalize().multiply(velocity);
+            SizedFireball fireball;
+            if (Math.random() < largeChance) {
+                fireball = enemy.launchProjectile(LargeFireball.class, vec);
+            } else {
+                fireball = enemy.launchProjectile(SmallFireball.class, vec);
+            }
             fireball.setPersistent(false);
             context.registerTemporaryEntity(fireball);
         }

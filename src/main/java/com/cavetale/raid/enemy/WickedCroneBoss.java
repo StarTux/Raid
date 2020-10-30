@@ -77,5 +77,9 @@ public final class WickedCroneBoss extends LivingEnemy {
     }
 
     @Override
-    public void onRemove() { }
+    public void onRemove() {
+        if (phases != null) {
+            phases.end();
+        }
+    }
 }

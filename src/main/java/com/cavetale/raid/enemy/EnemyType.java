@@ -30,7 +30,8 @@ public enum EnemyType {
     HEAL_EVOKER(HealEvoker::new),
     // Bosses
     SADISTIC_VAMPIRE(SadisticVampireBoss::new),
-    WICKED_CRONE(WickedCroneBoss::new);
+    WICKED_CRONE(WickedCroneBoss::new),
+    INFERNAL_PHANTASM(InfernalPhantasmBoss::new);
 
     private final Function<Context, Enemy> ctor;
 
