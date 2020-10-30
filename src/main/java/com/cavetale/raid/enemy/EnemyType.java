@@ -29,7 +29,8 @@ public enum EnemyType {
     VAMPIRE_BAT(VampireBat::new),
     HEAL_EVOKER(HealEvoker::new),
     // Bosses
-    SADISTIC_VAMPIRE(SadisticVampireBoss::new);
+    SADISTIC_VAMPIRE(SadisticVampireBoss::new),
+    WICKED_CRONE(WickedCroneBoss::new);
 
     private final Function<Context, Enemy> ctor;
 

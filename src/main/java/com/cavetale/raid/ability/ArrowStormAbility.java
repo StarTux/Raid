@@ -2,27 +2,29 @@ package com.cavetale.raid.ability;
 
 import com.cavetale.raid.enemy.Context;
 import com.cavetale.raid.enemy.Enemy;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import lombok.Getter;
+import lombok.Setter;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.entity.Arrow;
 import org.bukkit.entity.Player;
-import org.bukkit.potion.PotionData;
 import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
-import org.bukkit.potion.PotionType;
 import org.bukkit.util.Vector;
 
 /**
  * Shoot 1 arrow per tick at a random nearby player.
  */
 public final class ArrowStormAbility extends AbstractAbility {
-    @Getter private boolean damaging = true;
-    @Getter private boolean freezing = false;
+    @Getter @Setter private int interval = 0;
+    private int intervalTicks = 0;
     private Random random = new Random();
+    private List<PotionEffect> potionEffects = new ArrayList<>();
+    @Getter @Setter private double damage = 5.0;
+    @Getter @Setter private int pierceLevel = 3;
 
     public ArrowStormAbility(final Enemy enemy, final Context context) {
         super(enemy, context);
@@ -43,16 +45,6 @@ public final class ArrowStormAbility extends AbstractAbility {
         enemy.setImmobile(false);
     }
 
-    public void setDamaging(final boolean damaging) {
-        this.damaging = true;
-        this.freezing = false;
-    }
-
-    public void setFreezing(final boolean freezing) {
-        this.freezing = true;
-        this.damaging = false;
-    }
-
     private double rnd() {
         return random.nextBoolean()
             ? random.nextDouble()
@@ -61,6 +53,12 @@ public final class ArrowStormAbility extends AbstractAbility {
 
     @Override
     public boolean onTick(int ticks) {
+        if (intervalTicks > 0) {
+            intervalTicks -= 1;
+            return true;
+        }
+        intervalTicks = interval;
+        //
         List<Player> players = context.getPlayers();
         players.removeIf(p -> !enemy.hasLineOfSight(p));
         if (players.isEmpty()) return true;
@@ -73,39 +71,23 @@ public final class ArrowStormAbility extends AbstractAbility {
                             rnd() * 0.1))
             .multiply(2.0);
         Arrow arrow = enemy.launchProjectile(Arrow.class, velo);
-        arrow.setDamage(5.0);
-        arrow.setPierceLevel(3);
+        arrow.setDamage(damage);
+        arrow.setPierceLevel(pierceLevel);
         arrow.setPersistent(false);
         context.registerTemporaryEntity(arrow);
-        if (damaging) {
-            arrow.setFireTicks(6000);
-            switch (random.nextInt(4)) {
-            case 0:
-                arrow.setBasePotionData(new PotionData(PotionType.INSTANT_DAMAGE, false, true));
-                break;
-            case 1:
-                arrow.setBasePotionData(new PotionData(PotionType.POISON, false, true));
-                break;
-            case 2:
-                arrow.setBasePotionData(new PotionData(PotionType.WEAKNESS, true, false));
-                break;
-            case 3:
-                arrow.addCustomEffect(new PotionEffect(PotionEffectType.HUNGER, 400, 1), true);
-                break;
-            default: break;
-            }
-        } else if (freezing) {
-            switch (random.nextInt(2)) {
-            case 0:
-                arrow.setBasePotionData(new PotionData(PotionType.SLOWNESS, false, true));
-                break;
-            case 1:
-                arrow.setBasePotionData(new PotionData(PotionType.WEAKNESS, true, false));
-                break;
-            default: break;
-            }
+        if (!potionEffects.isEmpty()) {
+            PotionEffect potionEffect = potionEffects.get(random.nextInt(potionEffects.size()));
+            arrow.addCustomEffect(potionEffect, true);
         }
         enemy.getWorld().playSound(enemy.getLocation(), Sound.ENTITY_ARROW_SHOOT, SoundCategory.HOSTILE, 1.0f, 1.2f);
         return true;
+    }
+
+    public void clearPotionEffects() {
+        potionEffects.clear();
+    }
+
+    public void addPotionEffect(PotionEffect effect) {
+        potionEffects.add(effect);
     }
 }
