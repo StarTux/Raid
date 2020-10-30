@@ -873,7 +873,7 @@ final class Instance implements Context {
 
     @Override // Context
     public Location getSpawnLocation() {
-        return getCurrentWave().getPlace().toLocation(world);
+        return getWave(waveIndex).getPlace().toLocation(world);
     }
 
     @Override // Context
