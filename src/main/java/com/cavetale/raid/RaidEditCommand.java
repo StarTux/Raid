@@ -17,6 +17,7 @@ import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
@@ -29,6 +30,8 @@ import org.bukkit.entity.Player;
 final class RaidEditCommand implements TabExecutor {
     final RaidPlugin plugin;
     final ChatColor y = ChatColor.YELLOW;
+    final ChatColor w = ChatColor.WHITE;
+    final ChatColor g = ChatColor.GOLD;
 
     static class Wrong extends Exception {
         Wrong(@NonNull final String msg) {
@@ -37,6 +40,7 @@ final class RaidEditCommand implements TabExecutor {
     }
 
     enum Cmd {
+        INFO,
         NEW,
         TYPE,
         PLACE,
@@ -163,14 +167,30 @@ final class RaidEditCommand implements TabExecutor {
                     .collect(Collectors.toList());
             }
             if (args.length == 4) {
-                return Arrays.asList(arg, arg + 0);
+                if (arg.isEmpty()) return Arrays.asList("1", "2", "3", "4", "5", "6", "7", "8", "9");
+                try {
+                    int i = Integer.parseInt(arg);
+                    if (i < 1) return Collections.emptyList();
+                    return Arrays.asList("" + i, "" + i + "0", "" + i + "00");
+                } catch (NumberFormatException nfe) { }
+                return Collections.emptyList();
             }
             if (args.length > 4) {
+                if (!arg.contains("=")) {
+                    return Stream.of("mount=", "hand=", "head=", "chest=", "legs=", "feet=",
+                                     "baby=", "powered=", "health=", "damage=", "armor=", "toughness=",
+                                     "speed=", "knockback=", "knockbackResist=", "scaling=")
+                        .filter(f -> f.startsWith(arg))
+                        .collect(Collectors.toList());
+                }
                 List<String> result = new ArrayList<>();
                 for (EntityType entityType : EntityType.values()) {
                     Class<? extends Entity> type = entityType.getEntityClass();
                     if (type == null || !Mob.class.isAssignableFrom(type)) continue;
                     result.add("mount=" + entityType.name().toLowerCase());
+                }
+                for (Material mat : Material.values()) {
+                    result.add("hand=" + mat.name().toLowerCase());
                 }
                 for (Material mat : MaterialTags.HEAD_EQUIPPABLE.getValues()) {
                     result.add("head=" + mat.name().toLowerCase());
@@ -206,6 +226,15 @@ final class RaidEditCommand implements TabExecutor {
                 return Arrays.asList("add", "clear");
             }
             return Collections.emptyList();
+        case BOSS:
+            if (args.length == 2) {
+                return Stream.of(EnemyType.values())
+                    .map(Enum::name)
+                    .map(String::toLowerCase)
+                    .filter(f -> f.contains(arg))
+                    .collect(Collectors.toList());
+            }
+            return Collections.emptyList();
         default:
             return Collections.emptyList();
         }
@@ -213,6 +242,7 @@ final class RaidEditCommand implements TabExecutor {
 
     boolean onCommand(CommandSender sender, Cmd cmd, String[] args) throws Wrong {
         switch (cmd) {
+        case INFO: return infoCommand(requirePlayer(sender), args);
         case NEW: return newCommand(requirePlayer(sender), args);
         case TYPE: return typeCommand(requirePlayer(sender), args);
         case PLACE: return placeCommand(requirePlayer(sender), args);
@@ -341,6 +371,14 @@ final class RaidEditCommand implements TabExecutor {
         } catch (NumberFormatException nfe) {
             throw new Wrong("Invalid double: " + arg);
         }
+    }
+
+    boolean infoCommand(@NonNull Player player, String[] args) throws Wrong {
+        Raid raid = requireRaid(player);
+        Instance inst = plugin.raidInstance(raid);
+        player.sendMessage(y + "Name: " + w + raid.worldName);
+        player.sendMessage(y + "Wave: " + w + inst.getWaveIndex() + "/" + raid.waves.size() + " " + y + ShortInfo.of(inst.getCurrentWave()));
+        return true;
     }
 
     boolean newCommand(@NonNull Player player, String[] args) throws Wrong {
@@ -516,6 +554,9 @@ final class RaidEditCommand implements TabExecutor {
                     case "mount":
                         spawn.mount = EntityType.valueOf(value.toUpperCase());
                         break;
+                    case "hand":
+                        spawn.hand = Material.valueOf(value.toUpperCase());
+                        break;
                     case "head":
                         spawn.helmet = Material.valueOf(value.toUpperCase());
                         break;
@@ -534,10 +575,36 @@ final class RaidEditCommand implements TabExecutor {
                     case "powered":
                         spawn.powered = Boolean.parseBoolean(value);
                         break;
+                    case "health":
+                        spawn.getAttributes().put(Attribute.GENERIC_MAX_HEALTH, Double.parseDouble(value));
+                        break;
+                    case "damage":
+                        spawn.getAttributes().put(Attribute.GENERIC_ATTACK_DAMAGE, Double.parseDouble(value));
+                        break;
+                    case "armor":
+                        spawn.getAttributes().put(Attribute.GENERIC_ARMOR, Double.parseDouble(value));
+                        break;
+                    case "toughness":
+                        spawn.getAttributes().put(Attribute.GENERIC_ARMOR_TOUGHNESS, Double.parseDouble(value));
+                        break;
+                    case "speed":
+                        spawn.getAttributes().put(Attribute.GENERIC_MOVEMENT_SPEED, Double.parseDouble(value));
+                        break;
+                    case "knockback":
+                        spawn.getAttributes().put(Attribute.GENERIC_ATTACK_KNOCKBACK, Double.parseDouble(value));
+                        break;
+                    case "knockbackResist":
+                        spawn.getAttributes().put(Attribute.GENERIC_KNOCKBACK_RESISTANCE, Double.parseDouble(value));
+                        break;
+                    case "scaling":
+                        spawn.scaling = Double.parseDouble(value);
+                        break;
                     default: throw new Wrong("Illegal key: " + key);
                     }
+                } catch (NumberFormatException nfe) {
+                    throw new Wrong("Invalid number: " + key + " = " + value);
                 } catch (IllegalArgumentException iae) {
-                    throw new Wrong("Illegal value: " + key + "=" + value);
+                    throw new Wrong("Invalid value: " + key + " = " + value);
                 }
             }
             List<Spawn> list = wave.getSpawns();

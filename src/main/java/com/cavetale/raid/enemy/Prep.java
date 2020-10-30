@@ -26,6 +26,16 @@ public final class Prep {
         }
     }
 
+    public static boolean hasAttr(Attributable entity, Attribute attribute) {
+        return entity.getAttribute(attribute) != null;
+    }
+
+    public static double getAttr(Attributable entity, Attribute attribute) {
+        AttributeInstance inst = entity.getAttribute(attribute);
+        if (inst == null) return 0;
+        return inst.getValue();
+    }
+
     public static void attr(Attributable entity, Attribute attribute, double value) {
         AttributeInstance inst = entity.getAttribute(attribute);
         if (inst == null) return;

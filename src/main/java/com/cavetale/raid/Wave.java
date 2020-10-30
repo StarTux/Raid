@@ -59,6 +59,11 @@ final class Wave implements ShortInfo {
         if (spawns != null && spawns.isEmpty()) spawns = null;
         if (roadblocks != null && roadblocks.isEmpty()) roadblocks = null;
         if (flags != null && flags.isEmpty()) flags = null;
+        if (spawns != null) {
+            for (Spawn spawn : spawns) {
+                spawn.onSave();
+            }
+        }
     }
 
     public List<Spawn> getSpawns() {

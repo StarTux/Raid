@@ -7,7 +7,6 @@ import com.cavetale.raid.enemy.Prep;
 import com.cavetale.worldmarker.EntityMarker;
 import org.bukkit.Location;
 import org.bukkit.attribute.Attribute;
-import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Ageable;
 import org.bukkit.entity.Bee;
 import org.bukkit.entity.Creeper;
@@ -67,39 +66,43 @@ public final class SpawnEnemy extends LivingEnemy {
         }
     }
 
+    private void prepAttr(Mob mob, Attribute attribute, double multiplier) {
+        if (!Prep.hasAttr(mob, attribute)) return;
+        Double base = spawn.attributes != null && spawn.attributes.containsKey(attribute)
+            ? spawn.attributes.get(attribute)
+            : Prep.getAttr(mob, attribute);
+        double value = base * multiplier;
+        Prep.attr(mob, attribute, value);
+        if (attribute == Attribute.GENERIC_MAX_HEALTH) {
+            mob.setHealth(value);
+        }
+    }
+
     private void prep(Mob mob) {
         mob.setPersistent(false);
+        // Attributes
+        double multiplier = spawn.scaling != 0
+            ? 1.0 + (context.getPlayers().size() - 1) * spawn.scaling
+            : 1.0;
+        prepAttr(mob, Attribute.GENERIC_MAX_HEALTH, multiplier);
+        prepAttr(mob, Attribute.GENERIC_ATTACK_DAMAGE, multiplier);
+        prepAttr(mob, Attribute.GENERIC_ARMOR, multiplier);
+        prepAttr(mob, Attribute.GENERIC_ARMOR_TOUGHNESS, 1.0); // No scaling
+        prepAttr(mob, Attribute.GENERIC_MOVEMENT_SPEED, 1.0);
+        prepAttr(mob, Attribute.GENERIC_ATTACK_KNOCKBACK, 1.0);
+        prepAttr(mob, Attribute.GENERIC_KNOCKBACK_RESISTANCE, 1.0);
+        // Equipment
         EntityEquipment equipment = mob.getEquipment();
+        if (spawn.hand != null) equipment.setItemInHand(new ItemStack(spawn.hand));
         equipment.setHelmet(spawn.helmet != null ? new ItemStack(spawn.helmet) : null);
         equipment.setChestplate(spawn.chestplate != null ? new ItemStack(spawn.chestplate) : null);
         equipment.setLeggings(spawn.leggings != null ? new ItemStack(spawn.leggings) : null);
         equipment.setBoots(spawn.boots != null ? new ItemStack(spawn.boots) : null);
         Prep.disableEquipmentDrop(mob);
+        // Special
         if (mob instanceof Bee) {
             Bee bee = (Bee) mob;
             bee.setAnger(12000);
-        }
-        double multiplier = 1.0 + 0.25 * (double) context.getPlayers().size();
-        // Health
-        AttributeInstance inst = mob.getAttribute(Attribute.GENERIC_MAX_HEALTH);
-        double maxHealth = inst.getBaseValue();
-        if (mob instanceof Rabbit) {
-            Rabbit rabbit = (Rabbit) mob;
-            rabbit.setRabbitType(Rabbit.Type.THE_KILLER_BUNNY);
-            maxHealth = 20.0;
-        }
-        double health = maxHealth * multiplier;
-        inst.setBaseValue(health);
-        mob.setHealth(health);
-        // Damage
-        if (inst != null) {
-            double damage = inst.getBaseValue();
-            if (mob instanceof Bee) {
-                inst = mob.getAttribute(Attribute.GENERIC_ATTACK_DAMAGE);
-                inst.setBaseValue(5.0);
-            }
-        } else {
-            context.getPlugin().getLogger().info("No attack damage: " + mob.getType());
         }
         if (mob instanceof Creeper) {
             Creeper creeper = (Creeper) mob;
@@ -113,6 +116,10 @@ public final class SpawnEnemy extends LivingEnemy {
                 ageable.setAdult();
             }
             ageable.setAgeLock(true);
+        }
+        if (mob instanceof Rabbit) {
+            Rabbit rabbit = (Rabbit) mob;
+            rabbit.setRabbitType(Rabbit.Type.THE_KILLER_BUNNY);
         }
     }
 

@@ -20,6 +20,8 @@ public final class VampirismAbility extends AbstractAbility {
     @Getter @Setter private int active = 60;
     private int activeTicks = 0;
     @Getter @Setter private double damagePerTick = 1.0;
+    @Getter @Setter private int foodPerSecond = 0;
+    @Getter @Setter private float saturationPerTick = 0f;
 
     public VampirismAbility(final Enemy enemy, final Context context) {
         super(enemy, context);
@@ -60,6 +62,12 @@ public final class VampirismAbility extends AbstractAbility {
                 enemy.getWorld().spawnParticle(Particle.REDSTONE, particleLocation, 1, 0, 0, 0, 0, new Particle.DustOptions(Color.RED, 0.5f));
                 if (activeTicks % 16 == 0) {
                     player.getWorld().playSound(player.getLocation(), Sound.ENTITY_EVOKER_CAST_SPELL, SoundCategory.PLAYERS, 0.5f, 2.0f);
+                }
+                if (foodPerSecond > 0 && activeTicks % 20 == 0) {
+                    player.setFoodLevel(Math.max(0, player.getFoodLevel() - foodPerSecond));
+                }
+                if (saturationPerTick > 0f) {
+                    player.setSaturation(Math.max(0, player.getSaturation() - saturationPerTick));
                 }
             }
         }

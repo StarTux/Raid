@@ -9,9 +9,9 @@ import java.util.function.Function;
  */
 public enum EnemyType {
     // Halloween 2019
-    DECAYED("The Decayed", DecayedBoss::new),
-    FORGOTTEN("The Forgotten", ForgottenBoss::new),
-    VENGEFUL("The Vengeful", VengefulBoss::new),
+    DECAYED(DecayedBoss::new),
+    FORGOTTEN(ForgottenBoss::new),
+    VENGEFUL(VengefulBoss::new),
     // Halloween 2018 (Legacy)
     // SKELLINGTON("Skellington"),
     // DEEP_FEAR("Deep Fear"),
@@ -26,19 +26,13 @@ public enum EnemyType {
     // HEINOUS_HEN("Heinous Hen"),
     // SPECTER("Specter"),
     // Halloween 2020
-    VAMPIRE_BAT("Vampire Bat", VampireBat::new),
-    HEAL_EVOKER("Heal Evoker", HealEvoker::new);
+    VAMPIRE_BAT(VampireBat::new),
+    HEAL_EVOKER(HealEvoker::new);
 
-    public final String displayName;
     private final Function<Context, Enemy> ctor;
 
-    EnemyType(final String displayName, final Function<Context, Enemy> ctor) {
-        this.displayName = displayName;
+    EnemyType(final Function<Context, Enemy> ctor) {
         this.ctor = ctor;
-    }
-
-    EnemyType(final String displayName) {
-        this(displayName, DecayedBoss::new);
     }
 
     public Enemy create(Context context) {

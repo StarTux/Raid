@@ -55,7 +55,7 @@ final class Instance implements Context {
     @Getter private Raid raid;
     @Getter private World world;
     @Getter private Phase phase = Phase.PRE_WORLD;
-    int waveIndex = -1;
+    @Getter int waveIndex = -1;
     int aliveMobCount = 0;
     int ticks = 0;
     int waveTicks = 0;
@@ -432,11 +432,6 @@ final class Instance implements Context {
             getBossBar().addFlag(BarFlag.CREATE_FOG);
             getBossBar().addFlag(BarFlag.DARKEN_SKY);
             getBossBar().addFlag(BarFlag.PLAY_BOSS_MUSIC);
-            if (wave.boss != null) {
-                getBossBar().setTitle(ChatColor.DARK_RED
-                                      + wave.boss.type.displayName);
-                getBossBar().setProgress(1.0);
-            }
             break;
         default: break;
         }
@@ -603,6 +598,9 @@ final class Instance implements Context {
             tickTime(wave, players);
             break;
         case BOSS: {
+            if (!bosses.isEmpty()) {
+                getBossBar().setTitle(bosses.get(0).getDisplayName());
+            }
             double health = 0;
             double maxHealth = 0;
             for (Enemy boss : bosses) {
