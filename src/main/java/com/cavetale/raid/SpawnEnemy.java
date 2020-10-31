@@ -83,9 +83,9 @@ public final class SpawnEnemy extends LivingEnemy {
         mob.setPersistent(false);
         // Attributes
         double multiplier = spawn.scaling != 0
-            ? 1.0 + (context.getPlayers().size() - 1) * spawn.scaling
+            ? 1.0 + (context.getPlayers().size() - 1) * spawn.scaling * spawn.scaling
             : 1.0;
-        prepAttr(mob, Attribute.GENERIC_MAX_HEALTH, multiplier);
+        prepAttr(mob, Attribute.GENERIC_MAX_HEALTH, 1.0);
         prepAttr(mob, Attribute.GENERIC_ATTACK_DAMAGE, multiplier);
         prepAttr(mob, Attribute.GENERIC_ARMOR, multiplier);
         prepAttr(mob, Attribute.GENERIC_ARMOR_TOUGHNESS, 1.0); // No scaling

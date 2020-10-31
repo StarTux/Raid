@@ -66,8 +66,9 @@ public final class WickedCroneBoss extends LivingEnemy {
     private void prep(Witch witch) {
         witch.setCustomName(displayName);
         witch.setCustomNameVisible(true);
+        witch.setPersistent(false);
         Prep.health(witch, health, maxHealth);
-        Prep.boss(witch);
+        Prep.disableEquipmentDrop(witch);
     }
 
     @Override

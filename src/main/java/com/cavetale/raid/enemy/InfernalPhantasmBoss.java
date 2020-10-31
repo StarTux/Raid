@@ -3,6 +3,7 @@ package com.cavetale.raid.enemy;
 import com.cavetale.raid.ability.AbilityPhases;
 import com.cavetale.raid.ability.DialogueAbility;
 import com.cavetale.raid.ability.FireballAbility;
+import com.cavetale.raid.ability.HomeAbility;
 import com.cavetale.raid.ability.PauseAbility;
 import com.cavetale.raid.ability.SpawnAddsAbility;
 import lombok.Getter;
@@ -39,6 +40,7 @@ public final class InfernalPhantasmBoss extends LivingEnemy {
             fireballs.setDuration(200);
             fireballs.setInterval(10);
             phases.addAbility(new PauseAbility(this, context)).setDuration(60);
+            phases.addAbility(new HomeAbility(this, context));
             SpawnAddsAbility adds = phases.addAbility(new SpawnAddsAbility(this, context));
             adds.setDuration(100);
             adds.setWarmup(20);
