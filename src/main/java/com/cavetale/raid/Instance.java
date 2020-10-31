@@ -987,7 +987,7 @@ final class Instance implements Context {
                           + ChatColor.RED + (int) entry.getScore()
                           + " " + ChatColor.WHITE + entry.getName());
             }
-            event.addLines(plugin, Priority.HIGHEST, lines);
         }
+        event.addLines(plugin, Priority.HIGHEST, lines);
     }
 }
