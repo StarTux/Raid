@@ -11,7 +11,7 @@ import lombok.Getter;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.entity.Illusioner;
+import org.bukkit.entity.MagmaCube;
 import org.bukkit.entity.Witch;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -49,7 +49,7 @@ public final class WickedCroneBoss extends LivingEnemy {
             PauseAbility pause = phases.addAbility(new PauseAbility(this, context));
             pause.setDuration(60);
             SpawnAddsAbility adds = phases.addAbility(new SpawnAddsAbility(this, context));
-            adds.add(Illusioner.class, 3, 3, Prep::add);
+            adds.add(MagmaCube.class, 9, 3, Prep::add);
             adds.setWarmup(20);
             adds.setDuration(200);
             adds.setInterval(40);
