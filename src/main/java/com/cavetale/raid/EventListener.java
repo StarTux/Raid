@@ -1,5 +1,6 @@
 package com.cavetale.raid;
 
+import com.cavetale.sidebar.PlayerSidebarEvent;
 import com.cavetale.worldmarker.EntityMarker;
 import com.destroystokyo.paper.event.entity.EntityPathfindEvent;
 import com.destroystokyo.paper.event.entity.ThrownEggHatchEvent;
@@ -16,6 +17,7 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -122,7 +124,7 @@ final class EventListener implements Listener {
         }
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
     void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
         Instance inst = plugin.raidInstance(event.getEntity().getWorld());
         if (inst == null) return;
@@ -135,6 +137,14 @@ final class EventListener implements Listener {
             if (EntityMarker.hasId(event.getDamager(), MOB_PROJECTILE_ID)) {
                 double base = event.getDamage(EntityDamageEvent.DamageModifier.BASE);
                 event.setDamage(EntityDamageEvent.DamageModifier.BASE, base * 1.25);
+            }
+        }
+        if (event.getCause() == EntityDamageEvent.DamageCause.ENTITY_ATTACK && event.getDamager() instanceof Player) {
+            inst.onDealDamage((Player) event.getDamager(), event);
+        } else if (event.getCause() == EntityDamageEvent.DamageCause.PROJECTILE && event.getDamager() instanceof Projectile) {
+            Projectile projectile = (Projectile) event.getDamager();
+            if (projectile.getShooter() instanceof Player) {
+                inst.onDealDamage((Player) projectile.getShooter(), event);
             }
         }
     }
@@ -319,5 +329,12 @@ final class EventListener implements Listener {
                 }
             }
         }
+    }
+
+    @EventHandler
+    void onPlayerSidebar(PlayerSidebarEvent event) {
+        Instance inst = plugin.raidInstance(event.getPlayer().getWorld());
+        if (inst == null) return;
+        inst.onPlayerSidebar(event.getPlayer(), event);
     }
 }

@@ -1,5 +1,7 @@
 package com.cavetale.raid.enemy;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Function;
 
 /**
@@ -9,9 +11,9 @@ import java.util.function.Function;
  */
 public enum EnemyType {
     // Halloween 2019
-    DECAYED(DecayedBoss::new),
-    FORGOTTEN(ForgottenBoss::new),
-    VENGEFUL(VengefulBoss::new),
+    DECAYED(DecayedBoss.class, DecayedBoss::new),
+    FORGOTTEN(ForgottenBoss.class, ForgottenBoss::new),
+    VENGEFUL(VengefulBoss.class, VengefulBoss::new),
     // Halloween 2018 (Legacy)
     // SKELLINGTON("Skellington"),
     // DEEP_FEAR("Deep Fear"),
@@ -26,20 +28,33 @@ public enum EnemyType {
     // HEINOUS_HEN("Heinous Hen"),
     // SPECTER("Specter"),
     // Halloween 2020
-    VAMPIRE_BAT(VampireBat::new),
-    HEAL_EVOKER(HealEvoker::new),
+    VAMPIRE_BAT(VampireBat.class, VampireBat::new),
+    HEAL_EVOKER(HealEvoker.class, HealEvoker::new),
     // Bosses
-    SADISTIC_VAMPIRE(SadisticVampireBoss::new),
-    WICKED_CRONE(WickedCroneBoss::new),
-    INFERNAL_PHANTASM(InfernalPhantasmBoss::new);
+    SADISTIC_VAMPIRE(SadisticVampireBoss.class, SadisticVampireBoss::new),
+    WICKED_CRONE(WickedCroneBoss.class, WickedCroneBoss::new),
+    INFERNAL_PHANTASM(InfernalPhantasmBoss.class, InfernalPhantasmBoss::new);
 
+    public final Class<? extends Enemy> type;
     private final Function<Context, Enemy> ctor;
+    private static final Map<Class<? extends Enemy>, EnemyType> TYPEMAP = new HashMap<>();
 
-    EnemyType(final Function<Context, Enemy> ctor) {
+    EnemyType(final Class<? extends Enemy> type, final Function<Context, Enemy> ctor) {
+        this.type = type;
         this.ctor = ctor;
+    }
+
+    static {
+        for (EnemyType enemyType : EnemyType.values()) {
+            TYPEMAP.put(enemyType.type, enemyType);
+        }
     }
 
     public Enemy create(Context context) {
         return ctor.apply(context);
+    }
+
+    public static EnemyType of(Enemy enemy) {
+        return TYPEMAP.get(enemy.getClass());
     }
 }

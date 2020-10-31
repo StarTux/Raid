@@ -1,8 +1,14 @@
 package com.cavetale.raid;
 
+import com.cavetale.mytems.MytemsPlugin;
+import com.cavetale.mytems.item.AculaItemSet;
 import com.cavetale.raid.enemy.Context;
 import com.cavetale.raid.enemy.Enemy;
+import com.cavetale.raid.enemy.EnemyType;
 import com.cavetale.raid.enemy.SadisticVampireBoss;
+import com.cavetale.sidebar.PlayerSidebarEvent;
+import com.cavetale.sidebar.Priority;
+import com.cavetale.worldmarker.EntityMarker;
 import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
 import java.io.File;
@@ -41,11 +47,13 @@ import org.bukkit.boss.BossBar;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.Damageable;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.ExperienceOrb;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Villager;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
@@ -81,8 +89,10 @@ final class Instance implements Context {
                 new ItemBuilder(Material.ORANGE_BANNER),
                 new ItemBuilder(Material.LIGHT_BLUE_BANNER));
     BossBar bossBar;
+    private String sidebarInfo = "";
     Random random = new Random();
     Map<String, EscortMarker> escorts = new HashMap<>();
+    private Highscore damageHighscore = new Highscore();
     // Skull stuff
     boolean doSkulls;
     Set<Long> scannedChunks = new TreeSet<>();
@@ -146,6 +156,7 @@ final class Instance implements Context {
         phase = Phase.RUN;
         world.setGameRule(GameRule.MOB_GRIEFING, true);
         setupWave();
+        damageHighscore.reset();
     }
 
     public void resetRun() {
@@ -162,7 +173,7 @@ final class Instance implements Context {
         }
         escorts.clear();
         world.setGameRule(GameRule.MOB_GRIEFING, false);
-        return;
+        damageHighscore.reset();
     }
 
     /**
@@ -612,7 +623,8 @@ final class Instance implements Context {
             waveComplete = bosses.isEmpty();
             if (!bosses.isEmpty()) {
                 Enemy boss = bosses.get(0);
-                getBossBar().setTitle(ChatColor.DARK_RED + boss.getDisplayName() + ChatColor.RED + " " + ((int) health));
+                getBossBar().setTitle(ChatColor.DARK_RED + boss.getDisplayName());
+                sidebarInfo = ChatColor.BLUE + "Boss Health " + ChatColor.RED + ((int) health);
             }
             break;
         }
@@ -675,6 +687,7 @@ final class Instance implements Context {
             String timeString = String.format("%02d:%02d",
                                               secondsLeft / 60, secondsLeft % 60);
             getBossBar().setTitle(ChatColor.RED + timeString);
+            sidebarInfo = ChatColor.BLUE + "Time " + ChatColor.WHITE + timeString;
         } else {
             waveComplete = true;
         }
@@ -717,12 +730,11 @@ final class Instance implements Context {
         getBossBar().setProgress(perc);
         String timeString = String.format(" %02d:%02d",
                                           secondsLeft / 60, secondsLeft % 60);
-        String msg = ""
-            + ChatColor.BLUE + "Reach the Goal "
+        getBossBar().setTitle(ChatColor.BLUE + "Reach the Goal");
+        sidebarInfo = ChatColor.BLUE + "Goal "
             + ChatColor.WHITE + goalCount
             + ChatColor.GRAY + "/" + players.size()
-            + ChatColor.GRAY + timeString;
-        getBossBar().setTitle(msg);
+            + " " + ChatColor.GRAY + timeString;
         if (!waveComplete && spawnChunks.contains(wave.place.getChunk())) {
             highlightPlace(wave);
         }
@@ -772,7 +784,8 @@ final class Instance implements Context {
                        / (double) spawns.size())
             : 0.0;
         getBossBar().setProgress(perc);
-        getBossBar().setTitle(ChatColor.RED + "Kill all Mobs " + ChatColor.WHITE + aliveMobCount);
+        getBossBar().setTitle(ChatColor.RED + "Kill all Mobs");
+        sidebarInfo = ChatColor.BLUE + "Mobs " + ChatColor.WHITE + aliveMobCount;
         if (waveComplete && wave.getSpawns().size() > 0) {
             int totalExp = wave.getSpawns().size() * 5;
             if (totalExp > 0) {
@@ -934,5 +947,47 @@ final class Instance implements Context {
 
     public boolean isRunning() {
         return phase == Phase.RUN;
+    }
+
+    public void onDealDamage(Player player, EntityDamageByEntityEvent event) {
+        Enemy enemy = Enemy.of(event.getEntity());
+        if (enemy != null) {
+            EnemyType enemyType = EnemyType.of(enemy);
+            if (enemyType != null && MytemsPlugin.getInstance().getEquipment(player).hasSetBonus(AculaItemSet.getInstance().getVampiricBonusDamage())) {
+                switch (enemyType) {
+                case VAMPIRE_BAT:
+                case SADISTIC_VAMPIRE:
+                case WICKED_CRONE:
+                case INFERNAL_PHANTASM:
+                    double base = event.getFinalDamage();
+                    event.setDamage(base * 1.5);
+                    player.sendActionBar(ChatColor.DARK_RED + "Vampiric Bonus Damage");
+                default: break;
+                }
+            }
+        }
+        if (enemy != null || adds.contains(event.getEntity())) {
+            double damage = event.getFinalDamage();
+            if (event.getEntity() instanceof Damageable) {
+                damage = Math.min(damage, ((Damageable) event.getEntity()).getHealth());
+            }
+            damageHighscore.add(player, damage);
+        }
+    }
+
+    public void onPlayerSidebar(Player player, PlayerSidebarEvent event) {
+        List<String> lines = new ArrayList<>(20);
+        lines.add("" + ChatColor.RED + ChatColor.BOLD + ChatColor.translateAlternateColorCodes('&', raid.displayName));
+        lines.add(sidebarInfo);
+        if (!damageHighscore.isEmpty()) {
+            lines.add("" + ChatColor.RED + "Damage Dealt:");
+            for (Highscore.Entry entry : damageHighscore.getEntries()) {
+                if (entry.getRank() > 9) break;
+                lines.add("" + ChatColor.BLUE + (1 + entry.getRank()) + ") "
+                          + ChatColor.RED + (int) entry.getScore()
+                          + " " + ChatColor.WHITE + entry.getName());
+            }
+            event.addLines(plugin, Priority.HIGHEST, lines);
+        }
     }
 }
