@@ -302,6 +302,7 @@ final class EventListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     void onBlockIgnite(BlockIgniteEvent event) {
         Instance inst = plugin.raidInstance(event.getBlock().getWorld());
+        if (inst == null) return;
         if (event.getIgnitingEntity() instanceof Player) {
             Player player = (Player) event.getIgnitingEntity();
             if (player.getGameMode() == GameMode.CREATIVE) return;

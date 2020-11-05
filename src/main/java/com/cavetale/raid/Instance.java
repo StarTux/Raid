@@ -8,7 +8,6 @@ import com.cavetale.raid.enemy.EnemyType;
 import com.cavetale.raid.enemy.SadisticVampireBoss;
 import com.cavetale.sidebar.PlayerSidebarEvent;
 import com.cavetale.sidebar.Priority;
-import com.cavetale.worldmarker.EntityMarker;
 import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
 import java.io.File;
