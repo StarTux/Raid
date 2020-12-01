@@ -1,9 +1,9 @@
 package com.cavetale.raid;
 
-import com.cavetale.raid.enemy.Context;
-import com.cavetale.raid.enemy.Enemy;
-import com.cavetale.raid.enemy.LivingEnemy;
-import com.cavetale.raid.enemy.Prep;
+import com.cavetale.enemy.Context;
+import com.cavetale.enemy.Enemy;
+import com.cavetale.enemy.LivingEnemy;
+import com.cavetale.enemy.util.Prep;
 import com.cavetale.worldmarker.EntityMarker;
 import org.bukkit.Location;
 import org.bukkit.attribute.Attribute;

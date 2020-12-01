@@ -1,8 +1,8 @@
 package com.cavetale.raid;
 
-import com.cavetale.raid.enemy.Context;
-import com.cavetale.raid.enemy.Enemy;
-import com.cavetale.raid.enemy.EnemyType;
+import com.cavetale.enemy.Context;
+import com.cavetale.enemy.Enemy;
+import com.cavetale.enemy.EnemyType;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.stream.Collectors;

@@ -1,6 +1,6 @@
 package com.cavetale.raid;
 
-import com.cavetale.raid.enemy.EnemyType;
+import com.cavetale.enemy.EnemyType;
 import lombok.NonNull;
 
 final class Boss implements ShortInfo {

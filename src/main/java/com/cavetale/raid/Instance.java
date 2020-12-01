@@ -1,11 +1,11 @@
 package com.cavetale.raid;
 
+import com.cavetale.enemy.Context;
+import com.cavetale.enemy.Enemy;
+import com.cavetale.enemy.EnemyType;
+import com.cavetale.enemy.boss.SadisticVampireBoss;
 import com.cavetale.mytems.MytemsPlugin;
 import com.cavetale.mytems.item.AculaItemSet;
-import com.cavetale.raid.enemy.Context;
-import com.cavetale.raid.enemy.Enemy;
-import com.cavetale.raid.enemy.EnemyType;
-import com.cavetale.raid.enemy.SadisticVampireBoss;
 import com.cavetale.sidebar.PlayerSidebarEvent;
 import com.cavetale.sidebar.Priority;
 import com.destroystokyo.paper.profile.PlayerProfile;
