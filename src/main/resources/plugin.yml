@@ -6,7 +6,7 @@ description: Turn worlds into raids
 author: StarTux
 website: https://cavetale.com
 depend: [WorldMarker, Mytems, Sidebar, GenericEvents, Enemy]
-softdepend: []
+softdepend: [Inventory]
 commands:
 
   raid:

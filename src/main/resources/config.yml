@@ -1,1 +1,3 @@
 MainRaid: MineRaid
+# Restore inventory via the Inventory plugin?
+RestoreInventory: false

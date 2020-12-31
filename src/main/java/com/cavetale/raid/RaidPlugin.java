@@ -23,6 +23,7 @@ public final class RaidPlugin extends JavaPlugin {
     Json json = new Json(this);
     Yaml yaml = new Yaml(this);
     Sessions sessions;
+    boolean restoreInventory;
 
     @Override
     public void onEnable() {
