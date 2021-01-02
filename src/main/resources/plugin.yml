@@ -10,7 +10,7 @@ softdepend: [Inventory]
 commands:
 
   raid:
-    aliases: []
+    aliases: [back]
     description: Join the Raid
     permission: raid.raid
     usage: /raid - Join the raid

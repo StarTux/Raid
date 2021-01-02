@@ -13,12 +13,15 @@ final class RaidCommand implements CommandExecutor {
 
     @Override
     public boolean onCommand(final CommandSender sender, final Command command, final String alias, final String[] args) {
-        if (args.length > 1) return false;
         if (!(sender instanceof Player)) {
             sender.sendMessage("Player expected");
             return true;
         }
         Player player = (Player) sender;
+        if (alias.equalsIgnoreCase("back")) {
+            return onBack(player);
+        }
+        if (args.length > 1) return false;
         String raidName = args.length >= 1
             ? args[0]
             : plugin.getConfig().getString("MainRaid");
@@ -51,6 +54,22 @@ final class RaidCommand implements CommandExecutor {
         if (plugin.getConfig().getBoolean("RestoreInventory")) {
             InventoryHook.restore(player);
         }
+        return true;
+    }
+
+    boolean onBack(Player player) {
+        Instance instance = plugin.raidInstance(player.getWorld());
+        if (instance == null) {
+            player.sendMessage(ChatColor.RED + "You're not in a raid!");
+            return true;
+        }
+        Wave wave = instance.getCurrentWave();
+        if (wave == null || wave.type == Wave.Type.WIN) {
+            player.sendMessage(ChatColor.RED + "Raid already over!");
+            return true;
+        }
+        player.sendMessage(ChatColor.GREEN + "Returning...");
+        player.teleport(wave.place.toLocation(instance.getWorld()));
         return true;
     }
 }
