@@ -25,7 +25,6 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockIgniteEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
-import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
@@ -69,12 +68,57 @@ final class EventListener implements Listener {
         if (!(event.getEntity() instanceof Mob)) return;
         Mob mob = (Mob) event.getEntity();
         Instance inst = plugin.raidInstance(mob.getWorld());
-        if (inst != null) {
-            if (mob.getType() == EntityType.VEX && event.getSpawnReason() == SpawnReason.DEFAULT) {
+        if (inst == null) return;
+        switch (event.getSpawnReason()) {
+        case CUSTOM:
+            // allowed
+            return;
+        case SPAWNER:
+        case SLIME_SPLIT:
+            // allowed but modified
+            inst.adds.add(mob);
+            mob.setPersistent(false);
+            return;
+        case DEFAULT:
+            // ???
+            if (mob.getType() == EntityType.VEX) {
                 event.setCancelled(true);
-            } else if (event.getSpawnReason() == SpawnReason.SLIME_SPLIT) {
-                inst.adds.add(mob);
             }
+            return;
+        case NATURAL:
+        case JOCKEY:
+        case CHUNK_GEN:
+        case EGG:
+        case SPAWNER_EGG:
+        case LIGHTNING:
+        case BUILD_SNOWMAN:
+        case BUILD_IRONGOLEM:
+        case BUILD_WITHER:
+        case VILLAGE_DEFENSE:
+        case VILLAGE_INVASION:
+        case BREEDING:
+        case REINFORCEMENTS:
+        case NETHER_PORTAL:
+        case DISPENSE_EGG:
+        case INFECTION:
+        case CURED:
+        case OCELOT_BABY:
+        case SILVERFISH_BLOCK:
+        case MOUNT:
+        case TRAP:
+        case ENDER_PEARL:
+        case SHOULDER_ENTITY:
+        case DROWNED:
+        case SHEARED:
+        case EXPLOSION:
+        case RAID:
+        case PATROL:
+        case BEEHIVE:
+            // forbidden
+            event.setCancelled(true);
+            return;
+        default:
+            plugin.getLogger().warning("Unhandled spawn: " + event.getSpawnReason());
         }
     }
 

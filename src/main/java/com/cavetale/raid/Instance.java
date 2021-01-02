@@ -595,6 +595,13 @@ final class Instance implements Context {
         for (EscortMarker escortMarker : escorts.values()) {
             escortMarker.tick(players);
         }
+        // Adds
+        for (Mob mob : adds) {
+            if (!(mob.getTarget() instanceof Player)) {
+                Player target = SpawnEnemy.findTarget(mob, this);
+                if (target != null) mob.setTarget(target);
+            }
+        }
         // Complete condition
         switch (wave.type) {
         case MOBS:
