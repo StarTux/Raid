@@ -671,7 +671,7 @@ final class Instance implements Context {
                 }
             }
             if (waveTicks >= 1200) {
-                World w = plugin.getServer().getWorld("spawn");
+                World w = Bukkit.getWorlds().get(0);
                 if (w != null) {
                     for (Player player : players) {
                         player.teleport(w.getSpawnLocation());
@@ -838,8 +838,7 @@ final class Instance implements Context {
     }
 
     void removePlayer(Player player) {
-        World w = plugin.getServer().getWorld("spawn");
-        if (w == null) w = plugin.getServer().getWorlds().get(0);
+        World w = Bukkit.getWorlds().get(0);
         player.teleport(w.getSpawnLocation());
         if (bossBar != null) {
             bossBar.removePlayer(player);
