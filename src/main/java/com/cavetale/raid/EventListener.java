@@ -11,6 +11,7 @@ import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.entity.AbstractArrow;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.ElderGuardian;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -34,6 +35,8 @@ import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 import org.bukkit.event.hanging.HangingBreakEvent;
+import org.bukkit.event.player.PlayerArmorStandManipulateEvent;
+import org.bukkit.event.player.PlayerBucketEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemDamageEvent;
@@ -182,6 +185,10 @@ final class EventListener implements Listener {
                 double base = event.getDamage(EntityDamageEvent.DamageModifier.BASE);
                 event.setDamage(EntityDamageEvent.DamageModifier.BASE, base * 1.25);
             }
+        }
+        if (event.getEntity() instanceof ArmorStand) {
+            event.setCancelled(true);
+            return;
         }
         if (event.getCause() == EntityDamageEvent.DamageCause.ENTITY_ATTACK && event.getDamager() instanceof Player) {
             inst.onDealDamage((Player) event.getDamager(), event);
@@ -381,5 +388,21 @@ final class EventListener implements Listener {
         Instance inst = plugin.raidInstance(event.getPlayer().getWorld());
         if (inst == null) return;
         inst.onPlayerSidebar(event.getPlayer(), event);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    void onPlayerBucket(PlayerBucketEvent event) {
+        Instance inst = plugin.raidInstance(event.getBlock().getWorld());
+        if (inst == null) return;
+        if (event.getPlayer().isOp()) return;
+        event.setCancelled(true);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    void onPlayerArmorStandManipulate(PlayerArmorStandManipulateEvent event) {
+        Instance inst = plugin.raidInstance(event.getRightClicked().getWorld());
+        if (inst == null) return;
+        if (event.getPlayer().isOp()) return;
+        event.setCancelled(true);
     }
 }
