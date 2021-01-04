@@ -36,7 +36,8 @@ import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 import org.bukkit.event.hanging.HangingBreakEvent;
 import org.bukkit.event.player.PlayerArmorStandManipulateEvent;
-import org.bukkit.event.player.PlayerBucketEvent;
+import org.bukkit.event.player.PlayerBucketEmptyEvent;
+import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemDamageEvent;
@@ -391,7 +392,15 @@ final class EventListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true)
-    void onPlayerBucket(PlayerBucketEvent event) {
+    void onPlayerBucketFill(PlayerBucketFillEvent event) {
+        Instance inst = plugin.raidInstance(event.getBlock().getWorld());
+        if (inst == null) return;
+        if (event.getPlayer().isOp()) return;
+        event.setCancelled(true);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    void onPlayerBucketEmpty(PlayerBucketEmptyEvent event) {
         Instance inst = plugin.raidInstance(event.getBlock().getWorld());
         if (inst == null) return;
         if (event.getPlayer().isOp()) return;
