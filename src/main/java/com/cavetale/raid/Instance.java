@@ -233,12 +233,12 @@ final class Instance implements Context {
                 plugin.getLogger().info("Running command: " + cmd);
                 plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(), cmd);
             }
-            if (plugin.getConfig().getBoolean("RestoreInventory") && Bukkit.getPluginManager().isPluginEnabled("Inventory")) {
-                player.getInventory().clear();
-                InventoryHook.restore(player, () -> {
-                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "magicmap:magicmap give " + player.getName());
-                    });
-            }
+        }
+        if (plugin.getConfig().getBoolean("RestoreInventory") && Bukkit.getPluginManager().isPluginEnabled("Inventory")) {
+            player.getInventory().clear();
+            InventoryHook.restore(player, () -> {
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "magicmap:magicmap give " + player.getName());
+                });
         }
     }
 
