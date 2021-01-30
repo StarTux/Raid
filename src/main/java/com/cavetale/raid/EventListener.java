@@ -49,6 +49,7 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
 import org.bukkit.inventory.ItemStack;
+import org.spigotmc.event.player.PlayerSpawnLocationEvent;
 
 @RequiredArgsConstructor
 final class EventListener implements Listener {
@@ -423,5 +424,13 @@ final class EventListener implements Listener {
         Instance inst = plugin.raidInstance(player.getWorld());
         if (inst == null) return;
         inst.onDeath(player);
+    }
+
+    @EventHandler
+    void onPlayerSpawnLocation(PlayerSpawnLocationEvent event) {
+        Instance inst = plugin.raidInstance(event.getSpawnLocation().getWorld());
+        if (inst != null && !inst.alreadyJoined.contains(event.getPlayer().getUniqueId())) {
+            event.setSpawnLocation(Bukkit.getWorlds().get(0).getSpawnLocation());
+        }
     }
 }
