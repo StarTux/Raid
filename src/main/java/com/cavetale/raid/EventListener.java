@@ -7,6 +7,7 @@ import com.destroystokyo.paper.event.entity.ThrownEggHatchEvent;
 import com.winthier.generic_events.PlayerCanBuildEvent;
 import lombok.RequiredArgsConstructor;
 import net.md_5.bungee.api.ChatColor;
+import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -32,6 +33,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityTargetEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 import org.bukkit.event.hanging.HangingBreakEvent;
@@ -413,5 +415,13 @@ final class EventListener implements Listener {
         if (inst == null) return;
         if (event.getPlayer().isOp()) return;
         event.setCancelled(true);
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
+    void onPlayerDeath(PlayerDeathEvent event) {
+        Player player = event.getEntity();
+        Instance inst = plugin.raidInstance(player.getWorld());
+        if (inst == null) return;
+        inst.onDeath(player);
     }
 }

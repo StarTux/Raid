@@ -2,10 +2,12 @@ package com.cavetale.raid;
 
 import com.cavetale.enemy.EnemyType;
 import com.destroystokyo.paper.MaterialTags;
+import com.winthier.generic_events.GenericEvents;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.NonNull;
@@ -55,7 +57,8 @@ final class RaidEditCommand implements TabExecutor {
         DEBUG,
         SKULLS,
         ROADBLOCK,
-        ESCORT;
+        ESCORT,
+        RESETJOIN;
 
         final String key;
 
@@ -258,6 +261,7 @@ final class RaidEditCommand implements TabExecutor {
         case SKULLS: return skullsCommand(requirePlayer(sender), args);
         case ROADBLOCK: return roadblockCommand(requirePlayer(sender), args);
         case ESCORT: return escortCommand(requirePlayer(sender), args);
+        case RESETJOIN: return resetJoinCommand(requirePlayer(sender), args);
         default:
             throw new IllegalArgumentException(cmd.key);
         }
@@ -314,6 +318,9 @@ final class RaidEditCommand implements TabExecutor {
             break;
         case ESCORT:
             sender.sendMessage(y + "/raidedit escort <name> info|create|remove|place|dialogue|disappear - Edit escorts");
+            break;
+        case RESETJOIN:
+            sender.sendMessage(y + "/raidedit resetjoin [name] - Allow player(s) to rejoin this raid");
             break;
         default:
             sender.sendMessage(y + "/raidedit " + cmd.key);
@@ -889,5 +896,33 @@ final class RaidEditCommand implements TabExecutor {
             return true;
         default: throw new IllegalStateException("escortCmd=" + escortCmd);
         }
+    }
+
+    boolean resetJoinCommand(Player player, String[] args) throws Wrong {
+        Instance instance = plugin.raidInstance(player.getWorld());
+        if (instance == null) {
+            throw new Wrong("No raid instance in this world!");
+        }
+        if (args.length == 1) {
+            String name = args[0];
+            UUID uuid = GenericEvents.cachedPlayerUuid(name);
+            if (uuid == null) {
+                throw new Wrong("Player not found: " + name);
+            }
+            if (!instance.alreadyJoined.remove(uuid)) {
+                throw new Wrong("Player not marked as joined: " + name);
+            }
+            player.sendMessage(ChatColor.YELLOW + "Player join status reset: " + name);
+        } else if (args.length == 0) {
+            if (instance.alreadyJoined.isEmpty()) {
+                throw new Wrong("No players were marked as already joined!");
+            }
+            int count = instance.alreadyJoined.size();
+            instance.alreadyJoined.clear();
+            player.sendMessage(ChatColor.YELLOW + "All player join statuses reset: " + count);
+        } else {
+            return false;
+        }
+        return true;
     }
 }

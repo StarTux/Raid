@@ -1,6 +1,7 @@
 package com.cavetale.raid;
 
 import lombok.RequiredArgsConstructor;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -31,7 +32,7 @@ final class RaidCommand implements CommandExecutor {
         }
         Raid raid = plugin.raids.get(raidName);
         if (raid == null) {
-            player.sendMessage(ChatColor.RED + "Raid not found: " + raidName);
+            player.sendMessage(ChatColor.RED + "Raid not found");
             return true;
         }
         Instance instance = plugin.raidInstance(raid);
@@ -48,12 +49,8 @@ final class RaidCommand implements CommandExecutor {
             player.sendMessage(ChatColor.RED + "Raid already over!");
             return true;
         }
-        instance.onPlayerJoin(player);
         player.sendMessage(ChatColor.GREEN + "Joining " + raid.displayName + "...");
-        player.teleport(wave.place.toLocation(instance.getWorld()));
-        if (plugin.getConfig().getBoolean("RestoreInventory")) {
-            InventoryHook.restore(player);
-        }
+        instance.joinPlayer(player);
         return true;
     }
 

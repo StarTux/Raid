@@ -6,7 +6,11 @@ import com.cavetale.inventory.InventoryPlugin;
 public final class InventoryHook {
     private InventoryHook() { }
 
-    public static void restore(Player player) {
-        InventoryPlugin.getInstance().restoreInventory(player);
+    public static void store(Player player) {
+        InventoryPlugin.getInstance().storeInventory(player);
+    }
+
+    public static void restore(Player player, Runnable callback) {
+        InventoryPlugin.getInstance().restoreInventory(player, callback);
     }
 }

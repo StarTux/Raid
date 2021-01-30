@@ -56,6 +56,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.potion.PotionEffectType;
 
 final class Instance implements Context {
     @Getter final RaidPlugin plugin;
@@ -76,6 +77,7 @@ final class Instance implements Context {
     final List<Enemy> bosses = new ArrayList<>();
     final List<AbstractArrow> arrows = new ArrayList<>();
     final Set<UUID> bossDamagers = new HashSet<>(); // last boss battle
+    final Set<UUID> alreadyJoined = new HashSet<>();
     int secondsLeft;
     ArmorStand goalEntity;
     int goalIndex = 0;
@@ -156,6 +158,7 @@ final class Instance implements Context {
         world.setGameRule(GameRule.MOB_GRIEFING, true);
         setupWave();
         damageHighscore.reset();
+        alreadyJoined.clear();
     }
 
     public void resetRun() {
@@ -173,6 +176,7 @@ final class Instance implements Context {
         escorts.clear();
         world.setGameRule(GameRule.MOB_GRIEFING, false);
         damageHighscore.reset();
+        alreadyJoined.clear();
     }
 
     /**
@@ -215,10 +219,40 @@ final class Instance implements Context {
         phase = Phase.PRE_WORLD;
     }
 
-    public void onPlayerJoin(Player player) {
+    public void joinPlayer(Player player) {
         if (phase == Phase.STANDBY) {
             setupRun();
         }
+        Wave wave = getCurrentWave();
+        player.teleport(wave.place.toLocation(getWorld()));
+        UUID uuid = player.getUniqueId();
+        if (!alreadyJoined.contains(uuid)) {
+            alreadyJoined.add(uuid);
+            for (String cmd : raid.joinCommands) {
+                cmd = cmd.replace("{player}", player.getName());
+                plugin.getLogger().info("Running command: " + cmd);
+                plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(), cmd);
+            }
+            if (plugin.getConfig().getBoolean("RestoreInventory") && Bukkit.getPluginManager().isPluginEnabled("Inventory")) {
+                player.getInventory().clear();
+                InventoryHook.restore(player, () -> {
+                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "magicmap:magicmap give " + player.getName());
+                    });
+            }
+        }
+    }
+
+    public void onDeath(Player player) {
+        Bukkit.getScheduler().runTask(plugin, () -> {
+                player.setHealth(player.getMaxHealth());
+                player.setFoodLevel(20);
+                player.setGameMode(GameMode.ADVENTURE);
+                for (PotionEffectType pet : PotionEffectType.values()) {
+                    player.removePotionEffect(pet);
+                }
+                player.setFallDistance(0);
+                player.teleport(Bukkit.getWorlds().get(0).getSpawnLocation());
+            });
     }
 
     void clear() {
@@ -663,10 +697,9 @@ final class Instance implements Context {
                                      SoundCategory.MASTER,
                                      1.0f, 1.0f);
                     for (String cmd : raid.winCommands) {
-                        cmd = cmd.replace("%player%", player.getName());
+                        cmd = cmd.replace("{player}", player.getName());
                         plugin.getLogger().info("Running command: " + cmd);
-                        plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(),
-                                                           cmd);
+                        plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(), cmd);
                     }
                 }
             }

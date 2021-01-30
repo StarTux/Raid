@@ -17,6 +17,7 @@ public final class Raid {
     List<Wave> waves = new ArrayList<>();
     String displayName = "";
     List<String> winCommands = new ArrayList<>();
+    List<String> joinCommands = new ArrayList<>();
 
     public Raid() { }
 
