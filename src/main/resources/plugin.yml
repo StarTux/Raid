@@ -16,7 +16,7 @@ commands:
     usage: /raid - Join the raid
 
   raidedit:
-    aliases: []
+    aliases: [redit]
     description: Raid Editor Command
     permission: raid.raid
     permission-message: You do not have permission!
