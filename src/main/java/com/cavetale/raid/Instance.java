@@ -76,7 +76,7 @@ final class Instance implements Context {
     final List<Mob> adds = new ArrayList<>();
     final List<Enemy> bosses = new ArrayList<>();
     final List<AbstractArrow> arrows = new ArrayList<>();
-    final Set<UUID> bossDamagers = new HashSet<>(); // last boss battle
+    final Set<UUID> bossFighters = new HashSet<>(); // last boss battle
     final Set<UUID> alreadyJoined = new HashSet<>();
     int secondsLeft;
     ArmorStand goalEntity;
@@ -239,6 +239,10 @@ final class Instance implements Context {
             InventoryHook.restore(player, () -> {
                     Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "magicmap:magicmap give " + player.getName());
                 });
+        }
+        Wave wave2 = getWave(waveIndex);
+        if (wave2.type == Wave.Type.BOSS) {
+            bossFighters.add(uuid);
         }
     }
 
@@ -475,6 +479,9 @@ final class Instance implements Context {
             getBossBar().addFlag(BarFlag.CREATE_FOG);
             getBossBar().addFlag(BarFlag.DARKEN_SKY);
             getBossBar().addFlag(BarFlag.PLAY_BOSS_MUSIC);
+            for (Player player : getPlayers()) {
+                bossFighters.add(player.getUniqueId());
+            }
             break;
         default: break;
         }
@@ -681,7 +688,7 @@ final class Instance implements Context {
         case WIN: {
             if (waveTicks == 1) {
                 String playerNames = Bukkit.getOnlinePlayers().stream()
-                    .filter(p -> bossDamagers.contains(p.getUniqueId()))
+                    .filter(p -> bossFighters.contains(p.getUniqueId()))
                     .map(Player::getName)
                     .collect(Collectors.joining(", "));
                 plugin.getLogger().info("Raid " + raid.worldName + " defeated: " + playerNames);
@@ -691,7 +698,7 @@ final class Instance implements Context {
                     other.sendMessage(msg);
                 }
                 for (Player player : Bukkit.getOnlinePlayers()) {
-                    if (!bossDamagers.contains(player.getUniqueId())) continue;
+                    if (!bossFighters.contains(player.getUniqueId())) continue;
                     player.playSound(player.getEyeLocation(),
                                      Sound.UI_TOAST_CHALLENGE_COMPLETE,
                                      SoundCategory.MASTER,
@@ -969,8 +976,7 @@ final class Instance implements Context {
                 }
             }
             if (bosses.isEmpty()) {
-                bossDamagers.clear();
-                bossDamagers.addAll(enemy.getDamagers());
+                bossFighters.addAll(enemy.getDamagers());
                 waveComplete = true;
             }
         }
