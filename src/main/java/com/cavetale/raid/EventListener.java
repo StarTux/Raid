@@ -3,6 +3,7 @@ package com.cavetale.raid;
 import com.cavetale.sidebar.PlayerSidebarEvent;
 import com.cavetale.worldmarker.EntityMarker;
 import com.destroystokyo.paper.event.entity.EntityPathfindEvent;
+import com.destroystokyo.paper.event.entity.ProjectileCollideEvent;
 import com.destroystokyo.paper.event.entity.ThrownEggHatchEvent;
 import com.winthier.generic_events.PlayerCanBuildEvent;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,7 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockExplodeEvent;
 import org.bukkit.event.block.BlockIgniteEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.block.EntityBlockFormEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
@@ -266,6 +268,13 @@ final class EventListener implements Listener {
         event.setCancelled(true);
     }
 
+    @EventHandler(ignoreCancelled = true)
+    void onEntityBlockForm(EntityBlockFormEvent event) {
+        Instance inst = plugin.raidInstance(event.getBlock().getWorld());
+        if (inst == null) return;
+        event.setCancelled(true);
+    }
+
     @EventHandler
     void onWorldLoad(WorldLoadEvent event) {
         Instance inst = plugin.raidInstance(event.getWorld());
@@ -431,6 +440,16 @@ final class EventListener implements Listener {
         Instance inst = plugin.raidInstance(event.getSpawnLocation().getWorld());
         if (inst != null && !inst.alreadyJoined.contains(event.getPlayer().getUniqueId())) {
             event.setSpawnLocation(Bukkit.getWorlds().get(0).getSpawnLocation());
+        }
+    }
+
+    @EventHandler
+    void onProjectileCollide(ProjectileCollideEvent event) {
+        Projectile projectile = event.getEntity();
+        Instance inst = plugin.raidInstance(projectile.getWorld());
+        if (inst == null) return;
+        if (projectile.getShooter() instanceof Player && event.getCollidedWith() instanceof Player) {
+            event.setCancelled(true);
         }
     }
 }
