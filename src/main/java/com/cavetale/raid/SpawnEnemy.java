@@ -49,6 +49,7 @@ public final class SpawnEnemy extends LivingEnemy {
 
     @Override
     public void tick() {
+        if (living == null) return;
         if (!isAcceptableMobTarget(((Mob) living).getTarget(), context)) {
             Player target = findTarget(living, context);
             if (target != null) {
