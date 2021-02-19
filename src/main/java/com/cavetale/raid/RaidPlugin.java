@@ -7,11 +7,15 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Map;
+import lombok.Getter;
 import lombok.NonNull;
 import org.bukkit.World;
 import org.bukkit.plugin.java.JavaPlugin;
 
+@Getter
 public final class RaidPlugin extends JavaPlugin {
+    @Getter private static RaidPlugin instance;
     HashMap<String, Raid> raids = new HashMap<>();
     HashMap<String, Instance> instances = new HashMap<>();
     RaidCommand raidCommand = new RaidCommand(this);
@@ -24,9 +28,11 @@ public final class RaidPlugin extends JavaPlugin {
     Yaml yaml = new Yaml(this);
     Sessions sessions;
     boolean restoreInventory;
+    private final Map<Integer, EscortMarker.Handle> idEscortMap = new HashMap<>();
 
     @Override
     public void onEnable() {
+        instance = this;
         saveDefaultConfig();
         reloadConfig();
         raidFolder = new File(getDataFolder(), "raids");
@@ -46,8 +52,8 @@ public final class RaidPlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        for (Instance instance : instances.values()) {
-            instance.clear();
+        for (Instance it : instances.values()) {
+            it.clear();
         }
         instances.clear();
         raids.clear();
@@ -101,8 +107,8 @@ public final class RaidPlugin extends JavaPlugin {
     }
 
     void tick() {
-        for (Instance instance : instances.values()) {
-            instance.tick();
+        for (Instance it : instances.values()) {
+            it.tick();
         }
         sessions.tick();
     }

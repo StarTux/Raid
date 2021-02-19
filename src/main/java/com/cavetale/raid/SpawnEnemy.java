@@ -4,7 +4,7 @@ import com.cavetale.enemy.Context;
 import com.cavetale.enemy.Enemy;
 import com.cavetale.enemy.LivingEnemy;
 import com.cavetale.enemy.util.Prep;
-import com.cavetale.worldmarker.EntityMarker;
+import com.cavetale.worldmarker.entity.EntityMarker;
 import org.bukkit.Location;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Ageable;

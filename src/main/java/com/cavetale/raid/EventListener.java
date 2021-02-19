@@ -1,8 +1,9 @@
 package com.cavetale.raid;
 
 import com.cavetale.sidebar.PlayerSidebarEvent;
-import com.cavetale.worldmarker.EntityMarker;
+import com.cavetale.worldmarker.entity.EntityMarker;
 import com.destroystokyo.paper.event.entity.EntityPathfindEvent;
+import com.destroystokyo.paper.event.entity.EntityRemoveFromWorldEvent;
 import com.destroystokyo.paper.event.entity.ProjectileCollideEvent;
 import com.destroystokyo.paper.event.entity.ThrownEggHatchEvent;
 import com.winthier.generic_events.PlayerCanBuildEvent;
@@ -451,5 +452,10 @@ final class EventListener implements Listener {
         if (projectile.getShooter() instanceof Player && event.getCollidedWith() instanceof Player) {
             event.setCancelled(true);
         }
+    }
+
+    @EventHandler
+    void onEntityRemoveFromWorld(EntityRemoveFromWorldEvent event) {
+        plugin.getIdEscortMap().remove(event.getEntity().getEntityId());
     }
 }

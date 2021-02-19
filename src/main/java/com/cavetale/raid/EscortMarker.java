@@ -1,7 +1,6 @@
 package com.cavetale.raid;
 
-import com.cavetale.worldmarker.EntityMarker;
-import com.cavetale.worldmarker.Persistent;
+import com.cavetale.worldmarker.entity.EntityMarker;
 import java.util.List;
 import lombok.Getter;
 import lombok.Setter;
@@ -31,31 +30,21 @@ public final class EscortMarker {
 
     public EscortMarker enable() {
         EntityMarker.setId(entity, WORLD_MARKER_ID);
-        EntityMarker.getEntity(entity).getPersistent(plugin, WORLD_MARKER_ID, Handle.class, Handle::new);
+        RaidPlugin.getInstance().getIdEscortMap().put(entity.getEntityId(), new Handle());
         return this;
     }
 
     /**
      * Reference to this.
      */
-    public final class Handle implements Persistent {
-        @Override
-        public RaidPlugin getPlugin() {
-            return plugin;
-        }
-
+    public final class Handle {
         public EscortMarker getEscortMarker() {
             return EscortMarker.this;
-        }
-
-        @Override
-        public boolean shouldSave() {
-            return false;
         }
     }
 
     public static EscortMarker of(Entity e) {
-        Handle handle = EntityMarker.getEntity(e).getPersistent(WORLD_MARKER_ID, Handle.class);
+        Handle handle = RaidPlugin.getInstance().getIdEscortMap().get(e.getEntityId());
         if (handle == null) return null;
         return handle.getEscortMarker();
     }
