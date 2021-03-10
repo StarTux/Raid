@@ -27,7 +27,6 @@ public final class RaidPlugin extends JavaPlugin {
     Json json = new Json(this);
     Yaml yaml = new Yaml(this);
     Sessions sessions;
-    boolean restoreInventory;
     private final Map<Integer, EscortMarker.Handle> idEscortMap = new HashMap<>();
 
     @Override
