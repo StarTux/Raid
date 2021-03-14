@@ -180,6 +180,10 @@ final class EventListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGH)
     void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
+        if (event.getDamager().hasMetadata("raid:nodamage")) {
+            event.setCancelled(true);
+            return;
+        }
         Instance inst = plugin.raidInstance(event.getEntity().getWorld());
         if (inst == null) return;
         if (event.getEntity() instanceof Player) {

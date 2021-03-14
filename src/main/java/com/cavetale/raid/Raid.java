@@ -16,8 +16,6 @@ public final class Raid {
     transient String worldName;
     List<Wave> waves = new ArrayList<>();
     String displayName = "";
-    List<String> winCommands = new ArrayList<>();
-    List<String> joinCommands = new ArrayList<>();
 
     public Raid() { }
 

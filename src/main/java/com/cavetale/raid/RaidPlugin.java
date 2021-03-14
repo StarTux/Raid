@@ -1,5 +1,6 @@
 package com.cavetale.raid;
 
+import com.cavetale.raid.util.Gui;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import java.io.File;
@@ -47,10 +48,12 @@ public final class RaidPlugin extends JavaPlugin {
             Raid raid = raids.get(world.getName());
             if (raid != null) raidInstance(raid);
         }
+        Gui.enable(this);
     }
 
     @Override
     public void onDisable() {
+        Gui.disable(this);
         for (Instance it : instances.values()) {
             it.clear();
         }

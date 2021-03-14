@@ -1,6 +1,8 @@
 package com.cavetale.raid;
 
 import com.cavetale.enemy.EnemyType;
+import com.cavetale.raid.util.Gui;
+import com.cavetale.raid.util.Text;
 import com.destroystokyo.paper.MaterialTags;
 import com.winthier.generic_events.GenericEvents;
 import java.util.ArrayList;
@@ -12,6 +14,10 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import net.kyori.adventure.key.Key;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.Style;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -58,7 +64,9 @@ final class RaidEditCommand implements TabExecutor {
         SKULLS,
         ROADBLOCK,
         ESCORT,
-        RESETJOIN;
+        RESETJOIN,
+        TEST,
+        DISPLAYNAME;
 
         final String key;
 
@@ -262,6 +270,8 @@ final class RaidEditCommand implements TabExecutor {
         case ROADBLOCK: return roadblockCommand(requirePlayer(sender), args);
         case ESCORT: return escortCommand(requirePlayer(sender), args);
         case RESETJOIN: return resetJoinCommand(requirePlayer(sender), args);
+        case TEST: return testCommand(requirePlayer(sender), args);
+        case DISPLAYNAME: return displayNameCommand(requirePlayer(sender), args);
         default:
             throw new IllegalArgumentException(cmd.key);
         }
@@ -384,6 +394,7 @@ final class RaidEditCommand implements TabExecutor {
         Raid raid = requireRaid(player);
         Instance inst = plugin.raidInstance(raid);
         player.sendMessage(y + "Name: " + w + raid.worldName);
+        player.sendMessage(y + "DisplayName: " + w + Text.colorize(raid.displayName));
         player.sendMessage(y + "Wave: " + w + inst.getWaveIndex() + "/" + raid.waves.size() + " " + y + ShortInfo.of(inst.getCurrentWave()));
         return true;
     }
@@ -923,6 +934,25 @@ final class RaidEditCommand implements TabExecutor {
         } else {
             return false;
         }
+        return true;
+    }
+
+    boolean testCommand(Player player, String[] args) throws Wrong {
+        Gui gui = new Gui(plugin);
+        Component component = Component.text("\uE001\uE101\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001")
+            .style(Style.style().color(NamedTextColor.WHITE).font(Key.key("cavetale:default")))
+            .append(Component.text("Hello World").style(Style.style().color(NamedTextColor.WHITE).font(Style.DEFAULT_FONT)));
+        gui.title(component);
+        gui.size(3 * 9);
+        gui.open(player);
+        return false;
+    }
+
+    boolean displayNameCommand(Player player, String[] args) throws Wrong {
+        Raid raid = requireRaid(player);
+        raid.displayName = String.join(" ", args);
+        plugin.saveRaid(raid);
+        player.sendMessage("Display name updated: " + Text.colorize(raid.displayName));
         return true;
     }
 }

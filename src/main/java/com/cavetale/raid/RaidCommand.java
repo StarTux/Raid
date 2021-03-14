@@ -1,5 +1,6 @@
 package com.cavetale.raid;
 
+import com.cavetale.raid.util.Text;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
@@ -39,7 +40,7 @@ final class RaidCommand implements CommandExecutor {
             player.sendMessage(ChatColor.RED + "Raid not found");
             return true;
         }
-        if (instance.getPhase() == Instance.Phase.PRE_WORLD) {
+        if (instance.getPhase() == Phase.PRE_WORLD) {
             player.sendMessage(ChatColor.RED + "Raid not ready!");
             return true;
         }
@@ -48,7 +49,7 @@ final class RaidCommand implements CommandExecutor {
             player.sendMessage(ChatColor.RED + "Raid already over!");
             return true;
         }
-        player.sendMessage(ChatColor.GREEN + "Joining " + raid.displayName + "...");
+        player.sendMessage(ChatColor.GREEN + "Joining " + Text.colorize(raid.displayName) + "...");
         instance.joinPlayer(player);
         return true;
     }

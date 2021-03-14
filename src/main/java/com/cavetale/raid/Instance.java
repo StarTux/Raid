@@ -4,10 +4,15 @@ import com.cavetale.enemy.Context;
 import com.cavetale.enemy.Enemy;
 import com.cavetale.enemy.EnemyType;
 import com.cavetale.enemy.boss.SadisticVampireBoss;
+import com.cavetale.mytems.Mytems;
 import com.cavetale.mytems.MytemsPlugin;
 import com.cavetale.mytems.item.AculaItemSet;
+import com.cavetale.raid.util.Fireworks;
+import com.cavetale.raid.util.Gui;
+import com.cavetale.raid.util.Text;
 import com.cavetale.sidebar.PlayerSidebarEvent;
 import com.cavetale.sidebar.Priority;
+import com.destroystokyo.paper.Title;
 import com.destroystokyo.paper.profile.PlayerProfile;
 import com.destroystokyo.paper.profile.ProfileProperty;
 import java.io.File;
@@ -25,6 +30,10 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import lombok.NonNull;
+import net.kyori.adventure.key.Key;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.Style;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
@@ -49,6 +58,7 @@ import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Damageable;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.ExperienceOrb;
+import org.bukkit.entity.Firework;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Villager;
@@ -56,6 +66,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.SkullMeta;
+import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.potion.PotionEffectType;
 
 final class Instance implements Context {
@@ -68,6 +79,7 @@ final class Instance implements Context {
     int aliveMobCount = 0;
     int ticks = 0;
     int waveTicks = 0;
+    int warmupTicks = 0;
     int roadblockIndex = 0; // timed roadblock removal
     boolean waveComplete = false;
     final List<Enemy> spawns = new ArrayList<>();
@@ -78,6 +90,7 @@ final class Instance implements Context {
     final List<AbstractArrow> arrows = new ArrayList<>();
     final Set<UUID> bossFighters = new HashSet<>(); // last boss battle
     final Set<UUID> alreadyJoined = new HashSet<>();
+    final Map<UUID, WinReward> winRewards = new HashMap<>();
     int secondsLeft;
     ArmorStand goalEntity;
     int goalIndex = 0;
@@ -135,12 +148,6 @@ final class Instance implements Context {
         doSkulls = true;
     }
 
-    public enum Phase {
-        PRE_WORLD,
-        STANDBY, // no players
-        RUN; // some players
-    }
-
     /**
      * Enter the RUN phase.
      * Called when the run is started by any eligible player entering.
@@ -152,13 +159,20 @@ final class Instance implements Context {
                 roadblock.block(world);
             }
         }
-        waveIndex = 0;
+        phase = Phase.WARMUP;
+        warmupTicks = 0;
+        getBossBar().setTitle(ChatColor.DARK_RED + "Preparing the Raid");
+        getBossBar().setColor(BarColor.RED);
+    }
+
+    public void startRun() {
         ticks = 0;
-        phase = Phase.RUN;
+        waveIndex = 0;
         world.setGameRule(GameRule.MOB_GRIEFING, true);
         setupWave();
         damageHighscore.reset();
         alreadyJoined.clear();
+        phase = Phase.RUN;
     }
 
     public void resetRun() {
@@ -177,6 +191,7 @@ final class Instance implements Context {
         world.setGameRule(GameRule.MOB_GRIEFING, false);
         damageHighscore.reset();
         alreadyJoined.clear();
+        winRewards.clear();
     }
 
     /**
@@ -223,19 +238,17 @@ final class Instance implements Context {
         if (phase == Phase.STANDBY) {
             setupRun();
         }
+        if ("CastleRaid".equals(raid.worldName)) {
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "ml add " + player.getName());
+        }
         Wave wave = getCurrentWave();
         player.teleport(wave.place.toLocation(getWorld()));
         UUID uuid = player.getUniqueId();
         if (!alreadyJoined.contains(uuid)) {
             alreadyJoined.add(uuid);
-            for (String cmd : raid.joinCommands) {
-                cmd = cmd.replace("{player}", player.getName());
-                plugin.getLogger().info("Running command: " + cmd);
-                plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(), cmd);
-            }
         }
         Wave wave2 = getWave(waveIndex);
-        if (wave2.type == Wave.Type.BOSS) {
+        if (wave2 != null && wave2.type == Wave.Type.BOSS) {
             bossFighters.add(uuid);
         }
     }
@@ -254,7 +267,7 @@ final class Instance implements Context {
     }
 
     void clear() {
-        if (phase == Phase.RUN) {
+        if (phase == Phase.RUN || phase == Phase.WARMUP) {
             resetRun();
         }
         clearDebug();
@@ -294,6 +307,7 @@ final class Instance implements Context {
         if (debug) tickDebug();
         switch (phase) {
         case STANDBY: tickStandby(); break;
+        case WARMUP: tickWarmup(); break;
         case RUN: tickRun(); break;
         default: throw new IllegalStateException("phase=" + phase);
         }
@@ -303,7 +317,24 @@ final class Instance implements Context {
     void tickStandby() {
         List<Player> players = getPlayers();
         if (!players.isEmpty()) {
-            setupRun(); // phase = Phase.RUN
+            setupRun();
+        }
+    }
+
+    void tickWarmup() {
+        List<Player> players = getPlayers();
+        if (players.isEmpty()) {
+            resetRun();
+            phase = Phase.STANDBY;
+            return;
+        }
+        warmupTicks += 1;
+        final int warmupDuration = 20 * 60;
+        double progress = Math.max(0, Math.min(1, (double) warmupTicks / (double) warmupDuration));
+        getBossBar().setProgress(progress);
+        tickBossBar(players);
+        if (warmupTicks >= warmupDuration) {
+            startRun();
         }
     }
 
@@ -476,6 +507,14 @@ final class Instance implements Context {
             for (Player player : getPlayers()) {
                 bossFighters.add(player.getUniqueId());
             }
+            if (!bosses.isEmpty()) {
+                Title title = new Title(bosses.get(0).getDisplayName(), ChatColor.DARK_RED + "Boss Fight", 10, 20, 10);
+                for (Player player : getPlayers()) {
+                    player.sendTitle(title);
+                }
+            }
+            break;
+        case TITLE:
             break;
         default: break;
         }
@@ -562,9 +601,14 @@ final class Instance implements Context {
         }
     }
 
+    /**
+     * Called on the 0-tick by tickWave().
+     */
     void setupWave(@NonNull Wave wave, List<Player> players) {
         for (Spawn spawn : wave.getSpawns()) {
-            for (int i = 0; i < spawn.amount; i += 1) {
+            int amount = spawn.amount;
+            if (players.size() > 4) amount += (players.size() - 5) / 2 + 1;
+            for (int i = 0; i < amount; i += 1) {
                 Enemy enemy = spawn.createEnemy(this);
                 if (enemy == null) {
                     plugin.getLogger().warning(name + ": invalid spawn: " + spawn.getShortInfo());
@@ -576,6 +620,39 @@ final class Instance implements Context {
         }
         if (wave.boss != null) {
             bosses.add(wave.boss.type.create(this));
+        }
+        switch (wave.type) {
+        case TITLE:
+            Title title = new Title(Text.colorize(raid.displayName), "", 20, 40, 20);
+            for (Player player : players) {
+                player.sendTitle(title);
+            }
+            break;
+        case WIN: {
+            for (UUID uuid : bossFighters) {
+                winRewards.put(uuid, new WinReward());
+            }
+            String playerNames = Bukkit.getOnlinePlayers().stream()
+                .filter(p -> bossFighters.contains(p.getUniqueId()))
+                .map(Player::getName)
+                .collect(Collectors.joining(", "));
+            plugin.getLogger().info("Raid " + raid.worldName + " defeated: " + playerNames);
+            String msg = ChatColor.GOLD + "Dungeon " + raid.displayName
+                + " defeated by " + playerNames + "!";
+            for (Player other : plugin.getServer().getOnlinePlayers()) {
+                other.sendMessage(msg);
+            }
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                if (!bossFighters.contains(player.getUniqueId())) continue;
+                player.playSound(player.getEyeLocation(),
+                                 Sound.UI_TOAST_CHALLENGE_COMPLETE,
+                                 SoundCategory.MASTER,
+                                 1.0f, 1.0f);
+            }
+            break;
+        }
+        default:
+            break;
         }
     }
 
@@ -617,6 +694,14 @@ final class Instance implements Context {
         }
         arrows.removeIf(arrow -> !arrow.isValid());
         // Bosses
+        for (Enemy boss : bosses) {
+            if (boss.isDead()) {
+                Location location = boss.getLocation();
+                Firework firework = Fireworks.spawnFirework(location);
+                firework.setMetadata("raid:nodamage", new FixedMetadataValue(plugin, true));
+                firework.detonate();
+            }
+        }
         bosses.removeIf(Enemy::isDead);
         for (Enemy boss : bosses) {
             if (!boss.isValid()) {
@@ -680,44 +765,88 @@ final class Instance implements Context {
             break;
         }
         case WIN: {
-            if (waveTicks == 1) {
-                String playerNames = Bukkit.getOnlinePlayers().stream()
-                    .filter(p -> bossFighters.contains(p.getUniqueId()))
-                    .map(Player::getName)
-                    .collect(Collectors.joining(", "));
-                plugin.getLogger().info("Raid " + raid.worldName + " defeated: " + playerNames);
-                String msg = ChatColor.GOLD + "Dungeon " + raid.displayName
-                    + " defeated by " + playerNames + "!";
-                for (Player other : plugin.getServer().getOnlinePlayers()) {
-                    other.sendMessage(msg);
-                }
-                for (Player player : Bukkit.getOnlinePlayers()) {
-                    if (!bossFighters.contains(player.getUniqueId())) continue;
-                    player.playSound(player.getEyeLocation(),
-                                     Sound.UI_TOAST_CHALLENGE_COMPLETE,
-                                     SoundCategory.MASTER,
-                                     1.0f, 1.0f);
-                    for (String cmd : raid.winCommands) {
-                        cmd = cmd.replace("{player}", player.getName());
-                        plugin.getLogger().info("Running command: " + cmd);
-                        plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(), cmd);
-                    }
-                }
-            }
-            if (waveTicks >= 1200) {
+            if (waveTicks >= 2 * 20 * 60) {
                 World w = Bukkit.getWorlds().get(0);
                 if (w != null) {
                     for (Player player : players) {
                         player.teleport(w.getSpawnLocation());
                     }
                 }
+            } else {
+                tickWinRewards();
             }
             break;
         }
+        case TITLE:
+            waveComplete = true;
+            break;
         default: break;
         }
     }
 
+    void tickWinRewards() {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            WinReward winReward = winRewards.get(player.getUniqueId());
+            if (winReward == null || winReward.complete) continue;
+            Gui gui = Gui.of(player);
+            if (gui != null) continue;
+            gui = new Gui(plugin);
+            Component component = Component.text("\uE001\uE101\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001")
+                .style(Style.style().color(NamedTextColor.WHITE).font(Key.key("cavetale:default")))
+                .append(Component.text(Text.colorize(raid.displayName)).style(Style.style().color(NamedTextColor.WHITE).font(Style.DEFAULT_FONT)));
+            gui.title(component);
+            gui.size(3 * 9);
+            updateGui(gui, winReward, player);
+            gui.open(player);
+        }
+    }
+
+    ItemStack getRewardItem(int i) {
+            switch (i) {
+            case 0:
+                return new ItemStack(Material.DIAMOND);
+            case 1:
+                return new ItemStack(Material.EMERALD);
+            case 2:
+                return new ItemStack(Material.NETHER_STAR);
+            case 3:
+                return Mytems.KITTY_COIN.getMytem().getItem();
+            default:
+                throw new IllegalArgumentException("");
+            }
+    }
+
+    void updateGui(Gui gui, WinReward winReward, Player player) {
+        for (int i = 0; i < 4; i += 1) {
+            final int index = i;
+            ItemStack item = getRewardItem(i);
+            int slot = 10 + i * 2;
+            if (winReward.unlocked.get(i)) {
+                gui.setItem(slot, item);
+            } else {
+                gui.setItem(slot, new ItemStack(Material.CHEST), click -> {
+                        if (winReward.unlocked.get(index)) return;
+                        winReward.unlocked.set(index, true);
+                        updateGui(gui, winReward, player);
+                        boolean hasAll = true;
+                        for (int j = 0; j < 4; j += 1) {
+                            if (!winReward.unlocked.get(j)) {
+                                hasAll = false;
+                                break;
+                            }
+                        }
+                        if (hasAll) {
+                            winRewards.remove(player.getUniqueId());
+                            for (int j = 0; j < 4; j += 1) {
+                                for (ItemStack drop : player.getInventory().addItem(getRewardItem(j)).values()) {
+                                    player.getWorld().dropItem(player.getEyeLocation(), drop);
+                                }
+                            }
+                        }
+                    });
+            }
+        }
+    }
 
     void tickTime(Wave wave, List<Player> players) {
         if (secondsLeft > 0 && waveTicks % 20 == 0) {
@@ -962,13 +1091,6 @@ final class Instance implements Context {
             enemy.onRemove();
             enemy.remove();
             bosses.remove(enemy);
-            for (Player player : enemy.getPlayerDamagers()) {
-                for (ItemStack item : enemy.getDrops()) {
-                    for (ItemStack drop : player.getInventory().addItem(item).values()) {
-                        player.getWorld().dropItem(player.getEyeLocation(), drop).setPickupDelay(0);
-                    }
-                }
-            }
             if (bosses.isEmpty()) {
                 bossFighters.addAll(enemy.getDamagers());
                 waveComplete = true;

@@ -25,7 +25,8 @@ final class Wave implements ShortInfo {
         BOSS(ChatColor.DARK_RED),
         TIME(ChatColor.BLUE),
         ROADBLOCK(ChatColor.GREEN),
-        WIN(ChatColor.GOLD);
+        WIN(ChatColor.GOLD),
+        TITLE(ChatColor.RED);
 
         public final ChatColor color;
         public final String key;
