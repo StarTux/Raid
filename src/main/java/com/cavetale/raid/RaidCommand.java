@@ -22,10 +22,8 @@ final class RaidCommand implements CommandExecutor {
         if (alias.equalsIgnoreCase("back")) {
             return onBack(player);
         }
-        if (args.length > 1) return false;
-        String raidName = args.length >= 1
-            ? args[0]
-            : plugin.getConfig().getString("MainRaid");
+        if (args.length != 1) return false;
+        String raidName = args[0];
         if (raidName == null) {
             player.sendMessage(ChatColor.RED + "Raid not found");
             return true;

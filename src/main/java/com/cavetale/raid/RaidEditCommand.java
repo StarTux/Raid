@@ -66,7 +66,8 @@ final class RaidEditCommand implements TabExecutor {
         ESCORT,
         RESETJOIN,
         TEST,
-        DISPLAYNAME;
+        DISPLAYNAME,
+        START;
 
         final String key;
 
@@ -272,6 +273,7 @@ final class RaidEditCommand implements TabExecutor {
         case RESETJOIN: return resetJoinCommand(requirePlayer(sender), args);
         case TEST: return testCommand(requirePlayer(sender), args);
         case DISPLAYNAME: return displayNameCommand(requirePlayer(sender), args);
+        case START: return startCommand(requirePlayer(sender), args);
         default:
             throw new IllegalArgumentException(cmd.key);
         }
@@ -953,6 +955,17 @@ final class RaidEditCommand implements TabExecutor {
         raid.displayName = String.join(" ", args);
         plugin.saveRaid(raid);
         player.sendMessage("Display name updated: " + Text.colorize(raid.displayName));
+        return true;
+    }
+
+    boolean startCommand(Player player, String[] args) throws Wrong {
+        Instance instance = plugin.raidInstance(player.getWorld());
+        if (instance == null) {
+            throw new Wrong("No raid instance in this world!");
+        }
+        if (instance.getPhase() != Phase.WARMUP) throw new Wrong("Not in warmup phase!");
+        instance.startRun();
+        player.sendMessage("Run started!");
         return true;
     }
 }
