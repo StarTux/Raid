@@ -108,7 +108,7 @@ final class Instance implements Context {
     BossBar bossBar;
     private String sidebarInfo = "";
     Random random = new Random();
-    Map<String, EscortMarker> escorts = new HashMap<>();
+    @Getter Map<String, EscortMarker> escorts = new HashMap<>();
     private Highscore damageHighscore = new Highscore();
     Map<Block, CustomBlock> customBlocks = new HashMap<>();
     // Skull stuff
@@ -808,6 +808,17 @@ final class Instance implements Context {
         case TITLE:
             waveComplete = true;
             break;
+        case ESCORT: {
+            boolean complete = true;
+            for (EscortMarker escortMarker : escorts.values()) {
+                if (!escortMarker.isDone()) {
+                    complete = false;
+                    break;
+                }
+            }
+            waveComplete = complete;
+            break;
+        }
         default: break;
         }
     }

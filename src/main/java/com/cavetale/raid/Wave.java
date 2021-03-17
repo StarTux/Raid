@@ -12,6 +12,7 @@ import net.md_5.bungee.api.ChatColor;
 
 @Getter
 final class Wave implements ShortInfo {
+    String name;
     Type type = Type.MOBS;
     Place place;
     double radius = 0;
@@ -22,6 +23,7 @@ final class Wave implements ShortInfo {
     private List<Escort> escorts;
     private Set<Flag> flags;
     protected Map<String, Cuboid> regions = new HashMap<>();
+    List<String> nextWave;
 
     enum Type {
         MOBS(ChatColor.RED),
@@ -30,7 +32,8 @@ final class Wave implements ShortInfo {
         TIME(ChatColor.BLUE),
         ROADBLOCK(ChatColor.GREEN),
         WIN(ChatColor.GOLD),
-        TITLE(ChatColor.RED);
+        TITLE(ChatColor.RED),
+        ESCORT(ChatColor.RED);
 
         public final ChatColor color;
         public final String key;
@@ -52,12 +55,14 @@ final class Wave implements ShortInfo {
     @Override
     public String getShortInfo() {
         return type
+            + (name != null ? " name=" + name : "")
             + " place=" + ShortInfo.of(place)
             + (radius == 0 ? "" : " radius=" + radius)
             + (getSpawns().isEmpty() ? "" : " mobs=" + getSpawns().size())
             + (getRoadblocks().isEmpty() ? "" : " rblocks=" + getRoadblocks().size())
             + (boss == null ? "" : " boss=" + ShortInfo.of(boss))
-            + (getEscorts().isEmpty() ? "" : " escort=" + getEscorts().size());
+            + (getEscorts().isEmpty() ? "" : " escort=" + getEscorts().size())
+            + (nextWave != null ? " next=" + nextWave : "");
     }
 
     public void onSave() {

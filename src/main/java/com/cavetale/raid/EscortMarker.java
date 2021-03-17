@@ -22,6 +22,7 @@ public final class EscortMarker {
     private Location pathLocation;
     @Getter private boolean pathing;
     private final double up = 0.25;
+    private double pathDistance = 0;
 
     public EscortMarker(final RaidPlugin plugin, final Villager entity) {
         this.plugin = plugin;
@@ -72,18 +73,20 @@ public final class EscortMarker {
                 textArmorStand.teleport(entity.getEyeLocation().add(0, up, 0));
             }
         }
-        if (dialogue != null && dialogueIndex < dialogue.size()) {
+        if (dialogue != null) {
             if (dialogueCooldown > 0) {
                 dialogueCooldown -= 1;
             } else {
-                String line = dialogue.get(dialogueIndex++);
-                dialogueCooldown = 100;
-                sayLine(players, line);
+                if (dialogueIndex < dialogue.size()) {
+                    String line = dialogue.get(dialogueIndex++);
+                    dialogueCooldown = 100;
+                    sayLine(players, line);
+                }
             }
         }
         if (pathLocation != null && entity.getPathfinder().getCurrentPath() == null) {
-            double dist = entity.getLocation().distanceSquared(pathLocation);
-            if (dist < 1) {
+            pathDistance = entity.getLocation().distanceSquared(pathLocation);
+            if (pathDistance < 1.0) {
                 pathLocation = null;
             } else {
                 refreshPath();
@@ -123,5 +126,14 @@ public final class EscortMarker {
     public void refreshPath() {
         if (pathLocation == null) return;
         pathTo(pathLocation);
+    }
+
+    public boolean isDone() {
+        return (pathLocation == null || pathDistance < 1.0)
+            && (dialogue == null || (dialogueIndex >= dialogue.size() && dialogueCooldown == 0));
+    }
+
+    public String debugString() {
+        return "path=" + (pathLocation != null) + " dialogueIndex=" + dialogueIndex + "/" + (dialogue != null ? dialogue.size() : "0") + " dist=" + pathDistance + " pathing=" + pathing + " done=" + isDone();
     }
 }

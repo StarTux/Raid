@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -25,6 +26,7 @@ import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.chat.HoverEvent;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
@@ -106,7 +108,8 @@ final class RaidEditCommand implements TabExecutor {
         REMOVE,
         PLACE,
         DIALOGUE,
-        DISAPPEAR;
+        DISAPPEAR,
+        TP;
     }
 
     @Override
@@ -411,7 +414,12 @@ final class RaidEditCommand implements TabExecutor {
         Instance inst = plugin.raidInstance(raid);
         player.sendMessage(y + "Name: " + w + raid.worldName);
         player.sendMessage(y + "DisplayName: " + w + Text.colorize(raid.displayName));
-        player.sendMessage(y + "Wave: " + w + inst.getWaveIndex() + "/" + raid.waves.size() + " " + y + ShortInfo.of(inst.getCurrentWave()));
+        player.sendMessage(y + "Wave: " + w + inst.getWaveIndex() + "/" + raid.waves.size() + " " + y + ShortInfo.of(inst.getWave(inst.getWaveIndex())));
+        for (Map.Entry<String, EscortMarker> entry : inst.getEscorts().entrySet()) {
+            String name = entry.getKey();
+            EscortMarker escortMarker = entry.getValue();
+            player.sendMessage(y + "Escort: " + name + ": " + escortMarker.debugString());
+        }
         return true;
     }
 
@@ -523,7 +531,9 @@ final class RaidEditCommand implements TabExecutor {
             for (int i = 0; i < raid.waves.size(); i += 1) {
                 Wave wave = raid.waves.get(i);
                 int count = wave.getSpawns().size();
-                cb.append(" " + wave.type.color + i + ":" + wave.type.key + (count > 0 ? "(" + count + ")" : ""));
+                cb.append(" " + wave.type.color + i + ":" + wave.type.key
+                          + (wave.name != null ? "'" + wave.name + "'" : "")
+                          + (count > 0 ? "(" + count + ")" : ""));
                 String tooltip = wave.getShortInfo();
                 cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText(tooltip)));
                 cb.event(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/raidedit wave " + i));
@@ -840,6 +850,7 @@ final class RaidEditCommand implements TabExecutor {
     }
 
     boolean escortCommand(Player player, String[] args) throws Wrong {
+        Raid raid = requireRaid(player);
         if (args.length == 0) {
             Wave wave = requireWave(player);
             List<Escort> escorts = wave.getEscorts();
@@ -880,47 +891,88 @@ final class RaidEditCommand implements TabExecutor {
             escort = new Escort();
             escort.setName(name);
             wave.getEscorts().add(escort);
-            plugin.saveRaid(requireRaid(player));
+            plugin.saveRaid(raid);
             player.sendMessage(y + "Escort created: " + name);
+            return true;
+        }
+        case REMOVE: {
+            wave.getEscorts().remove(escort);
+            plugin.saveRaid(raid);
+            player.sendMessage(y + "Escort removed: " + escort.getName());
             return true;
         }
         case PLACE: {
             if (args.length != 2) return false;
             Place place = Place.of(player.getLocation());
             escort.setPlace(place);
-            plugin.saveRaid(requireRaid(player));
+            plugin.saveRaid(raid);
             player.sendMessage(y + "Updated escort place: " + place.getShortInfo());
             return true;
         }
         case DIALOGUE: {
             List<String> dialogue = escort.getDialogue();
-            if (args.length > 2) {
-                if (dialogue == null) {
-                    dialogue = new ArrayList<>();
-                    escort.setDialogue(dialogue);
-                }
-                String line = String.join(" ", Arrays.copyOfRange(args, 2, args.length));
-                dialogue.add(line);
-                plugin.saveRaid(requireRaid(player));
-                player.sendMessage(y + "Dialogue added: " + line);
-            } else {
+            if (args.length < 3) return false;
+            ListCmd listCmd = ListCmd.of(args[2]);
+            if (listCmd == null) throw new Wrong("Invalid dialogue command: " + args[2]);
+            switch (listCmd) {
+            case LIST: {
                 if (dialogue == null) {
                     throw new Wrong("No dialogue!");
                 }
                 player.sendMessage("" + dialogue.size() + " lines:");
+                int i = 0;
                 for (String line : dialogue) {
-                    player.sendMessage("- " + line);
+                    player.sendMessage("" + i++ + ") " + line);
                 }
+                return true;
             }
-            return true;
+            case ADD: {
+                if (args.length < 4) return false;
+                if (dialogue == null) {
+                    dialogue = new ArrayList<>();
+                    escort.setDialogue(dialogue);
+                }
+                String line = String.join(" ", Arrays.copyOfRange(args, 3, args.length));
+                dialogue.add(line);
+                plugin.saveRaid(raid);
+                player.sendMessage(y + "Dialogue added: " + line);
+                return true;
+            }
+            case REMOVE: {
+                if (args.length != 4) return false;
+                if (dialogue == null) {
+                    throw new Wrong("No dialogue!");
+                }
+                int index = requireInt(args[3]);
+                String removed;
+                try {
+                    removed = dialogue.remove(index);
+                } catch (IndexOutOfBoundsException ioobe) {
+                    throw new Wrong("Invalid dialogue index: " + index);
+                }
+                player.sendMessage(y + "Dialogue removed: " + removed);
+                return true;
+            }
+            default:
+                throw new Wrong("Invalid dialogue command: " + listCmd);
+            }
         }
-        case DISAPPEAR:
+        case DISAPPEAR: {
             if (args.length != 2) return false;
             boolean newValue = !escort.isDisappear();
             escort.setDisappear(newValue);
-            plugin.saveRaid(requireRaid(player));
+            plugin.saveRaid(raid);
             player.sendMessage(y + "Disappear: " + newValue);
             return true;
+        }
+        case TP: {
+            if (args.length != 2) return false;
+            if (escort.getPlace() == null) throw new Wrong("Escort " + escort.getName() + " has no place!");
+            Location location = escort.getPlace().toLocation(raid.getWorld());
+            player.teleport(location);
+            player.sendMessage(y + "Teleport to escort location: " + escort.getName());
+            return true;
+        }
         default: throw new IllegalStateException("escortCmd=" + escortCmd);
         }
     }
