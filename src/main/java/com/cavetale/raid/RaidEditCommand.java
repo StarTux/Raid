@@ -1,8 +1,10 @@
 package com.cavetale.raid;
 
 import com.cavetale.enemy.EnemyType;
+import com.cavetale.raid.struct.Cuboid;
 import com.cavetale.raid.util.Gui;
 import com.cavetale.raid.util.Text;
+import com.cavetale.raid.util.WorldEdit;
 import com.destroystokyo.paper.MaterialTags;
 import com.winthier.generic_events.GenericEvents;
 import java.util.ArrayList;
@@ -67,7 +69,8 @@ final class RaidEditCommand implements TabExecutor {
         RESETJOIN,
         TEST,
         DISPLAYNAME,
-        START;
+        START,
+        REGION;
 
         final String key;
 
@@ -274,6 +277,7 @@ final class RaidEditCommand implements TabExecutor {
         case TEST: return testCommand(requirePlayer(sender), args);
         case DISPLAYNAME: return displayNameCommand(requirePlayer(sender), args);
         case START: return startCommand(requirePlayer(sender), args);
+        case REGION: return regionCommand(requirePlayer(sender), args);
         default:
             throw new IllegalArgumentException(cmd.key);
         }
@@ -289,53 +293,63 @@ final class RaidEditCommand implements TabExecutor {
     void help(CommandSender sender, Cmd cmd) {
         switch (cmd) {
         case TYPE:
-            sender.sendMessage(y + "/raidedit type "
+            sender.sendMessage(y + "/redit type "
                                + Stream.of(Wave.Type.values()).map(Enum::name)
                                .collect(Collectors.joining("|"))
                                + " - Set wave type.");
             break;
         case SET:
-            sender.sendMessage(y + "/raidedit set radius [value] - Set radius");
-            sender.sendMessage(y + "/raidedit set time [value] - Set timeSettings");
+            sender.sendMessage(y + "/redit set radius [value] - Set radius");
+            sender.sendMessage(y + "/redit set time [value] - Set timeSettings");
             break;
         case WAVE:
-            sender.sendMessage(y + "/raidedit wave <index> - Select wave.");
-            sender.sendMessage(y + "/raidedit wave add [index] - Add wave.");
-            sender.sendMessage(y + "/raidedit wave remove - Remove current wave.");
-            sender.sendMessage(y + "/raidedit wave list - List waves.");
-            sender.sendMessage(y + "/raidedit wave tp - Teleport to wave.");
-            sender.sendMessage(y + "/raidedit wave move <index> <index2> - Move wave.");
+            sender.sendMessage(y + "/redit wave <index> - Select wave.");
+            sender.sendMessage(y + "/redit wave add [index] - Add wave.");
+            sender.sendMessage(y + "/redit wave remove - Remove current wave.");
+            sender.sendMessage(y + "/redit wave list - List waves.");
+            sender.sendMessage(y + "/redit wave tp - Teleport to wave.");
+            sender.sendMessage(y + "/redit wave move <index> <index2> - Move wave.");
             break;
         case MOB:
-            sender.sendMessage(y + "/raidedit mob add <type> [amount] [<key>=<value>] - Add mob.");
-            sender.sendMessage(y + "/raidedit mob remove [index] - Remove mob.");
-            sender.sendMessage(y + "/raidedit mob list - List mobs.");
-            sender.sendMessage(y + "/raidedit mob tp <index> - Teleport to mob.");
+            sender.sendMessage(y + "/redit mob add <type> [amount] [<key>=<value>] - Add mob.");
+            sender.sendMessage(y + "/redit mob remove [index] - Remove mob.");
+            sender.sendMessage(y + "/redit mob list - List mobs.");
+            sender.sendMessage(y + "/redit mob tp <index> - Teleport to mob.");
             break;
         case BOSS:
-            sender.sendMessage(y + "/raidedit boss - Clear wave boss.");
-            sender.sendMessage(y + "/raidedit boss <type> - Set wave boss.");
+            sender.sendMessage(y + "/redit boss - Clear wave boss.");
+            sender.sendMessage(y + "/redit boss <type> - Set wave boss.");
             break;
         case TP:
-            sender.sendMessage(y + "/raidedit tp <wave> - Teleport to wave location.");
+            sender.sendMessage(y + "/redit tp <wave> - Teleport to wave location.");
             break;
         case SKIP:
-            sender.sendMessage(y + "/raidedit skip [wave] - Skip to (next) wave.");
+            sender.sendMessage(y + "/redit skip [wave] - Skip to (next) wave.");
             break;
         case DEBUG:
-            sender.sendMessage(y + "/raidedit debug - Toggle debug mode.");
+            sender.sendMessage(y + "/redit debug - Toggle debug mode.");
             break;
         case ROADBLOCK:
-            sender.sendMessage(y + "/raidedit roadblock add|clear - Edit roadblocks");
+            sender.sendMessage(y + "/redit roadblock add|clear - Edit roadblocks");
             break;
         case ESCORT:
-            sender.sendMessage(y + "/raidedit escort <name> info|create|remove|place|dialogue|disappear - Edit escorts");
+            sender.sendMessage(y + "/redit escort <name> info|create|remove|place|dialogue|disappear - Edit escorts");
             break;
         case RESETJOIN:
-            sender.sendMessage(y + "/raidedit resetjoin [name] - Allow player(s) to rejoin this raid");
+            sender.sendMessage(y + "/redit resetjoin [name] - Allow player(s) to rejoin this raid");
+            break;
+        case DISPLAYNAME:
+            sender.sendMessage(y + "/redit displayname [name] - Set the display name. With chat colors.");
+            break;
+        case START:
+            sender.sendMessage(y + "/redit start - Skip the warmup phase");
+            break;
+        case REGION:
+            sender.sendMessage(y + "/redit region add <name> - Add a region to this wave");
+            sender.sendMessage(y + "/redit region remove <name> - Remove a region from this wave");
             break;
         default:
-            sender.sendMessage(y + "/raidedit " + cmd.key);
+            sender.sendMessage(y + "/redit " + cmd.key);
             break;
         }
     }
@@ -941,7 +955,9 @@ final class RaidEditCommand implements TabExecutor {
 
     boolean testCommand(Player player, String[] args) throws Wrong {
         Gui gui = new Gui(plugin);
-        Component component = Component.text("\uE001\uE101\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001")
+        Component component = Component.text("\uE001\uE101\uE001\uE001\uE001\uE001\uE001\uE001\uE001"
+                                             + "\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001"
+                                             + "\uE001\uE001\uE001\uE001\uE001\uE001\uE001")
             .style(Style.style().color(NamedTextColor.WHITE).font(Key.key("cavetale:default")))
             .append(Component.text("Hello World").style(Style.style().color(NamedTextColor.WHITE).font(Style.DEFAULT_FONT)));
         gui.title(component);
@@ -967,5 +983,37 @@ final class RaidEditCommand implements TabExecutor {
         instance.startRun();
         player.sendMessage("Run started!");
         return true;
+    }
+
+    boolean regionCommand(Player player, String[] args) throws Wrong {
+        if (args.length == 0) return false;
+        switch (args[0]) {
+        case "add": {
+            if (args.length != 2) return false;
+            Raid raid = requireRaid(player);
+            Wave wave = requireWave(player);
+            String name = args[1];
+            Cuboid selection = WorldEdit.getSelection(player);
+            if (selection == null) throw new Wrong("Make a WorldEdit selection first!");
+            wave.regions.put(name, selection);
+            plugin.saveRaid(raid);
+            player.sendMessage(Component.text("Region added: " + name + ": " + selection).color(NamedTextColor.YELLOW));
+            return true;
+        }
+        case "remove": {
+            Raid raid = requireRaid(player);
+            Wave wave = requireWave(player);
+            String name = args[1];
+            Cuboid region = wave.regions.remove(name);
+            if (region != null) {
+                plugin.saveRaid(raid);
+                player.sendMessage(Component.text("Region removed: " + name + ": " + region).color(NamedTextColor.YELLOW));
+            } else {
+                player.sendMessage(Component.text("Region not found: " + name).color(NamedTextColor.RED));
+            }
+            return true;
+        }
+        default: return false;
+        }
     }
 }

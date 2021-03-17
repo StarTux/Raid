@@ -1,8 +1,11 @@
 package com.cavetale.raid;
 
+import com.cavetale.raid.struct.Cuboid;
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import lombok.Getter;
 import net.md_5.bungee.api.ChatColor;
@@ -18,6 +21,7 @@ final class Wave implements ShortInfo {
     private List<Roadblock> roadblocks;
     private List<Escort> escorts;
     private Set<Flag> flags;
+    protected Map<String, Cuboid> regions = new HashMap<>();
 
     enum Type {
         MOBS(ChatColor.RED),

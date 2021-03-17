@@ -7,6 +7,8 @@ import com.cavetale.enemy.boss.SadisticVampireBoss;
 import com.cavetale.mytems.Mytems;
 import com.cavetale.mytems.MytemsPlugin;
 import com.cavetale.mytems.item.AculaItemSet;
+import com.cavetale.raid.struct.Cuboid;
+import com.cavetale.raid.struct.Vec3i;
 import com.cavetale.raid.util.Fireworks;
 import com.cavetale.raid.util.Gui;
 import com.cavetale.raid.util.Text;
@@ -65,6 +67,7 @@ import org.bukkit.entity.Villager;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.potion.PotionEffectType;
@@ -107,6 +110,7 @@ final class Instance implements Context {
     Random random = new Random();
     Map<String, EscortMarker> escorts = new HashMap<>();
     private Highscore damageHighscore = new Highscore();
+    Map<Block, CustomBlock> customBlocks = new HashMap<>();
     // Skull stuff
     boolean doSkulls;
     Set<Long> scannedChunks = new TreeSet<>();
@@ -591,6 +595,11 @@ final class Instance implements Context {
             bossBar.removeFlag(BarFlag.DARKEN_SKY);
             bossBar.removeFlag(BarFlag.PLAY_BOSS_MUSIC);
         }
+        // Custom blocks
+        for (CustomBlock customBlock : customBlocks.values()) {
+            customBlock.remove();
+        }
+        customBlocks.clear();
     }
 
     void onWaveComplete(Wave wave) {
@@ -637,8 +646,9 @@ final class Instance implements Context {
                 .map(Player::getName)
                 .collect(Collectors.joining(", "));
             plugin.getLogger().info("Raid " + raid.worldName + " defeated: " + playerNames);
-            String msg = ChatColor.GOLD + "Dungeon " + raid.displayName
-                + " defeated by " + playerNames + "!";
+            String msg = ChatColor.GOLD + "Dungeon "
+                + Text.colorize(raid.displayName)
+                + ChatColor.GOLD + " defeated by " + playerNames + "!";
             for (Player other : plugin.getServer().getOnlinePlayers()) {
                 other.sendMessage(msg);
             }
@@ -648,6 +658,13 @@ final class Instance implements Context {
                                  Sound.UI_TOAST_CHALLENGE_COMPLETE,
                                  SoundCategory.MASTER,
                                  1.0f, 1.0f);
+            }
+            Cuboid bossChestRegion = wave.regions.get("boss_chest");
+            if (bossChestRegion != null) {
+                Block block = bossChestRegion.getMin().toBlock(getWorld());
+                CustomBlock customBlock = new CustomBlock(block, Mytems.BOSS_CHEST);
+                customBlocks.put(block, customBlock);
+                customBlock.place();
             }
             break;
         }
@@ -773,7 +790,18 @@ final class Instance implements Context {
                     }
                 }
             } else {
-                tickWinRewards();
+                for (CustomBlock customBlock : customBlocks.values()) {
+                    switch (customBlock.mytems) {
+                    case BOSS_CHEST:
+                        if ((waveTicks % 5) == 0) {
+                            Location location = customBlock.block.getLocation().add(0.5, 0.5, 0.5);
+                            getWorld().spawnParticle(Particle.END_ROD, location, 2, 0.25, 0.25, 0.25, 0.1);
+                        }
+                        break;
+                    default:
+                        break;
+                    }
+                }
             }
             break;
         }
@@ -784,67 +812,132 @@ final class Instance implements Context {
         }
     }
 
-    void tickWinRewards() {
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            WinReward winReward = winRewards.get(player.getUniqueId());
-            if (winReward == null || winReward.complete) continue;
-            Gui gui = Gui.of(player);
-            if (gui != null) continue;
-            gui = new Gui(plugin);
-            Component component = Component.text("\uE001\uE101\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001")
-                .style(Style.style().color(NamedTextColor.WHITE).font(Key.key("cavetale:default")))
-                .append(Component.text(Text.colorize(raid.displayName)).style(Style.style().color(NamedTextColor.WHITE).font(Style.DEFAULT_FONT)));
-            gui.title(component);
-            gui.size(3 * 9);
-            updateGui(gui, winReward, player);
-            gui.open(player);
+    public Gui openRewardGui(Player player) {
+        WinReward winReward = winRewards.get(player.getUniqueId());
+        if (winReward == null || winReward.complete) return null;
+        Gui gui = new Gui(plugin);
+        Component component = Component.text("\uE001\uE101\uE001\uE001\uE001\uE001\uE001\uE001\uE001"
+                                             + "\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001"
+                                             + "\uE001\uE001\uE001\uE001")
+            .style(Style.style().color(NamedTextColor.WHITE).font(Key.key("cavetale:default")))
+            .append(Component.text(Text.colorize(raid.displayName))
+                    .style(Style.style().color(NamedTextColor.WHITE).font(Style.DEFAULT_FONT)));
+        gui.title(component);
+        gui.size(3 * 9);
+        updateRewardGui(gui, winReward, player);
+        player.playSound(player.getEyeLocation(), Sound.BLOCK_CHEST_OPEN, SoundCategory.MASTER, 0.5f, 1.0f);
+        gui.onClose(event -> player.playSound(player.getEyeLocation(), Sound.BLOCK_CHEST_CLOSE, SoundCategory.MASTER, 0.5f, 1.0f));
+        gui.onTick(() -> updateRewardGui(gui, winReward, player));
+        gui.open(player);
+        return gui;
+    }
+
+    ItemStack getPlaceholder(int index) {
+        ItemStack itemStack = new ItemStack(Material.SHULKER_BOX);
+        ItemMeta meta = itemStack.getItemMeta();
+        meta.displayName(Component.text("Click to open").color(NamedTextColor.LIGHT_PURPLE));
+        meta.lore(Arrays.asList(Component.text("You will get a random item.").color(NamedTextColor.GRAY),
+                                Component.text("Good luck!").color(NamedTextColor.GRAY)));
+        itemStack.setItemMeta(meta);
+        return itemStack;
+    }
+
+    List<LootDrop> getRewardItems(int index) {
+        switch (index) {
+        case 0:
+            return Arrays.asList(new LootDrop(new ItemStack(Material.BLAZE_ROD, 1), 63, 1),
+                                 new LootDrop(new ItemStack(Material.BONE, 1), 63, 1),
+                                 new LootDrop(new ItemStack(Material.CLAY_BALL, 1), 63, 1),
+                                 new LootDrop(new ItemStack(Material.FEATHER, 1), 63, 1),
+                                 new LootDrop(new ItemStack(Material.FLINT, 1), 63, 1),
+                                 new LootDrop(new ItemStack(Material.GUNPOWDER, 1), 63, 1),
+                                 new LootDrop(new ItemStack(Material.INK_SAC, 1), 63, 1),
+                                 new LootDrop(new ItemStack(Material.LEATHER, 1), 63, 1),
+                                 new LootDrop(new ItemStack(Material.NETHER_BRICK, 1), 63, 1),
+                                 new LootDrop(new ItemStack(Material.PAPER, 1), 63, 1),
+                                 new LootDrop(new ItemStack(Material.RABBIT_HIDE, 1), 63, 1),
+                                 new LootDrop(new ItemStack(Material.SLIME_BALL, 1), 63, 1),
+                                 new LootDrop(new ItemStack(Material.STRING, 1), 63, 1),
+                                 new LootDrop(new ItemStack(Material.HONEYCOMB, 1), 63, 1),
+                                 new LootDrop(new ItemStack(Material.PRISMARINE_SHARD, 1), 63, 1),
+                                 new LootDrop(new ItemStack(Material.PUMPKIN, 1), 63, 1),
+                                 new LootDrop(new ItemStack(Material.SUGAR_CANE, 1), 63, 1));
+        case 1:
+            return Arrays.asList(new LootDrop(new ItemStack(Material.DIAMOND, 1), 15, 4),
+                                 new LootDrop(new ItemStack(Material.EMERALD, 2), 30, 4),
+                                 new LootDrop(new ItemStack(Material.IRON_INGOT, 4), 60, 4),
+                                 new LootDrop(new ItemStack(Material.GOLD_INGOT, 4), 60, 4),
+                                 new LootDrop(new ItemStack(Material.LAPIS_LAZULI, 2), 30, 4),
+                                 new LootDrop(new ItemStack(Material.COAL, 4), 60, 4),
+                                 new LootDrop(new ItemStack(Material.QUARTZ, 4), 60, 4),
+                                 new LootDrop(new ItemStack(Material.ANCIENT_DEBRIS, 1), 0, 1));
+        case 2:
+            return Arrays.asList(new LootDrop(new ItemStack(Material.COD, 1), 0, 30),
+                                 new LootDrop(new ItemStack(Material.TROPICAL_FISH, 1), 0, 30),
+                                 new LootDrop(new ItemStack(Material.SALMON, 1), 0, 30),
+                                 new LootDrop(new ItemStack(Material.PUFFERFISH, 1), 0, 30),
+                                 new LootDrop(new ItemStack(Material.NETHER_STAR, 1), 0, 1),
+                                 new LootDrop(new ItemStack(Material.CONDUIT, 1), 0, 1),
+                                 new LootDrop(new ItemStack(Material.DRAGON_EGG, 1), 0, 1),
+                                 new LootDrop(new ItemStack(Material.DRAGON_HEAD, 1), 0, 1),
+                                 new LootDrop(new ItemStack(Material.BEACON, 1), 0, 1));
+        case 3:
+            return Arrays.asList(new LootDrop(Mytems.KITTY_COIN.getMytem().getItem(), 2, 1));
+        default:
+            return null;
         }
     }
 
-    ItemStack getRewardItem(int i) {
-            switch (i) {
-            case 0:
-                return new ItemStack(Material.DIAMOND);
-            case 1:
-                return new ItemStack(Material.EMERALD);
-            case 2:
-                return new ItemStack(Material.NETHER_STAR);
-            case 3:
-                return Mytems.KITTY_COIN.getMytem().getItem();
-            default:
-                throw new IllegalArgumentException("");
-            }
+    void updateRewardGui(Gui gui, WinReward winReward, Player player) {
+        for (int i = 0; i < 4; i += 1) {
+            updateRewardSlot(gui, winReward, player, i);
+        }
     }
 
-    void updateGui(Gui gui, WinReward winReward, Player player) {
-        for (int i = 0; i < 4; i += 1) {
-            final int index = i;
-            ItemStack item = getRewardItem(i);
-            int slot = 10 + i * 2;
-            if (winReward.unlocked.get(i)) {
-                gui.setItem(slot, item);
-            } else {
-                gui.setItem(slot, new ItemStack(Material.CHEST), click -> {
-                        if (winReward.unlocked.get(index)) return;
-                        winReward.unlocked.set(index, true);
-                        updateGui(gui, winReward, player);
-                        boolean hasAll = true;
-                        for (int j = 0; j < 4; j += 1) {
-                            if (!winReward.unlocked.get(j)) {
-                                hasAll = false;
-                                break;
-                            }
-                        }
-                        if (hasAll) {
-                            winRewards.remove(player.getUniqueId());
-                            for (int j = 0; j < 4; j += 1) {
-                                for (ItemStack drop : player.getInventory().addItem(getRewardItem(j)).values()) {
-                                    player.getWorld().dropItem(player.getEyeLocation(), drop);
-                                }
-                            }
-                        }
-                    });
+    void updateRewardSlot(Gui gui, WinReward winReward, Player player, int index) {
+        final int max = 100;
+        int slot = 10 + index * 2;
+        int state = winReward.unlocked.get(index);
+        if (state == 0) {
+            gui.setItem(slot, getPlaceholder(index), click -> {
+                    if (winReward.unlocked.get(index) != state) return;
+                    winReward.unlocked.set(index, 1);
+                });
+        } else if (state < max) {
+            switch (state) {
+            case 0: case 1: case 2: case 3: case 4: case 5:
+            case 6: case 8: case 10: case 12: case 14: case 16: case 18: case 20:
+            case 23: case 26: case 29: case 32: case 35: case 38: case 41:
+            case 45: case 49: case 53: case 57: case 61: case 65: case 69:
+            case 74: case 79: case 84: case 89: case 94:
+                List<LootDrop> list = getRewardItems(index);
+                LootDrop loot = list.get(random.nextInt(list.size()));
+                ItemStack itemStack = loot.itemStack.clone();
+                itemStack.setAmount(itemStack.getAmount() + random.nextInt(loot.bonusAmount + 1));
+                gui.setItem(slot, itemStack);
+                player.playSound(player.getEyeLocation(), Sound.BLOCK_LEVER_CLICK, SoundCategory.MASTER, 0.5f, 2.0f);
+                break;
+            default:
+                break;
             }
+            winReward.unlocked.set(index, state + 1);
+        } else if (state == max) {
+            List<LootDrop> list = getRewardItems(index);
+            List<LootDrop> list2 = new ArrayList<>();
+            for (LootDrop it : list) {
+                for (int i = 0; i < it.weight; i += 1) list2.add(it);
+            }
+            LootDrop lootDrop = list2.get(random.nextInt(list2.size()));
+            ItemStack itemStack = lootDrop.itemStack.clone();
+            itemStack.setAmount(itemStack.getAmount() + random.nextInt(lootDrop.bonusAmount + 1));
+            gui.setItem(slot, itemStack);
+            for (ItemStack drop : player.getInventory().addItem(itemStack).values()) {
+                player.getWorld().dropItem(player.getEyeLocation(), drop);
+            }
+            winReward.unlocked.set(index, state + 1);
+            player.playSound(player.getEyeLocation(), Sound.ENTITY_ITEM_PICKUP, SoundCategory.MASTER, 0.5f, 2.0f);
+        } else {
+            return;
         }
     }
 
@@ -1041,6 +1134,16 @@ final class Instance implements Context {
     }
 
     void interact(Player player, Block block) {
+        CustomBlock customBlock = customBlocks.get(block);
+        if (customBlock != null) {
+            switch (customBlock.mytems) {
+            case BOSS_CHEST:
+                openRewardGui(player);
+                return;
+            default:
+                break;
+            }
+        }
         if (block.getType() == Material.PLAYER_HEAD) {
             Skull skull = (Skull) block.getState();
             UUID id = skull.getPlayerProfile().getId();

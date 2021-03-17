@@ -23,6 +23,7 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitTask;
 
 public final class Gui implements InventoryHolder {
     public static final int OUTSIDE = -999;
@@ -35,6 +36,8 @@ public final class Gui implements InventoryHolder {
     @Getter private int size = 3 * 9;
     @Getter private Component title = null;
     boolean locked = false;
+    private Runnable onTick = null;
+    private BukkitTask task;
 
     @RequiredArgsConstructor @AllArgsConstructor
     private static final class Slot {
@@ -121,6 +124,11 @@ public final class Gui implements InventoryHolder {
         return this;
     }
 
+    public Gui onTick(Runnable runnable) {
+        this.onTick = runnable;
+        return this;
+    }
+
     public Gui onClose(Consumer<InventoryCloseEvent> responder) {
         onClose = responder;
         return this;
@@ -140,12 +148,14 @@ public final class Gui implements InventoryHolder {
     }
 
     void onInventoryOpen(InventoryOpenEvent event) {
+        if (onTick != null) task = Bukkit.getScheduler().runTaskTimer(plugin, onTick, 1L, 1L);
         if (onOpen != null) {
             Bukkit.getScheduler().runTask(plugin, () -> onOpen.accept(event));
         }
     }
 
     void onInventoryClose(InventoryCloseEvent event) {
+        if (task != null) task.cancel();
         if (onClose != null) {
             Bukkit.getScheduler().runTask(plugin, () -> onClose.accept(event));
         }
