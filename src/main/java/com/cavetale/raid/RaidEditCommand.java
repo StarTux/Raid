@@ -53,6 +53,7 @@ final class RaidEditCommand implements TabExecutor {
 
     enum Cmd {
         INFO,
+        LIVE,
         NEW,
         TYPE,
         PLACE,
@@ -65,14 +66,15 @@ final class RaidEditCommand implements TabExecutor {
         TP,
         SKIP,
         DEBUG,
-        SKULLS,
         ROADBLOCK,
         ESCORT,
         RESETJOIN,
         TEST,
         DISPLAYNAME,
         START,
-        REGION;
+        REGION,
+        NEXTWAVE,
+        NAME;
 
         final String key;
 
@@ -261,6 +263,7 @@ final class RaidEditCommand implements TabExecutor {
     boolean onCommand(CommandSender sender, Cmd cmd, String[] args) throws Wrong {
         switch (cmd) {
         case INFO: return infoCommand(requirePlayer(sender), args);
+        case LIVE: return liveCommand(requirePlayer(sender), args);
         case NEW: return newCommand(requirePlayer(sender), args);
         case TYPE: return typeCommand(requirePlayer(sender), args);
         case PLACE: return placeCommand(requirePlayer(sender), args);
@@ -273,7 +276,6 @@ final class RaidEditCommand implements TabExecutor {
         case TP: return tpCommand(requirePlayer(sender), args);
         case SKIP: return skipCommand(requirePlayer(sender), args);
         case DEBUG: return debugCommand(requirePlayer(sender), args);
-        case SKULLS: return skullsCommand(requirePlayer(sender), args);
         case ROADBLOCK: return roadblockCommand(requirePlayer(sender), args);
         case ESCORT: return escortCommand(requirePlayer(sender), args);
         case RESETJOIN: return resetJoinCommand(requirePlayer(sender), args);
@@ -281,6 +283,8 @@ final class RaidEditCommand implements TabExecutor {
         case DISPLAYNAME: return displayNameCommand(requirePlayer(sender), args);
         case START: return startCommand(requirePlayer(sender), args);
         case REGION: return regionCommand(requirePlayer(sender), args);
+        case NAME: return nameCommand(requirePlayer(sender), args);
+        case NEXTWAVE: return nextWaveCommand(requirePlayer(sender), args);
         default:
             throw new IllegalArgumentException(cmd.key);
         }
@@ -295,6 +299,12 @@ final class RaidEditCommand implements TabExecutor {
 
     void help(CommandSender sender, Cmd cmd) {
         switch (cmd) {
+        case INFO:
+            sender.sendMessage(y + "/redit info - Print info on edit wave");
+            break;
+        case LIVE:
+            sender.sendMessage(y + "/redit info - Print info on playing wave");
+            break;
         case TYPE:
             sender.sendMessage(y + "/redit type "
                                + Stream.of(Wave.Type.values()).map(Enum::name)
@@ -412,9 +422,40 @@ final class RaidEditCommand implements TabExecutor {
     boolean infoCommand(@NonNull Player player, String[] args) throws Wrong {
         Raid raid = requireRaid(player);
         Instance inst = plugin.raidInstance(raid);
-        player.sendMessage(y + "Name: " + w + raid.worldName);
-        player.sendMessage(y + "DisplayName: " + w + Text.colorize(raid.displayName));
-        player.sendMessage(y + "Wave: " + w + inst.getWaveIndex() + "/" + raid.waves.size() + " " + y + ShortInfo.of(inst.getWave(inst.getWaveIndex())));
+        player.sendMessage(y + "Raid: " + w + raid.worldName + ": " + Text.colorize(raid.displayName));
+        int waveIndex = plugin.sessions.of(player).getEditWave();
+        Wave wave = inst.getWave(waveIndex);
+        if (wave == null) {
+            player.sendMessage(y + "No edit wave");
+            return true;
+        }
+        player.sendMessage(y + "Editing: " + w + waveIndex + "/" + (raid.waves.size() - 1) + " " + y + ShortInfo.of(wave));
+        player.sendMessage(y + "Time: " + wave.getTime());
+        for (Spawn spawn : wave.getSpawns()) {
+            player.sendMessage(y + "Spawn: " + spawn.getShortInfo());
+        }
+        for (Escort escort : wave.getEscorts()) {
+            player.sendMessage(y + "Escort: " + escort.getShortInfo());
+        }
+        if (wave != null) {
+            for (Map.Entry<String, Cuboid> entry : wave.getRegions().entrySet()) {
+                String name = entry.getKey();
+                Cuboid region = entry.getValue();
+                player.sendMessage(y + "Region: " + name + ": " + region);
+            }
+        }
+        if (wave.getNextWave() != null) {
+            player.sendMessage(y + "NextWave: " + wave.getNextWave());
+        }
+        return true;
+    }
+
+    boolean liveCommand(@NonNull Player player, String[] args) throws Wrong {
+        Raid raid = requireRaid(player);
+        Instance inst = plugin.raidInstance(raid);
+        player.sendMessage(y + "Raid: " + w + raid.worldName + ": " + Text.colorize(raid.displayName));
+        int waveIndex = inst.getWaveIndex();
+        player.sendMessage(y + "Playing: " + w + waveIndex + "/" + (raid.waves.size() - 1) + " " + y + ShortInfo.of(inst.getWave()));
         for (Map.Entry<String, EscortMarker> entry : inst.getEscorts().entrySet()) {
             String name = entry.getKey();
             EscortMarker escortMarker = entry.getValue();
@@ -452,8 +493,8 @@ final class RaidEditCommand implements TabExecutor {
         if (type == Wave.Type.GOAL && wave.place == null) {
             wave.place = Place.of(player.getLocation());
         }
-        if (type == Wave.Type.GOAL && wave.radius == 0) {
-            wave.radius = 2;
+        if (type == Wave.Type.GOAL && wave.getRadius() == 0) {
+            wave.setRadius(7);
         }
         plugin.saveRaid(raid);
         player.sendMessage(y + "Wave #" + raid.waves.indexOf(wave) + " type=" + type);
@@ -531,8 +572,9 @@ final class RaidEditCommand implements TabExecutor {
             for (int i = 0; i < raid.waves.size(); i += 1) {
                 Wave wave = raid.waves.get(i);
                 int count = wave.getSpawns().size();
-                cb.append(" " + wave.type.color + i + ":" + wave.type.key
-                          + (wave.name != null ? "'" + wave.name + "'" : "")
+                cb.append(" " + wave.type.color + i
+                          + (wave.name != null ? "[" + wave.name + "]" : "")
+                          + ":" + wave.type.key
                           + (count > 0 ? "(" + count + ")" : ""));
                 String tooltip = wave.getShortInfo();
                 cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText(tooltip)));
@@ -741,12 +783,12 @@ final class RaidEditCommand implements TabExecutor {
             .collect(Collectors.joining(" "));
         switch (key) {
         case "radius":
-            wave.radius = value == null ? 0 : requireDouble(value);
-            player.sendMessage(y + "Set radius=" + wave.radius);
+            wave.setRadius(value == null ? 0 : requireDouble(value));
+            player.sendMessage(y + "Set radius=" + wave.getRadius());
             return true;
         case "time":
-            wave.time = value == null ? 0 : requireInt(value);
-            player.sendMessage(y + "Set time=" + wave.time);
+            wave.setTime(value == null ? 0 : requireInt(value));
+            player.sendMessage(y + "Set time=" + wave.getTime());
             return true;
         default: throw new Wrong("Unknown key: " + key);
         }
@@ -807,14 +849,6 @@ final class RaidEditCommand implements TabExecutor {
         inst.debug = !inst.debug;
         if (!inst.debug) inst.clearDebug();
         player.sendMessage(y + "Debug mode: " + inst.debug);
-        return true;
-    }
-
-    boolean skullsCommand(@NonNull Player player, String[] args) throws Wrong {
-        Raid raid = requireRaid(player);
-        Instance inst = plugin.raidInstance(raid);
-        inst.giveSkulls(player);
-        player.sendMessage("Skulls given.");
         return true;
     }
 
@@ -1066,6 +1100,49 @@ final class RaidEditCommand implements TabExecutor {
             return true;
         }
         default: return false;
+        }
+    }
+
+    boolean nameCommand(Player player, String[] args) throws Wrong {
+        Raid raid = requireRaid(player);
+        Wave wave = requireWave(player);
+        if (args.length == 0) {
+            if (wave.getName() == null) {
+                throw new Wrong("Wave has no name set!");
+            }
+            wave.setName(null);
+            plugin.saveRaid(raid);
+            player.sendMessage(y + "Wave name reset");
+            return true;
+        } else if (args.length == 1) {
+            if (args[0].equals(wave.getName())) {
+                throw new Wrong("Wave already named " + args[0] + "!");
+            }
+            wave.setName(args[0]);
+            plugin.saveRaid(raid);
+            player.sendMessage(y + "Wave name set: " + wave.getName());
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    boolean nextWaveCommand(Player player, String[] args) throws Wrong {
+        Raid raid = requireRaid(player);
+        Wave wave = requireWave(player);
+        if (args.length == 0) {
+            if (wave.getNextWave() == null) {
+                throw new Wrong("Wave does not have nextWave set!");
+            }
+            wave.setNextWave(null);
+            plugin.saveRaid(raid);
+            player.sendMessage(y + "Wave nextWave reset");
+            return true;
+        } else {
+            wave.setNextWave(Arrays.asList(args));
+            plugin.saveRaid(raid);
+            player.sendMessage(y + "Wave nextWave set to: " + wave.getNextWave());
+            return true;
         }
     }
 }

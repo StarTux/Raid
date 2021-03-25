@@ -76,4 +76,8 @@ public final class Cuboid {
         z = Math.min(z, max.z);
         return new Vec3i(x, y, z);
     }
+
+    public boolean isZero() {
+        return equals(ZERO);
+    }
 }

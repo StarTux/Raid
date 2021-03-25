@@ -1,6 +1,5 @@
 package com.cavetale.raid;
 
-import com.cavetale.enemy.Context;
 import com.cavetale.enemy.Enemy;
 import com.cavetale.enemy.EnemyType;
 import java.util.EnumMap;
@@ -57,12 +56,12 @@ final class Spawn implements ShortInfo {
         }
     }
 
-    public Enemy createEnemy(Context context) {
+    public Enemy createEnemy(Instance instance) {
         EnemyType enemyType = getEnemyType();
-        if (enemyType != null) return enemyType.create(context);
+        if (enemyType != null) return enemyType.create(instance);
         EntityType bukkitType = getBukkitType();
         if (bukkitType != null && Mob.class.isAssignableFrom(bukkitType.getEntityClass())) {
-            return new SpawnEnemy(context, (Class<? extends Mob>) bukkitType.getEntityClass(), this);
+            return new SpawnEnemy(instance, (Class<? extends Mob>) bukkitType.getEntityClass(), this);
         }
         return null;
     }

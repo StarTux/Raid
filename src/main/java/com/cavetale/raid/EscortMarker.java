@@ -134,6 +134,10 @@ public final class EscortMarker {
     }
 
     public String debugString() {
-        return "path=" + (pathLocation != null) + " dialogueIndex=" + dialogueIndex + "/" + (dialogue != null ? dialogue.size() : "0") + " dist=" + pathDistance + " pathing=" + pathing + " done=" + isDone();
+        return "path=" + (pathLocation != null)
+            + " dialogueIndex=" + dialogueIndex + "/" + (dialogue != null ? dialogue.size() : "0")
+            + " dist=" + pathDistance
+            + " pathing=" + pathing
+            + " done=" + isDone();
     }
 }

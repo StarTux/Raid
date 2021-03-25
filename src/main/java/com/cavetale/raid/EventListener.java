@@ -146,7 +146,7 @@ final class EventListener implements Listener {
         if (inst != null) {
             switch (event.getCause()) {
             case ENDER_PEARL:
-                if (inst.getCurrentWave().getType() != Wave.Type.BOSS) {
+                if (inst.getWave().getType() != Wave.Type.BOSS) {
                     event.setCancelled(true);
                     return;
                 }
@@ -160,14 +160,14 @@ final class EventListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     void onEntityDamage(EntityDamageEvent event) {
+        Instance inst = plugin.raidInstance(event.getEntity().getWorld());
+        if (inst == null) return;
         if (EscortMarker.of(event.getEntity()) != null) {
             event.setCancelled(true);
             return;
         }
         if (event.getEntity() instanceof Player) {
             Player player = (Player) event.getEntity();
-            Instance inst = plugin.raidInstance(player.getWorld());
-            if (inst == null) return;
             switch (event.getCause()) {
             case LIGHTNING:
                 event.setDamage(14.0);
@@ -391,7 +391,7 @@ final class EventListener implements Listener {
         if (inst == null) return;
         if (inst.isTemporaryEntity(event.getEntity())) {
             if (!SpawnEnemy.isAcceptableMobTarget(event.getTarget(), inst)) {
-                Player target = SpawnEnemy.findTarget(living, inst);
+                LivingEntity target = SpawnEnemy.findTarget(living, inst);
                 if (target != null) {
                     event.setTarget(target);
                 } else {

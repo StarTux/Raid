@@ -25,7 +25,6 @@ public final class RaidPlugin extends JavaPlugin {
     Gson gson = new Gson();
     Gson prettyGson = new GsonBuilder().setPrettyPrinting().create();
     File raidFolder;
-    Json json = new Json(this);
     Yaml yaml = new Yaml(this);
     Sessions sessions;
     private final Map<Integer, EscortMarker.Handle> idEscortMap = new HashMap<>();

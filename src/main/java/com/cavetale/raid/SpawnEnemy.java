@@ -1,10 +1,10 @@
 package com.cavetale.raid;
 
-import com.cavetale.enemy.Context;
 import com.cavetale.enemy.Enemy;
 import com.cavetale.enemy.LivingEnemy;
 import com.cavetale.enemy.util.Prep;
-import com.cavetale.worldmarker.entity.EntityMarker;
+import java.util.ArrayList;
+import java.util.List;
 import org.bukkit.Location;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Ageable;
@@ -13,7 +13,6 @@ import org.bukkit.entity.Creeper;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
-import org.bukkit.entity.Player;
 import org.bukkit.entity.Rabbit;
 import org.bukkit.event.entity.EntityTargetEvent;
 import org.bukkit.inventory.EntityEquipment;
@@ -24,13 +23,15 @@ import org.bukkit.inventory.ItemStack;
  * They will mostly do their vanilla thing.
  */
 public final class SpawnEnemy extends LivingEnemy {
-    private Class<? extends Mob> type;
-    private Spawn spawn;
+    private final Instance instance;
+    private final Class<? extends Mob> type;
+    private final Spawn spawn;
     private boolean targeting;
     private Entity mount;
 
-    public SpawnEnemy(final Context context, final Class<? extends Mob> type, final Spawn spawn) {
-        super(context);
+    public SpawnEnemy(final Instance instance, final Class<? extends Mob> type, final Spawn spawn) {
+        super(instance);
+        this.instance = instance;
         this.type = type;
         this.spawn = spawn;
     }
@@ -50,8 +51,8 @@ public final class SpawnEnemy extends LivingEnemy {
     @Override
     public void tick() {
         if (living == null) return;
-        if (!isAcceptableMobTarget(((Mob) living).getTarget(), context)) {
-            Player target = findTarget(living, context);
+        if (!isAcceptableMobTarget(((Mob) living).getTarget(), instance)) {
+            LivingEntity target = findTarget(living, instance);
             if (target != null) {
                 targeting = true;
                 ((Mob) living).setTarget(target);
@@ -137,24 +138,33 @@ public final class SpawnEnemy extends LivingEnemy {
      * Return the closest visible player within 32 blocks distance.
      * If none exists, pick the closest non-visible player within 16 blocks.
      */
-    public static Player findTarget(LivingEntity living, Context context) {
-        Location eye = living.getEyeLocation();
+    public static LivingEntity findTarget(LivingEntity subject, Instance instance) {
+        Location eye = subject.getEyeLocation();
         double minVisible = Double.MAX_VALUE;
         double minBlind = Double.MAX_VALUE;
-        Player visible = null;
-        Player blind = null;
+        LivingEntity visible = null;
+        LivingEntity blind = null;
         final double maxVisible = 32 * 32;
         final double maxBlind = 16 * 16;
-        for (Player player : context.getPlayers()) {
-            double dist = player.getEyeLocation().distanceSquared(eye);
-            if (living.hasLineOfSight(player)) {
+        List<LivingEntity> targetList = new ArrayList<>();
+        targetList.addAll(instance.getPlayers());
+        if (instance.getWave().getType() == Wave.Type.DEFEND) {
+            for (EscortMarker escortMarker : instance.getEscorts().values()) {
+                if (escortMarker.isValid()) {
+                    targetList.add(escortMarker.getEntity());
+                }
+            }
+        }
+        for (LivingEntity target : targetList) {
+            double dist = target.getEyeLocation().distanceSquared(eye);
+            if (subject.hasLineOfSight(target)) {
                 if (dist < minVisible && dist < maxVisible) {
-                    visible = player;
+                    visible = target;
                     minVisible = dist;
                 }
             } else {
                 if (dist < minBlind && dist < maxBlind) {
-                    blind = player;
+                    blind = target;
                     minBlind = dist;
                 }
             }
@@ -162,10 +172,11 @@ public final class SpawnEnemy extends LivingEnemy {
         return visible != null ? visible : null;
     }
 
-    public static boolean isAcceptableMobTarget(Entity target, Context context) {
+    public static boolean isAcceptableMobTarget(Entity target, Instance instance) {
         if (target == null) return false;
-        if (EntityMarker.hasId(target, Enemy.WORLD_MARKER_ID)) return false;
-        if (context.isTemporaryEntity(target)) return false;
+        if (Enemy.of(target) != null) return false;
+        if (EscortMarker.of(target) != null) return true;
+        if (instance.isTemporaryEntity(target)) return false;
         switch (target.getType()) {
         case PLAYER:
         case WOLF:
@@ -179,8 +190,8 @@ public final class SpawnEnemy extends LivingEnemy {
     @Override
     public void onTarget(EntityTargetEvent event) {
         if (targeting) return;
-        if (isAcceptableMobTarget(event.getTarget(), context)) return;
-        Player newTarget = findTarget(living, context);
+        if (isAcceptableMobTarget(event.getTarget(), instance)) return;
+        LivingEntity newTarget = findTarget(living, instance);
         if (newTarget != null) event.setTarget(newTarget);
     }
 }

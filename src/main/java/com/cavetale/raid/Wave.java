@@ -7,33 +7,36 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import lombok.Getter;
+import lombok.Data;
 import net.md_5.bungee.api.ChatColor;
 
-@Getter
+@Data
 final class Wave implements ShortInfo {
-    String name;
-    Type type = Type.MOBS;
-    Place place;
-    double radius = 0;
-    Boss boss;
-    int time = 0;
+    protected String name;
+    protected Type type = Type.MOBS;
+    protected Place place;
+    private double radius = 0;
+    protected Boss boss;
+    protected int time = 0;
     private List<Spawn> spawns;
     private List<Roadblock> roadblocks;
     private List<Escort> escorts;
     private Set<Flag> flags;
     protected Map<String, Cuboid> regions = new HashMap<>();
-    List<String> nextWave;
+    protected List<String> nextWave;
 
     enum Type {
-        MOBS(ChatColor.RED),
-        GOAL(ChatColor.WHITE),
-        BOSS(ChatColor.DARK_RED),
-        TIME(ChatColor.BLUE),
-        ROADBLOCK(ChatColor.GREEN),
-        WIN(ChatColor.GOLD),
-        TITLE(ChatColor.RED),
-        ESCORT(ChatColor.RED);
+        MOBS(ChatColor.RED), // Kill all mobs
+        GOAL(ChatColor.WHITE), // Reach goal
+        BOSS(ChatColor.DARK_RED), // Boss fight
+        TIME(ChatColor.BLUE), // Wait time
+        ROADBLOCK(ChatColor.GREEN), // Roadblocks dictate timing
+        WIN(ChatColor.GOLD), // Rewards, boss chest
+        TITLE(ChatColor.WHITE), // Show title and finish fast
+        ESCORT(ChatColor.LIGHT_PURPLE), // Escorts dictate timing
+        CHOICE(ChatColor.GREEN), // Pick nextWave via region. "choice.X" => nextWave[X]
+        RANDOM(ChatColor.GREEN), // Random next wave among nextWave[]
+        DEFEND(ChatColor.RED); // Defend the escort
 
         public final ChatColor color;
         public final String key;

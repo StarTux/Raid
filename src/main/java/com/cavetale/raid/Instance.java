@@ -15,23 +15,17 @@ import com.cavetale.raid.util.Text;
 import com.cavetale.sidebar.PlayerSidebarEvent;
 import com.cavetale.sidebar.Priority;
 import com.destroystokyo.paper.Title;
-import com.destroystokyo.paper.profile.PlayerProfile;
-import com.destroystokyo.paper.profile.ProfileProperty;
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.Getter;
-import lombok.NonNull;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -48,19 +42,18 @@ import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockState;
-import org.bukkit.block.Skull;
+import org.bukkit.block.BlockFace;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarFlag;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Damageable;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.ExperienceOrb;
 import org.bukkit.entity.Firework;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Villager;
@@ -68,7 +61,6 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.inventory.meta.SkullMeta;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.potion.PotionEffectType;
 
@@ -111,14 +103,8 @@ final class Instance implements Context {
     @Getter Map<String, EscortMarker> escorts = new HashMap<>();
     private Highscore damageHighscore = new Highscore();
     Map<Block, CustomBlock> customBlocks = new HashMap<>();
-    // Skull stuff
-    boolean doSkulls;
-    Set<Long> scannedChunks = new TreeSet<>();
-    SkullLocations skullLocations;
-    Set<UUID> skullIds = new HashSet<>(); // found in world
-    Map<UUID, String> skulls = new HashMap<>(); // placed, texture
-    Map<UUID, String> skullNames = new HashMap<>(); // placed, name
-    Map<Vec3i, UUID> placeSkulls = new HashMap<>();
+    List<Cuboid> goals; // Used by CHOICE and optionally by GOAL
+    int selectedGoalIndex = -1;
 
     Instance(final RaidPlugin plugin, final Raid raid) {
         this.plugin = plugin;
@@ -126,30 +112,12 @@ final class Instance implements Context {
         this.raid = raid;
     }
 
-    void loadSkulls() {
-        doSkulls = false;
-        File dir = world.getWorldFolder();
-        File file = new File(dir, "skulls.json");
-        skullLocations = plugin.json.load(file, SkullLocations.class, SkullLocations::new);
-        if (skullLocations == null || skullLocations.skulls.isEmpty()) return;
-        file = new File(dir, "skulls.yml");
-        ConfigurationSection config = plugin.yaml.load(file);
-        skullIds.clear();
-        for (String str : config.getStringList("ids")) {
-            skullIds.add(UUID.fromString(str));
-        }
-        skulls.clear();
-        skullNames.clear();
-        for (Map<?, ?> map : config.getMapList("heads")) {
-            String id = (String) map.get("Id");
-            String texture = (String) map.get("Texture");
-            String theName = (String) map.get("Name");
-            UUID uuid = UUID.fromString(id);
-            skulls.put(uuid, texture);
-            skullNames.put(uuid, theName);
-        }
-        if (skulls.isEmpty()) return;
-        doSkulls = true;
+    void warn(String msg) {
+        plugin.getLogger().warning("[" + name + "] " + msg);
+    }
+
+    void log(String msg) {
+        plugin.getLogger().info("[" + name + "] " + msg);
     }
 
     /**
@@ -245,7 +213,7 @@ final class Instance implements Context {
         if ("CastleRaid".equals(raid.worldName)) {
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "ml add " + player.getName());
         }
-        Wave wave = getCurrentWave();
+        Wave wave = getPreviousWave();
         player.teleport(wave.place.toLocation(getWorld()));
         UUID uuid = player.getUniqueId();
         if (!alreadyJoined.contains(uuid)) {
@@ -281,16 +249,25 @@ final class Instance implements Context {
         ArmorStand debugEntity;
     }
 
-    static class SkullLocations {
-        Set<Vec3i> skulls = new HashSet<>();
-    }
-
     Wave getWave(int index) {
         try {
             return raid.waves.get(index);
         } catch (IndexOutOfBoundsException ioobe) {
             return null;
         }
+    }
+
+    Wave getWave() {
+        return getWave(waveIndex);
+    }
+
+    Wave findWave(String waveName) {
+        for (Wave wave : raid.waves) {
+            if (waveName.equals(wave.getName())) {
+                return wave;
+            }
+        }
+        return null;
     }
 
     @Override // Context
@@ -349,7 +326,6 @@ final class Instance implements Context {
             phase = Phase.STANDBY;
             return;
         }
-        if (doSkulls) tickSkulls();
         tickBossBar(players);
         Wave wave = getWave(waveIndex);
         if (wave == null) {
@@ -361,10 +337,8 @@ final class Instance implements Context {
         try {
             tickWave(wave, players);
             if (waveComplete) {
-                clearWave();
                 onWaveComplete(wave);
-                waveIndex += 1;
-                setupWave();
+                nextWave(wave);
             } else if ((waveTicks % 20) == 0) {
                 Location target = wave.place.toLocation(world);
                 for (Player player : players) {
@@ -372,10 +346,53 @@ final class Instance implements Context {
                 }
             }
         } catch (Exception e) {
+            warn(waveIndex + ": " + e.getMessage());
             e.printStackTrace();
             waveIndex = -1;
             waveTicks = 0;
         }
+    }
+
+    void nextWave(Wave wave) {
+        clearWave();
+        switch (wave.type) {
+        case CHOICE:
+            String waveName = wave.getNextWave().get(selectedGoalIndex);
+            Wave nextWave = findWave(waveName);
+            if (waveName == null) {
+                warn("" + waveIndex + ": nextWave not found: " + waveName);
+                waveIndex = raid.waves.indexOf(nextWave);
+            } else {
+                waveIndex += 1;
+            }
+            break;
+        case RANDOM:
+            if (wave.getNextWave() != null && !wave.getNextWave().isEmpty()) {
+                String waveName = wave.getNextWave().get(random.nextInt(wave.getNextWave().size()));
+                Wave nextWave = findWave(waveName);
+                if (nextWave == null) {
+                    warn("" + waveIndex + ": nextWave not found: " + waveName);
+                    waveIndex = raid.waves.indexOf(nextWave);
+                } else {
+                    waveIndex += 1;
+                }
+            } else {
+                warn("" + waveIndex + ": nextWave is empty");
+                waveIndex += 1;
+            }
+            break;
+        default:
+            if (wave.getNextWave() != null && !wave.getNextWave().isEmpty()) {
+                Wave nextWave = findWave(wave.getNextWave().get(0));
+                if (nextWave == null) {
+                    warn("" + waveIndex + ": nextWave not found: " + wave.getNextWave());
+                }
+                waveIndex = nextWave != null ? raid.waves.indexOf(nextWave) : waveIndex + 1;
+            } else {
+                waveIndex += 1;
+            }
+        }
+        setupWave();
     }
 
     void tickDebug() {
@@ -425,39 +442,6 @@ final class Instance implements Context {
         waveInsts.clear();
     }
 
-    void tickSkulls() {
-        for (Chunk chunk : world.getLoadedChunks()) {
-            long key = chunk.getChunkKey();
-            if (scannedChunks.contains(key)) continue;
-            scannedChunks.add(key);
-            for (BlockState state : chunk.getTileEntities()) {
-                if (state instanceof Skull) {
-                    Skull skull = (Skull) state;
-                    UUID id = skull.getPlayerProfile().getId();
-                    if (id == null || skullIds.contains(id)) {
-                        state.getBlock().setType(Material.AIR);
-                    }
-                }
-            }
-            for (Vec3i vec : new ArrayList<>(placeSkulls.keySet())) {
-                if (chunk.getX() != vec.x >> 4) continue;
-                if (chunk.getZ() != vec.z >> 4) continue;
-                Block block = world.getBlockAt(vec.x, vec.y, vec.z);
-                block.setType(Material.AIR);
-                block.setType(Material.PLAYER_HEAD);
-                Skull skull = (Skull) block.getState();
-                UUID id = placeSkulls.get(vec);
-                String texture = skulls.get(id);
-                String theName = skullNames.get(id);
-                PlayerProfile profile = plugin.getServer().createProfile(id, theName);
-                profile.setProperty(new ProfileProperty("textures", texture));
-                skull.setPlayerProfile(profile);
-                skull.update();
-                placeSkulls.remove(vec);
-            }
-        }
-    }
-
     void tickBossBar(List<Player> players) {
         List<Player> bossBarPlayers = getBossBar().getPlayers();
         for (Player player : bossBarPlayers) {
@@ -472,23 +456,10 @@ final class Instance implements Context {
         }
     }
 
-    public Wave getCurrentWave() {
+    public Wave getPreviousWave() {
         if (waveIndex > raid.waves.size()) return null;
         if (waveIndex < 1) return raid.waves.get(0);
         return getWave(waveIndex - 1);
-    }
-
-    void setupSkulls() {
-        scannedChunks.clear();
-        placeSkulls.clear();
-        List<Vec3i> list = new ArrayList<>(skullLocations.skulls);
-        Collections.shuffle(list, random);
-        while (list.size() > 100) list.remove(list.size() - 1);
-        List<UUID> idList = new ArrayList<>(skulls.keySet());
-        for (Vec3i vec : list) {
-            UUID id = idList.get(random.nextInt(idList.size()));
-            placeSkulls.put(vec, id);
-        }
     }
 
     void setupWave() {
@@ -500,6 +471,7 @@ final class Instance implements Context {
         switch (wave.type) {
         case GOAL:
             secondsLeft = wave.time > 0 ? wave.time : 60;
+            setupGoal(wave);
             break;
         case TIME:
             secondsLeft = wave.time > 0 ? wave.time : 10;
@@ -518,8 +490,15 @@ final class Instance implements Context {
                 }
             }
             break;
-        case TITLE:
+        case CHOICE: {
+            secondsLeft = wave.time > 0 ? wave.time : 10;
+            try {
+                setupChoice(wave);
+            } catch (IllegalStateException iae) {
+                warn(waveIndex + ": CHOICE: " + iae.getMessage());
+            }
             break;
+        }
         default: break;
         }
         for (Escort escort : wave.getEscorts()) {
@@ -563,6 +542,48 @@ final class Instance implements Context {
         }
     }
 
+    void setupChoice(Wave wave) {
+        goals = new ArrayList<>();
+        if (wave.getNextWave() == null) {
+            throw new IllegalStateException("wave.nextWave == null");
+        }
+        int size = wave.getNextWave().size();
+        for (int i = 0; i < size; i += 1) {
+            goals.add(Cuboid.ZERO);
+        }
+        for (Map.Entry<String, Cuboid> entry : wave.getRegions().entrySet()) {
+            String entryName = entry.getKey();
+            if (!entryName.startsWith("choice.")) continue;
+            String indexName = entryName.substring(7);
+            int index;
+            try {
+                index = Integer.parseInt(indexName);
+            } catch (NumberFormatException nfe) {
+                throw new IllegalStateException("Invalid index: " + entryName);
+            }
+            if (index < 0 || index >= size) {
+                throw new IllegalStateException("Invalid index: " + entryName);
+            }
+            Cuboid region = entry.getValue();
+            goals.set(index, region);
+        }
+        for (int i = 0; i < size; i += 1) {
+            if (goals.get(i).isZero()) {
+                warn(waveIndex + ": CHOICE: Missing choice index: " + i);
+            }
+        }
+    }
+
+    void setupGoal(Wave wave) {
+        for (Map.Entry<String, Cuboid> entry : wave.getRegions().entrySet()) {
+            String entryName = entry.getKey();
+            if (!entryName.equals("goal") && !entryName.startsWith("goal.")) continue;
+            Cuboid region = entry.getValue();
+            if (goals == null) goals = new ArrayList<>();
+            goals.add(region);
+        }
+    }
+
     void clearWave() {
         // Spawns
         for (Enemy enemy : spawns) {
@@ -600,6 +621,8 @@ final class Instance implements Context {
             customBlock.remove();
         }
         customBlocks.clear();
+        goals = null;
+        selectedGoalIndex = -1;
     }
 
     void onWaveComplete(Wave wave) {
@@ -613,7 +636,7 @@ final class Instance implements Context {
     /**
      * Called on the 0-tick by tickWave().
      */
-    void setupWave(@NonNull Wave wave, List<Player> players) {
+    void setupWave(Wave wave, List<Player> players) {
         for (Spawn spawn : wave.getSpawns()) {
             int amount = spawn.amount;
             if (players.size() > 4) amount += (players.size() - 5) / 2 + 1;
@@ -631,12 +654,13 @@ final class Instance implements Context {
             bosses.add(wave.boss.type.create(this));
         }
         switch (wave.type) {
-        case TITLE:
+        case TITLE: {
             Title title = new Title(Text.colorize(raid.displayName), "", 20, 40, 20);
             for (Player player : players) {
                 player.sendTitle(title);
             }
             break;
+        }
         case WIN: {
             for (UUID uuid : bossFighters) {
                 winRewards.put(uuid, new WinReward());
@@ -654,7 +678,7 @@ final class Instance implements Context {
             }
             for (Player player : Bukkit.getOnlinePlayers()) {
                 if (!bossFighters.contains(player.getUniqueId())) continue;
-                player.playSound(player.getEyeLocation(),
+                player.playSound(player.getLocation(),
                                  Sound.UI_TOAST_CHALLENGE_COMPLETE,
                                  SoundCategory.MASTER,
                                  1.0f, 1.0f);
@@ -735,7 +759,7 @@ final class Instance implements Context {
         // Adds
         for (Mob mob : adds) {
             if (!(mob.getTarget() instanceof Player)) {
-                Player target = SpawnEnemy.findTarget(mob, this);
+                LivingEntity target = SpawnEnemy.findTarget(mob, this);
                 if (target != null) mob.setTarget(target);
             }
         }
@@ -806,6 +830,7 @@ final class Instance implements Context {
             break;
         }
         case TITLE:
+        case RANDOM:
             waveComplete = true;
             break;
         case ESCORT: {
@@ -819,6 +844,9 @@ final class Instance implements Context {
             waveComplete = complete;
             break;
         }
+        case CHOICE:
+            tickChoice(wave, players);
+            break;
         default: break;
         }
     }
@@ -836,8 +864,8 @@ final class Instance implements Context {
         gui.title(component);
         gui.size(3 * 9);
         updateRewardGui(gui, winReward, player);
-        player.playSound(player.getEyeLocation(), Sound.BLOCK_CHEST_OPEN, SoundCategory.MASTER, 0.5f, 1.0f);
-        gui.onClose(event -> player.playSound(player.getEyeLocation(), Sound.BLOCK_CHEST_CLOSE, SoundCategory.MASTER, 0.5f, 1.0f));
+        player.playSound(player.getLocation(), Sound.BLOCK_CHEST_OPEN, SoundCategory.MASTER, 0.5f, 1.0f);
+        gui.onClose(event -> player.playSound(player.getLocation(), Sound.BLOCK_CHEST_CLOSE, SoundCategory.MASTER, 0.5f, 1.0f));
         gui.onTick(() -> updateRewardGui(gui, winReward, player));
         gui.open(player);
         return gui;
@@ -926,7 +954,7 @@ final class Instance implements Context {
                 ItemStack itemStack = loot.itemStack.clone();
                 itemStack.setAmount(itemStack.getAmount() + random.nextInt(loot.bonusAmount + 1));
                 gui.setItem(slot, itemStack);
-                player.playSound(player.getEyeLocation(), Sound.BLOCK_LEVER_CLICK, SoundCategory.MASTER, 0.5f, 2.0f);
+                player.playSound(player.getLocation(), Sound.BLOCK_LEVER_CLICK, SoundCategory.MASTER, 0.5f, 2.0f);
                 break;
             default:
                 break;
@@ -946,7 +974,7 @@ final class Instance implements Context {
                 player.getWorld().dropItem(player.getEyeLocation(), drop);
             }
             winReward.unlocked.set(index, state + 1);
-            player.playSound(player.getEyeLocation(), Sound.ENTITY_ITEM_PICKUP, SoundCategory.MASTER, 0.5f, 2.0f);
+            player.playSound(player.getLocation(), Sound.ENTITY_ITEM_PICKUP, SoundCategory.MASTER, 0.5f, 2.0f);
         } else {
             return;
         }
@@ -969,20 +997,33 @@ final class Instance implements Context {
     void tickGoal(Wave wave, List<Player> players) {
         int goalCount = 0;
         List<Player> outList = new ArrayList<>();
-        Location waveLoc = wave.place.toLocation(world);
-        double radius = wave.radius * wave.radius;
-        for (Player player : players) {
-            Location loc = player.getLocation();
-            if (loc.distanceSquared(waveLoc) <= radius) {
-                goalCount += 1;
-            } else {
+        if (goals == null || goals.isEmpty()) {
+            Location waveLoc = wave.place.toLocation(world);
+            double radius = wave.getRadius() * wave.getRadius();
+            for (Player player : players) {
+                Location loc = player.getLocation();
+                if (loc.distanceSquared(waveLoc) <= radius) {
+                    goalCount += 1;
+                } else {
+                    outList.add(player);
+                }
+            }
+        } else {
+            PLAYERS: for (Player player : players) {
+                Location playerLocation = player.getLocation();
+                for (Cuboid goal : goals) {
+                    if (goal.contains(player.getLocation())) {
+                        goalCount += 1;
+                        continue PLAYERS;
+                    }
+                }
                 outList.add(player);
             }
         }
         if (goalCount >= players.size()) {
             waveComplete = true;
             for (Player player : players) {
-                player.playSound(player.getEyeLocation(),
+                player.playSound(player.getLocation(),
                                  Sound.ENTITY_ARROW_HIT_PLAYER,
                                  SoundCategory.MASTER,
                                  0.1f, 0.7f);
@@ -1008,8 +1049,16 @@ final class Instance implements Context {
             + ChatColor.WHITE + goalCount
             + ChatColor.GRAY + "/" + players.size()
             + " " + ChatColor.GRAY + timeString;
-        if (!waveComplete && spawnChunks.contains(wave.place.getChunk())) {
-            highlightPlace(wave);
+        if (!waveComplete) {
+            if (goals == null || goals.isEmpty()) {
+                if (spawnChunks.contains(wave.place.getChunk())) {
+                    highlightPlace(wave);
+                }
+            } else {
+                for (Cuboid goal : goals) {
+                    highlightRegionFloor(goal);
+                }
+            }
         }
         if (goalEntity != null && !goalEntity.isValid()) goalEntity = null;
         if (!waveComplete && goalEntity == null && isChunkLoaded(wave.place.getChunk())) {
@@ -1040,13 +1089,13 @@ final class Instance implements Context {
                 if (goalIndex >= goalItems.size()) goalIndex = 0;
             }
         }
-     }
+    }
 
     void tickMobs(Wave wave, List<Player> players) {
         if (aliveMobCount == 0) {
             waveComplete = true;
             for (Player player : players) {
-                player.playSound(player.getEyeLocation(),
+                player.playSound(player.getLocation(),
                                  Sound.ENTITY_PLAYER_LEVELUP,
                                  SoundCategory.MASTER,
                                  0.1f, 2.0f);
@@ -1082,25 +1131,129 @@ final class Instance implements Context {
         }
     }
 
-    void highlightPlace(@NonNull Wave wave) {
+    void tickChoice(Wave wave, List<Player> players) {
+        if (goals == null || goals.isEmpty()) throw new IllegalStateException("No goals!");
+        int[] goalCounts = new int[goals.size()];
+        int maxGoalCount = 0;
+        List<Player> outList = new ArrayList<>();
+        PLAYERS: for (Player player : players) {
+            Location playerLocation = player.getLocation();
+            for (int i = 0; i < goals.size(); i += 1) {
+                if (goals.get(i).contains(player.getLocation())) {
+                    goalCounts[i] += 1;
+                    continue PLAYERS;
+                }
+            }
+            outList.add(player);
+        }
+        for (int i = 0; i < goalCounts.length; i += 1) {
+            if (goalCounts[i] > maxGoalCount) {
+                maxGoalCount = goalCounts[i];
+            }
+            if (goalCounts[i] >= players.size()) {
+                waveComplete = true;
+                selectedGoalIndex = i;
+                for (Player player : players) {
+                    player.playSound(player.getLocation(),
+                                     Sound.ENTITY_ARROW_HIT_PLAYER,
+                                     SoundCategory.MASTER,
+                                     0.1f, 0.7f);
+                }
+                break;
+            }
+        }
+        if (maxGoalCount > 0) {
+            if (secondsLeft > 0 && waveTicks % 20 == 0) {
+                secondsLeft -= 1;
+            }
+        } else {
+            secondsLeft = 60;
+        }
+        if (secondsLeft == 0) {
+            for (Player out : outList) {
+                removePlayer(out);
+            }
+        }
+        double perc = (double) secondsLeft / (double) 60;
+        getBossBar().setProgress(perc);
+        String timeString = String.format(" %02d:%02d", secondsLeft / 60, secondsLeft % 60);
+        getBossBar().setTitle(ChatColor.BLUE + "Chooase a path");
+        sidebarInfo = ChatColor.BLUE + "Goal "
+            + ChatColor.WHITE + maxGoalCount
+            + ChatColor.GRAY + "/" + players.size()
+            + " " + ChatColor.GRAY + timeString;
+        if (!waveComplete) {
+            for (Cuboid goal : goals) {
+                highlightRegionFloor(goal);
+            }
+        }
+    }
+
+    void highlightPlace(Wave wave) {
         if (wave.place == null) return;
-        double radius = wave.radius;
+        double radius = wave.getRadius();
         if (radius == 0) {
             if (ticks % 40 != 0) return;
             Location loc = wave.place.toLocation(world).add(0, 0.25, 0);
             world.spawnParticle(Particle.END_ROD, loc, 1, 0, 0, 0, 0);
         } else {
-            double inp = 0.1 * (double) ticks;
+            double inp = radius * 0.01 * (double) ticks;
             double x = Math.cos(inp) * radius;
             double z = Math.sin(inp) * radius;
             Location loc = wave.place.toLocation(world);
             if (ticks % 2 == 0) {
                 Location p1 = loc.clone().add(x, 0.25, z);
-                world.spawnParticle(Particle.FLAME, p1, 1, 0, 0, 0, 0);
+                world.spawnParticle(Particle.FLAME, p1, 2, 0, 0, 0, 0);
             } else {
                 Location p2 = loc.clone().add(-x, 0.25, -z);
-                world.spawnParticle(Particle.FLAME, p2, 1, 0, 0, 0, 0);
+                world.spawnParticle(Particle.FLAME, p2, 2, 0, 0, 0, 0);
             }
+        }
+    }
+
+    void highlightRegionFloor(Cuboid cuboid) {
+        int lenx = cuboid.getSizeX();
+        int lenz = cuboid.getSizeZ();
+        int total = lenx + lenx + lenz + lenz;
+        int index = ticks % total;
+        Vec3i vector;
+        BlockFace face;
+        int y = cuboid.min.y;
+        if (index < lenx) {
+            int offset = index;
+            vector = Vec3i.of(cuboid.min.x + offset, y, cuboid.min.z);
+            face = BlockFace.NORTH;
+        } else if (index < lenx + lenz) {
+            int offset = index - lenx;
+            vector = Vec3i.of(cuboid.max.x, y, cuboid.min.z + offset);
+            face = BlockFace.EAST;
+        } else if (index < lenx + lenz + lenx) {
+            int offset = index - lenx - lenz;
+            vector = Vec3i.of(cuboid.max.x - offset, y, cuboid.max.z);
+            face = BlockFace.SOUTH;
+        } else {
+            int offset = index - lenx - lenz - lenx;
+            vector = Vec3i.of(cuboid.min.x, y, cuboid.max.z - offset);
+            face = BlockFace.WEST;
+        }
+        Block block = vector.toBlock(world);
+        while (!block.isPassable()) {
+            block = block.getRelative(0, 1, 0);
+        }
+        int modx = face.getModX();
+        int modz = face.getModZ();
+        double oy = 0.125;
+        if (modx == -1 || modz == -1) {
+            world.spawnParticle(Particle.FLAME, block.getLocation().add(0, oy, 0), 2, 0, 0, 0, 0);
+        }
+        if (modx == 1 || modz == -1) {
+            world.spawnParticle(Particle.FLAME, block.getLocation().add(1, oy, 0), 2, 0, 0, 0, 0);
+        }
+        if (modx == 1 || modz == 1) {
+            world.spawnParticle(Particle.FLAME, block.getLocation().add(1, oy, 1), 2, 0, 0, 0, 0);
+        }
+        if (modx == -1 || modz == 1) {
+            world.spawnParticle(Particle.FLAME, block.getLocation().add(0, oy, 1), 2, 0, 0, 0, 0);
         }
     }
 
@@ -1121,29 +1274,6 @@ final class Instance implements Context {
         return bossBar;
     }
 
-    void giveSkulls(Player player) {
-        for (UUID uuid : new ArrayList<>(skulls.keySet())) {
-            giveSkull(player, uuid);
-        }
-    }
-
-    void giveSkull(Player player, UUID id) {
-        ItemStack item = makeSkull(id);
-        player.getInventory().addItem(item);
-    }
-
-    ItemStack makeSkull(UUID id) {
-        String texture = skulls.get(id);
-        String theName = skullNames.get(id);
-        ItemStack item = new ItemStack(Material.PLAYER_HEAD);
-        SkullMeta meta = (SkullMeta) item.getItemMeta();
-        PlayerProfile profile = plugin.getServer().createProfile(id, theName);
-        profile.setProperty(new ProfileProperty("textures", texture));
-        meta.setPlayerProfile(profile);
-        item.setItemMeta(meta);
-        return item;
-    }
-
     void interact(Player player, Block block) {
         CustomBlock customBlock = customBlocks.get(block);
         if (customBlock != null) {
@@ -1154,15 +1284,6 @@ final class Instance implements Context {
             default:
                 break;
             }
-        }
-        if (block.getType() == Material.PLAYER_HEAD) {
-            Skull skull = (Skull) block.getState();
-            UUID id = skull.getPlayerProfile().getId();
-            String texture = skulls.get(id);
-            if (texture == null) return;
-            block.setType(Material.AIR);
-            world.dropItem(block.getLocation().add(0.5, 0.5, 0.5),
-                           makeSkull(id));
         }
     }
 

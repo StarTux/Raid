@@ -42,7 +42,7 @@ final class RaidCommand implements CommandExecutor {
             player.sendMessage(ChatColor.RED + "Raid not ready!");
             return true;
         }
-        Wave wave = instance.getCurrentWave();
+        Wave wave = instance.getPreviousWave();
         if (wave == null || wave.type == Wave.Type.WIN) {
             player.sendMessage(ChatColor.RED + "Raid already over!");
             return true;
@@ -58,7 +58,7 @@ final class RaidCommand implements CommandExecutor {
             player.sendMessage(ChatColor.RED + "You're not in a raid!");
             return true;
         }
-        Wave wave = instance.getCurrentWave();
+        Wave wave = instance.getPreviousWave();
         if (wave == null || wave.type == Wave.Type.WIN) {
             player.sendMessage(ChatColor.RED + "Raid already over!");
             return true;
