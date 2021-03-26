@@ -25,6 +25,10 @@ public final class Vec3i {
         return new Vec3i(location.getBlockX(), location.getBlockY(), location.getBlockZ());
     }
 
+    public boolean isChunkLoaded(World world) {
+        return world.isChunkLoaded(x >> 4, z >> 4);
+    }
+
     public Block toBlock(World world) {
         return world.getBlockAt(x, y, z);
     }

@@ -33,6 +33,7 @@ import net.kyori.adventure.text.format.Style;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
+import org.bukkit.Color;
 import org.bukkit.GameMode;
 import org.bukkit.GameRule;
 import org.bukkit.Location;
@@ -86,6 +87,7 @@ final class Instance implements Context {
     final Set<UUID> bossFighters = new HashSet<>(); // last boss battle
     final Set<UUID> alreadyJoined = new HashSet<>();
     final Map<UUID, WinReward> winRewards = new HashMap<>();
+    int totalSeconds;
     int secondsLeft;
     ArmorStand goalEntity;
     int goalIndex = 0;
@@ -356,7 +358,7 @@ final class Instance implements Context {
     void nextWave(Wave wave) {
         clearWave();
         switch (wave.type) {
-        case CHOICE:
+        case CHOICE: {
             String waveName = wave.getNextWave().get(selectedGoalIndex);
             Wave nextWave = findWave(waveName);
             if (waveName == null) {
@@ -366,7 +368,8 @@ final class Instance implements Context {
                 waveIndex += 1;
             }
             break;
-        case RANDOM:
+        }
+        case RANDOM: {
             if (wave.getNextWave() != null && !wave.getNextWave().isEmpty()) {
                 String waveName = wave.getNextWave().get(random.nextInt(wave.getNextWave().size()));
                 Wave nextWave = findWave(waveName);
@@ -381,7 +384,8 @@ final class Instance implements Context {
                 waveIndex += 1;
             }
             break;
-        default:
+        }
+        default: {
             if (wave.getNextWave() != null && !wave.getNextWave().isEmpty()) {
                 Wave nextWave = findWave(wave.getNextWave().get(0));
                 if (nextWave == null) {
@@ -391,6 +395,7 @@ final class Instance implements Context {
             } else {
                 waveIndex += 1;
             }
+        }
         }
         setupWave();
     }
@@ -469,12 +474,25 @@ final class Instance implements Context {
         Wave wave = getWave(waveIndex);
         if (wave == null) return;
         switch (wave.type) {
+        case MOBS:
+            getBossBar().setColor(BarColor.RED);
+            getBossBar().setProgress(0);
+            getBossBar().setTitle(ChatColor.RED + "Kill all Mobs");
+            break;
         case GOAL:
-            secondsLeft = wave.time > 0 ? wave.time : 60;
+            totalSeconds = wave.time > 0 ? wave.time : 60;
+            secondsLeft = totalSeconds;
             setupGoal(wave);
+            getBossBar().setColor(BarColor.PURPLE);
+            getBossBar().setProgress(0);
+            getBossBar().setTitle(ChatColor.LIGHT_PURPLE + "Reach the Goal");
             break;
         case TIME:
-            secondsLeft = wave.time > 0 ? wave.time : 10;
+            totalSeconds = wave.time > 0 ? wave.time : 60;
+            secondsLeft = totalSeconds;
+            getBossBar().setColor(BarColor.BLUE);
+            getBossBar().setProgress(0);
+            getBossBar().setTitle("");
             break;
         case BOSS:
             getBossBar().addFlag(BarFlag.CREATE_FOG);
@@ -491,12 +509,22 @@ final class Instance implements Context {
             }
             break;
         case CHOICE: {
-            secondsLeft = wave.time > 0 ? wave.time : 10;
+            totalSeconds = wave.time > 0 ? wave.time : 60;
+            secondsLeft = totalSeconds;
             try {
                 setupChoice(wave);
             } catch (IllegalStateException iae) {
                 warn(waveIndex + ": CHOICE: " + iae.getMessage());
             }
+            getBossBar().setColor(BarColor.BLUE);
+            getBossBar().setProgress(0);
+            getBossBar().setTitle(ChatColor.BLUE + "Chooase a path");
+            break;
+        }
+        case ESCORT: {
+            getBossBar().setColor(BarColor.WHITE);
+            getBossBar().setProgress(0);
+            getBossBar().setTitle("");
             break;
         }
         default: break;
@@ -521,7 +549,7 @@ final class Instance implements Context {
                             e.setVillagerLevel(5);
                             e.setPersistent(false);
                         });
-                    escortMarker = new EscortMarker(plugin, villager).enable();
+                    escortMarker = new EscortMarker(plugin, this, villager).enable();
                     escorts.put(escort.getName(), escortMarker);
                 } else {
                     // Walk
@@ -530,10 +558,8 @@ final class Instance implements Context {
                     }
                 }
             }
-            if (escortMarker != null && escortMarker.isValid()) {
-                escortMarker.setDialogue(escort.getDialogue());
-                escortMarker.setDialogueIndex(0);
-                escortMarker.setDialogueCooldown(40);
+            if (escort.getDialogue() != null) {
+                escortMarker.sayLines(escort.getDialogue());
             }
             if (escort.isDisappear()) {
                 escortMarker.remove();
@@ -623,6 +649,11 @@ final class Instance implements Context {
         customBlocks.clear();
         goals = null;
         selectedGoalIndex = -1;
+        // Escorts
+        for (EscortMarker escortMarker : escorts.values()) {
+            escortMarker.clearWave();
+        }
+        sidebarInfo = null;
     }
 
     void onWaveComplete(Wave wave) {
@@ -987,7 +1018,9 @@ final class Instance implements Context {
         if (secondsLeft > 0) {
             String timeString = String.format("%02d:%02d",
                                               secondsLeft / 60, secondsLeft % 60);
-            getBossBar().setTitle(ChatColor.RED + timeString);
+            double progress = Math.max(0, Math.min(1, 1.0 - (double) secondsLeft / (double) totalSeconds));
+            getBossBar().setTitle(ChatColor.BLUE + timeString);
+            getBossBar().setProgress(progress);
             sidebarInfo = ChatColor.BLUE + "Time " + ChatColor.WHITE + timeString;
         } else {
             waveComplete = true;
@@ -1033,18 +1066,17 @@ final class Instance implements Context {
                 secondsLeft -= 1;
             }
         } else {
-            secondsLeft = 60;
+            secondsLeft = totalSeconds;
         }
         if (secondsLeft == 0) {
             for (Player out : outList) {
                 removePlayer(out);
             }
         }
-        double perc = (double) secondsLeft / (double) 60;
-        getBossBar().setProgress(perc);
+        double progress = Math.max(0, Math.min(1, 1.0 - (double) secondsLeft / (double) 60));
+        getBossBar().setProgress(progress);
         String timeString = String.format(" %02d:%02d",
                                           secondsLeft / 60, secondsLeft % 60);
-        getBossBar().setTitle(ChatColor.BLUE + "Reach the Goal");
         sidebarInfo = ChatColor.BLUE + "Goal "
             + ChatColor.WHITE + goalCount
             + ChatColor.GRAY + "/" + players.size()
@@ -1106,7 +1138,6 @@ final class Instance implements Context {
                        / (double) spawns.size())
             : 0.0;
         getBossBar().setProgress(perc);
-        getBossBar().setTitle(ChatColor.RED + "Kill all Mobs");
         sidebarInfo = ChatColor.BLUE + "Mobs " + ChatColor.WHITE + aliveMobCount;
         if (waveComplete && wave.getSpawns().size() > 0) {
             int totalExp = wave.getSpawns().size() * 5;
@@ -1167,7 +1198,7 @@ final class Instance implements Context {
                 secondsLeft -= 1;
             }
         } else {
-            secondsLeft = 60;
+            secondsLeft = totalSeconds;
         }
         if (secondsLeft == 0) {
             for (Player out : outList) {
@@ -1177,7 +1208,6 @@ final class Instance implements Context {
         double perc = (double) secondsLeft / (double) 60;
         getBossBar().setProgress(perc);
         String timeString = String.format(" %02d:%02d", secondsLeft / 60, secondsLeft % 60);
-        getBossBar().setTitle(ChatColor.BLUE + "Chooase a path");
         sidebarInfo = ChatColor.BLUE + "Goal "
             + ChatColor.WHITE + maxGoalCount
             + ChatColor.GRAY + "/" + players.size()
@@ -1197,17 +1227,14 @@ final class Instance implements Context {
             Location loc = wave.place.toLocation(world).add(0, 0.25, 0);
             world.spawnParticle(Particle.END_ROD, loc, 1, 0, 0, 0, 0);
         } else {
-            double inp = radius * 0.01 * (double) ticks;
+            double inp = radius * 0.02 * (double) ticks;
             double x = Math.cos(inp) * radius;
             double z = Math.sin(inp) * radius;
             Location loc = wave.place.toLocation(world);
-            if (ticks % 2 == 0) {
-                Location p1 = loc.clone().add(x, 0.25, z);
-                world.spawnParticle(Particle.FLAME, p1, 2, 0, 0, 0, 0);
-            } else {
-                Location p2 = loc.clone().add(-x, 0.25, -z);
-                world.spawnParticle(Particle.FLAME, p2, 2, 0, 0, 0, 0);
-            }
+            Particle particle = Particle.REDSTONE;
+            goalParticle(ticks % 2 == 0
+                         ? loc.clone().add(x, 0.25, z)
+                         : loc.clone().add(-x, 0.25, -z));
         }
     }
 
@@ -1236,6 +1263,7 @@ final class Instance implements Context {
             vector = Vec3i.of(cuboid.min.x, y, cuboid.max.z - offset);
             face = BlockFace.WEST;
         }
+        if (!vector.isChunkLoaded(world)) return;
         Block block = vector.toBlock(world);
         while (!block.isPassable()) {
             block = block.getRelative(0, 1, 0);
@@ -1244,17 +1272,23 @@ final class Instance implements Context {
         int modz = face.getModZ();
         double oy = 0.125;
         if (modx == -1 || modz == -1) {
-            world.spawnParticle(Particle.FLAME, block.getLocation().add(0, oy, 0), 2, 0, 0, 0, 0);
+            goalParticle(block.getLocation().add(0, oy, 0));
         }
         if (modx == 1 || modz == -1) {
-            world.spawnParticle(Particle.FLAME, block.getLocation().add(1, oy, 0), 2, 0, 0, 0, 0);
+            goalParticle(block.getLocation().add(1, oy, 0));
         }
         if (modx == 1 || modz == 1) {
-            world.spawnParticle(Particle.FLAME, block.getLocation().add(1, oy, 1), 2, 0, 0, 0, 0);
+            goalParticle(block.getLocation().add(1, oy, 1));
         }
         if (modx == -1 || modz == 1) {
-            world.spawnParticle(Particle.FLAME, block.getLocation().add(0, oy, 1), 2, 0, 0, 0, 0);
+            goalParticle(block.getLocation().add(0, oy, 1));
         }
+    }
+
+    private void goalParticle(Location location) {
+        Particle particle = Particle.REDSTONE;
+        Particle.DustOptions dust = new Particle.DustOptions(Color.YELLOW, 3.0f);
+        world.spawnParticle(particle, location, 2, 0.1, 0.1, 0.1, 0, dust);
     }
 
     void removePlayer(Player player) {
@@ -1372,8 +1406,8 @@ final class Instance implements Context {
 
     public void onPlayerSidebar(Player player, PlayerSidebarEvent event) {
         List<String> lines = new ArrayList<>(20);
-        lines.add("" + ChatColor.RED + ChatColor.BOLD + ChatColor.translateAlternateColorCodes('&', raid.displayName));
-        lines.add(sidebarInfo);
+        lines.add(Text.colorize(raid.displayName));
+        if (sidebarInfo != null) lines.add(sidebarInfo);
         if (!damageHighscore.isEmpty()) {
             lines.add("" + ChatColor.RED + "Damage Dealt:");
             for (Highscore.Entry entry : damageHighscore.getEntries()) {

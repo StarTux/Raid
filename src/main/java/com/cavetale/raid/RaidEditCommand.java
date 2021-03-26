@@ -303,7 +303,7 @@ final class RaidEditCommand implements TabExecutor {
             sender.sendMessage(y + "/redit info - Print info on edit wave");
             break;
         case LIVE:
-            sender.sendMessage(y + "/redit info - Print info on playing wave");
+            sender.sendMessage(y + "/redit live - Print info on playing wave");
             break;
         case TYPE:
             sender.sendMessage(y + "/redit type "
@@ -832,6 +832,9 @@ final class RaidEditCommand implements TabExecutor {
         if (args.length > 1) return false;
         Raid raid = requireRaid(player);
         Instance inst = plugin.raidInstance(raid);
+        if (inst.getPhase() == Phase.WARMUP) {
+            inst.startRun();
+        }
         if (args.length == 0) {
             inst.waveComplete = true;
             player.sendMessage(y + "Skipping wave...");
