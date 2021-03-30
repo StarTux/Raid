@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.ItemFrame;
 import org.bukkit.util.Vector;
 
@@ -23,6 +24,7 @@ public final class CustomBlock {
                 e.setItem(mytems.getMytem().getItem());
                 e.setItemDropChance(0.0f);
                 e.setVisible(false);
+                e.setFacingDirection(BlockFace.UP);
             });
         block.setType(Material.BARRIER);
     }
