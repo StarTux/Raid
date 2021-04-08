@@ -21,7 +21,7 @@ public final class CustomBlock {
         itemFrame = block.getWorld().spawn(location, ItemFrame.class, e -> {
                 e.setPersistent(false);
                 e.setFixed(true);
-                e.setItem(mytems.getMytem().getItem());
+                e.setItem(mytems.createItemStack());
                 e.setItemDropChance(0.0f);
                 e.setVisible(false);
                 e.setFacingDirection(BlockFace.UP);
