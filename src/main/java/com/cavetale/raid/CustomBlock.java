@@ -25,6 +25,7 @@ public final class CustomBlock {
                 e.setItemDropChance(0.0f);
                 e.setVisible(false);
                 e.setFacingDirection(BlockFace.UP);
+                e.setFixed(true);
             });
         block.setType(Material.BARRIER);
     }
