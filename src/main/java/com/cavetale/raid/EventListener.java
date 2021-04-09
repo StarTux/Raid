@@ -2,6 +2,7 @@ package com.cavetale.raid;
 
 import com.cavetale.sidebar.PlayerSidebarEvent;
 import com.cavetale.worldmarker.entity.EntityMarker;
+import com.destroystokyo.paper.event.entity.EndermanEscapeEvent;
 import com.destroystokyo.paper.event.entity.EntityPathfindEvent;
 import com.destroystokyo.paper.event.entity.EntityRemoveFromWorldEvent;
 import com.destroystokyo.paper.event.entity.ProjectileCollideEvent;
@@ -461,5 +462,13 @@ final class EventListener implements Listener {
     @EventHandler
     void onEntityRemoveFromWorld(EntityRemoveFromWorldEvent event) {
         plugin.getIdEscortMap().remove(event.getEntity().getEntityId());
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
+    void onEndermanEscape(EndermanEscapeEvent event) {
+        Instance inst = plugin.raidInstance(event.getEntity().getWorld());
+        if (inst != null) {
+            event.setCancelled(true);
+        }
     }
 }
