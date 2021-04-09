@@ -23,8 +23,8 @@ public final class CustomBlock {
                 e.setFixed(true);
                 e.setItem(mytems.createItemStack());
                 e.setItemDropChance(0.0f);
-                e.setVisible(false);
                 e.setFacingDirection(BlockFace.UP);
+                e.setVisible(false);
                 e.setFixed(true);
             });
         block.setType(Material.BARRIER);
