@@ -1407,7 +1407,9 @@ final class Instance implements Context {
     public void onPlayerSidebar(Player player, PlayerSidebarEvent event) {
         List<String> lines = new ArrayList<>(20);
         lines.add(Text.colorize(raid.displayName));
-        if (sidebarInfo != null) lines.add(sidebarInfo);
+        if (sidebarInfo != null && !sidebarInfo.isEmpty()) {
+            lines.add(sidebarInfo);
+        }
         if (!damageHighscore.isEmpty()) {
             lines.add("" + ChatColor.RED + "Damage Dealt:");
             for (Highscore.Entry entry : damageHighscore.getEntries()) {
