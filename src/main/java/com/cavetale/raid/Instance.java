@@ -950,7 +950,8 @@ final class Instance implements Context {
                                  new LootDrop(new ItemStack(Material.CONDUIT, 1), 0, 1),
                                  new LootDrop(new ItemStack(Material.DRAGON_EGG, 1), 0, 1),
                                  new LootDrop(new ItemStack(Material.DRAGON_HEAD, 1), 0, 1),
-                                 new LootDrop(new ItemStack(Material.BEACON, 1), 0, 1));
+                                 new LootDrop(new ItemStack(Material.BEACON, 1), 0, 1),
+                                 new LootDrop(new ItemStack(Material.HEART_OF_THE_SEA, 1), 0, 1));
         case 3:
             return Arrays.asList(new LootDrop(Mytems.KITTY_COIN.createItemStack(), 2, 1));
         default:
