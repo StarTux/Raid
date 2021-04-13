@@ -49,6 +49,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemDamageEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.world.WorldLoadEvent;
 import org.bukkit.event.world.WorldUnloadEvent;
@@ -438,7 +439,15 @@ final class EventListener implements Listener {
         Player player = event.getEntity();
         Instance inst = plugin.raidInstance(player.getWorld());
         if (inst == null) return;
-        inst.onDeath(player);
+        inst.onPlayerDeath(player);
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
+    void onPlayerRespawn(PlayerRespawnEvent event) {
+        Player player = event.getPlayer();
+        Instance inst = plugin.raidInstance(player.getWorld());
+        if (inst == null) return;
+        event.setRespawnLocation(Bukkit.getWorlds().get(0).getSpawnLocation());
     }
 
     @EventHandler

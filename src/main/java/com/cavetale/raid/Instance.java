@@ -63,7 +63,6 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.metadata.FixedMetadataValue;
-import org.bukkit.potion.PotionEffectType;
 
 final class Instance implements Context {
     @Getter final RaidPlugin plugin;
@@ -227,18 +226,7 @@ final class Instance implements Context {
         }
     }
 
-    public void onDeath(Player player) {
-        Bukkit.getScheduler().runTask(plugin, () -> {
-                player.setHealth(player.getMaxHealth());
-                player.setFoodLevel(20);
-                player.setGameMode(GameMode.ADVENTURE);
-                for (PotionEffectType pet : PotionEffectType.values()) {
-                    player.removePotionEffect(pet);
-                }
-                player.setFallDistance(0);
-                player.teleport(Bukkit.getWorlds().get(0).getSpawnLocation());
-            });
-    }
+    public void onPlayerDeath(Player player) { }
 
     void clear() {
         if (phase == Phase.RUN || phase == Phase.WARMUP) {
