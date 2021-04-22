@@ -6,7 +6,7 @@ import com.cavetale.enemy.EnemyType;
 import com.cavetale.enemy.boss.SadisticVampireBoss;
 import com.cavetale.mytems.Mytems;
 import com.cavetale.mytems.MytemsPlugin;
-import com.cavetale.mytems.item.AculaItemSet;
+import com.cavetale.mytems.item.acula.AculaItemSet;
 import com.cavetale.raid.struct.Cuboid;
 import com.cavetale.raid.struct.Vec3i;
 import com.cavetale.raid.util.Fireworks;
