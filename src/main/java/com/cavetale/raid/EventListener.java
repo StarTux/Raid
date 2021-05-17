@@ -37,6 +37,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityTargetEvent;
+import org.bukkit.event.entity.EntityToggleGlideEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
@@ -478,6 +479,16 @@ final class EventListener implements Listener {
         Instance inst = plugin.raidInstance(event.getEntity().getWorld());
         if (inst != null) {
             event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
+    void onEntityToggleGlide(EntityToggleGlideEvent event) {
+        if (event.isGliding()) {
+            Instance inst = plugin.raidInstance(event.getEntity().getWorld());
+            if (inst != null) {
+                event.setCancelled(true);
+            }
         }
     }
 }
