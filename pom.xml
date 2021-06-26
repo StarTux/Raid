@@ -69,7 +69,6 @@
       <artifactId>paper-api</artifactId>
       <version>1.16.5-R0.1-SNAPSHOT</version>
       <scope>provided</scope>
-      <optional>true</optional>
     </dependency>
 
     <!-- Lombok -->
@@ -77,8 +76,7 @@
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
       <version>1.18.20</version>
-      <scope>compile</scope>
-      <optional>true</optional>
+      <scope>provided</scope>
     </dependency>
 
     <!-- WorldMarker -->
@@ -87,7 +85,6 @@
       <artifactId>worldmarker</artifactId>
       <version>0.1-SNAPSHOT</version>
       <scope>provided</scope>
-      <optional>true</optional>
     </dependency>
 
     <!-- GenericEvents -->
@@ -96,7 +93,6 @@
       <artifactId>generic_events</artifactId>
       <version>0.1-SNAPSHOT</version>
       <scope>provided</scope>
-      <optional>true</optional>
     </dependency>
 
     <!-- Enemy -->
@@ -105,7 +101,6 @@
       <artifactId>enemy</artifactId>
       <version>0.1-SNAPSHOT</version>
       <scope>provided</scope>
-      <optional>true</optional>
     </dependency>
 
     <!-- Sidebar -->
@@ -114,7 +109,6 @@
       <artifactId>sidebar</artifactId>
       <version>0.1-SNAPSHOT</version>
       <scope>provided</scope>
-      <optional>true</optional>
     </dependency>
 
     <!-- Mytems -->
@@ -123,7 +117,14 @@
       <artifactId>mytems</artifactId>
       <version>0.1-SNAPSHOT</version>
       <scope>provided</scope>
-      <optional>true</optional>
+    </dependency>
+
+    <!-- Core -->
+    <dependency>
+      <groupId>com.cavetale.core</groupId>
+      <artifactId>core</artifactId>
+      <version>0.1-SNAPSHOT</version>
+      <scope>provided</scope>
     </dependency>
 
     <!-- WorldEdit -->

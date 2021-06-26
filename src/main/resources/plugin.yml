@@ -5,7 +5,7 @@ api-version: 1.13
 description: Turn worlds into raids
 author: StarTux
 website: https://cavetale.com
-depend: [WorldMarker, Mytems, Sidebar, GenericEvents, Enemy, WorldEdit]
+depend: [Core, WorldMarker, Mytems, Sidebar, GenericEvents, Enemy, WorldEdit]
 softdepend: []
 commands:
 
