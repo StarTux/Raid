@@ -1,5 +1,6 @@
 package com.cavetale.raid;
 
+import com.cavetale.core.font.DefaultFont;
 import com.cavetale.enemy.Context;
 import com.cavetale.enemy.Enemy;
 import com.cavetale.enemy.EnemyType;
@@ -26,10 +27,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import lombok.Getter;
-import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.Style;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
@@ -874,13 +873,11 @@ final class Instance implements Context {
         WinReward winReward = winRewards.get(player.getUniqueId());
         if (winReward == null || winReward.complete) return null;
         Gui gui = new Gui(plugin);
-        Component component = Component.text("\uE001\uE101\uE001\uE001\uE001\uE001\uE001\uE001\uE001"
-                                             + "\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001"
-                                             + "\uE001\uE001\uE001\uE001")
-            .style(Style.style().color(NamedTextColor.WHITE).font(Key.key("cavetale:default")))
-            .append(Component.text(Text.colorize(raid.displayName))
-                    .style(Style.style().color(NamedTextColor.WHITE).font(Style.DEFAULT_FONT)));
-        gui.title(component);
+        Component title = Component.text()
+            .append(DefaultFont.guiOverlay(DefaultFont.GUI_RAID_REWARD))
+            .append(Component.text(Text.colorize(raid.displayName), NamedTextColor.WHITE))
+            .build();
+        gui.title(title);
         gui.size(3 * 9);
         updateRewardGui(gui, winReward, player);
         player.playSound(player.getLocation(), Sound.BLOCK_CHEST_OPEN, SoundCategory.MASTER, 0.5f, 1.0f);

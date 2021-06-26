@@ -1,5 +1,6 @@
 package com.cavetale.raid;
 
+import com.cavetale.core.font.DefaultFont;
 import com.cavetale.enemy.EnemyType;
 import com.cavetale.raid.struct.Cuboid;
 import com.cavetale.raid.util.Gui;
@@ -17,10 +18,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
-import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.Style;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.chat.HoverEvent;
@@ -1044,15 +1043,14 @@ final class RaidEditCommand implements TabExecutor {
 
     boolean testCommand(Player player, String[] args) throws Wrong {
         Gui gui = new Gui(plugin);
-        Component component = Component.text("\uE001\uE101\uE001\uE001\uE001\uE001\uE001\uE001\uE001"
-                                             + "\uE001\uE001\uE001\uE001\uE001\uE001\uE001\uE001"
-                                             + "\uE001\uE001\uE001\uE001\uE001\uE001\uE001")
-            .style(Style.style().color(NamedTextColor.WHITE).font(Key.key("cavetale:default")))
-            .append(Component.text("Hello World").style(Style.style().color(NamedTextColor.WHITE).font(Style.DEFAULT_FONT)));
-        gui.title(component);
+        Component title = Component.text()
+            .append(DefaultFont.guiOverlay(DefaultFont.GUI_RAID_REWARD))
+            .append(Component.text("This is a test!", NamedTextColor.WHITE))
+            .build();
+        gui.title(title);
         gui.size(3 * 9);
         gui.open(player);
-        return false;
+        return true;
     }
 
     boolean displayNameCommand(Player player, String[] args) throws Wrong {
