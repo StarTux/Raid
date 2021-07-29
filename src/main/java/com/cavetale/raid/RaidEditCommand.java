@@ -7,7 +7,7 @@ import com.cavetale.raid.util.Gui;
 import com.cavetale.raid.util.Text;
 import com.cavetale.raid.util.WorldEdit;
 import com.destroystokyo.paper.MaterialTags;
-import com.winthier.generic_events.GenericEvents;
+import com.winthier.playercache.PlayerCache;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -1020,7 +1020,7 @@ final class RaidEditCommand implements TabExecutor {
         }
         if (args.length == 1) {
             String name = args[0];
-            UUID uuid = GenericEvents.cachedPlayerUuid(name);
+            UUID uuid = PlayerCache.uuidForName(name);
             if (uuid == null) {
                 throw new Wrong("Player not found: " + name);
             }
