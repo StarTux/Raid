@@ -1,6 +1,6 @@
 package com.cavetale.raid;
 
-import com.cavetale.core.event.block.PlayerCanBuildEvent;
+import com.cavetale.core.event.block.PlayerBlockAbilityQuery;
 import com.cavetale.sidebar.PlayerSidebarEvent;
 import com.cavetale.worldmarker.entity.EntityMarker;
 import com.destroystokyo.paper.event.entity.EndermanEscapeEvent;
@@ -263,10 +263,11 @@ final class EventListener implements Listener {
     }
 
     @EventHandler
-    void onPlayerCanBuild(PlayerCanBuildEvent event) {
-        Instance inst = plugin.raidInstance(event.getBlock().getWorld());
+    void onPlayerCanBuild(PlayerBlockAbilityQuery query) {
+        if (query.getPlayer().getGameMode() == GameMode.CREATIVE) return;
+        Instance inst = plugin.raidInstance(query.getBlock().getWorld());
         if (inst == null) return;
-        event.setCancelled(true);
+        query.setCancelled(true);
     }
 
     @EventHandler(ignoreCancelled = true)
