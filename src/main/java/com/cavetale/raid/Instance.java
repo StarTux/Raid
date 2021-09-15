@@ -1,10 +1,13 @@
 package com.cavetale.raid;
 
+import com.cavetale.core.event.player.PluginPlayerEvent.Detail;
+import com.cavetale.core.event.player.PluginPlayerEvent;
 import com.cavetale.core.font.DefaultFont;
 import com.cavetale.enemy.Context;
 import com.cavetale.enemy.Enemy;
 import com.cavetale.enemy.EnemyType;
 import com.cavetale.enemy.boss.SadisticVampireBoss;
+import com.cavetale.fam.Fam;
 import com.cavetale.mytems.Mytems;
 import com.cavetale.mytems.MytemsPlugin;
 import com.cavetale.mytems.item.acula.AculaItemSet;
@@ -29,6 +32,7 @@ import java.util.stream.Collectors;
 import lombok.Getter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
@@ -145,6 +149,7 @@ final class Instance implements Context {
         damageHighscore.reset();
         alreadyJoined.clear();
         phase = Phase.RUN;
+        updateAttributes(true);
     }
 
     public void resetRun() {
@@ -700,6 +705,15 @@ final class Instance implements Context {
                                  Sound.UI_TOAST_CHALLENGE_COMPLETE,
                                  SoundCategory.MASTER,
                                  1.0f, 1.0f);
+                if (!debug) {
+                    PluginPlayerEvent.Name.RAID_VICTORY.ultimate(plugin, player)
+                        .detail(Detail.NAME, name)
+                        .detail(Detail.COUNT, bossFighters.size())
+                        .call();
+                }
+            }
+            if (!debug) {
+                Fam.increaseMutualFriendship(7, bossFighters);
             }
             Cuboid bossChestRegion = wave.regions.get("boss_chest");
             if (bossChestRegion != null) {
@@ -1406,5 +1420,19 @@ final class Instance implements Context {
             }
         }
         event.addLines(plugin, Priority.HIGHEST, lines);
+    }
+
+    protected void updateAttributes(boolean announce) {
+        List<Player> players = getPlayers();
+        Set<UUID> uuids = players.stream().map(Player::getUniqueId).collect(Collectors.toSet());
+        for (Player player : players) {
+            Attributes.update(player, uuids, (p, b) -> {
+                    if (!announce || b.isEmpty()) return;
+                    p.sendMessage(Component.text().content("Your friendships grant you " + b.getHearts())
+                                  .color(TextColor.color(0xFF69B4))
+                                  .append(Mytems.HEART.component)
+                                  .append(Component.text(" bonus!")));
+                });
+        }
     }
 }

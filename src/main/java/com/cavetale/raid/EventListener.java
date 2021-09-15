@@ -45,6 +45,7 @@ import org.bukkit.event.hanging.HangingBreakEvent;
 import org.bukkit.event.player.PlayerArmorStandManipulateEvent;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerBucketFillEvent;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerItemDamageEvent;
@@ -307,7 +308,13 @@ final class EventListener implements Listener {
 
     @EventHandler
     void onPlayerQuit(PlayerQuitEvent event) {
+        Attributes.reset(event.getPlayer());
         plugin.sessions.exit(event.getPlayer());
+    }
+
+    @EventHandler
+    void onPlayerChangedWorld(PlayerChangedWorldEvent event) {
+        Attributes.reset(event.getPlayer());
     }
 
     @EventHandler
