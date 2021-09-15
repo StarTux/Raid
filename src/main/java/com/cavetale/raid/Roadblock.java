@@ -1,8 +1,10 @@
 package com.cavetale.raid;
 
 import com.destroystokyo.paper.block.BlockSoundGroup;
+import java.util.function.Consumer;
 import lombok.Data;
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.SoundCategory;
@@ -47,11 +49,13 @@ public final class Roadblock implements ShortInfo {
     }
 
     public void block(World world) {
-        world.getChunkAtAsync(x >> 4, z >> 4, unusedChunk -> world.getBlockAt(x, y, z).setBlockData(parse(blocked)));
+        world.getChunkAtAsync(x >> 4, z >> 4, (Consumer<Chunk>) unusedChunk -> {
+                world.getBlockAt(x, y, z).setBlockData(parse(blocked));
+            });
     }
 
     public void unblock(World world, boolean effect) {
-        world.getChunkAtAsync(x >> 4, z >> 4, unusedChunk -> {
+        world.getChunkAtAsync(x >> 4, z >> 4, (Consumer<Chunk>) unusedChunk -> {
                 Block block = world.getBlockAt(x, y, z);
                 BlockData blockData = parse(unblocked);
                 if (blockData.getMaterial().isEmpty()) {

@@ -56,6 +56,7 @@ final class Spawn implements ShortInfo {
         }
     }
 
+    @SuppressWarnings("unchecked")
     public Enemy createEnemy(Instance instance) {
         EnemyType enemyType = getEnemyType();
         if (enemyType != null) return enemyType.create(instance);

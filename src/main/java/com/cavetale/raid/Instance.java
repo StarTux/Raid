@@ -18,7 +18,7 @@ import com.cavetale.raid.util.Gui;
 import com.cavetale.raid.util.Text;
 import com.cavetale.sidebar.PlayerSidebarEvent;
 import com.cavetale.sidebar.Priority;
-import com.destroystokyo.paper.Title;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -33,6 +33,7 @@ import lombok.Getter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
@@ -494,9 +495,13 @@ final class Instance implements Context {
                 bossFighters.add(player.getUniqueId());
             }
             if (!bosses.isEmpty()) {
-                Title title = new Title(bosses.get(0).getDisplayName(), ChatColor.DARK_RED + "Boss Fight", 10, 20, 10);
+                Title title = Title.title(Component.text(bosses.get(0).getDisplayName()),
+                                          Component.text(ChatColor.DARK_RED + "Boss Fight"),
+                                          Title.Times.of(Duration.ofMillis(10L * 50L),
+                                                         Duration.ofMillis(20L * 50L),
+                                                         Duration.ofMillis(10L * 50L)));
                 for (Player player : getPlayers()) {
-                    player.sendTitle(title);
+                    player.showTitle(title);
                 }
             }
             break;
@@ -678,9 +683,13 @@ final class Instance implements Context {
         }
         switch (wave.type) {
         case TITLE: {
-            Title title = new Title(Text.colorize(raid.displayName), "", 20, 40, 20);
+            Title title = Title.title(Component.text(Text.colorize(raid.displayName)),
+                                      Component.empty(),
+                                      Title.Times.of(Duration.ofSeconds(1),
+                                                     Duration.ofSeconds(2),
+                                                     Duration.ofSeconds(1)));
             for (Player player : players) {
-                player.sendTitle(title);
+                player.showTitle(title);
             }
             break;
         }
@@ -1100,7 +1109,7 @@ final class Instance implements Context {
                     e.setCanMove(false);
                     e.setGravity(false);
                     e.setDisabledSlots(EquipmentSlot.values());
-                    e.setHelmet(new ItemBuilder(Material.RED_BANNER).create());
+                    e.getEquipment().setHelmet(new ItemBuilder(Material.RED_BANNER).create());
                     e.setGlowing(true);
                     e.setVisible(false);
                     e.setMarker(true);
@@ -1117,7 +1126,7 @@ final class Instance implements Context {
             loc.setYaw(yaw);
             goalEntity.teleport(loc);
             if (ticks % 5 == 0) {
-                goalEntity.setHelmet(goalItems.get(goalIndex++).create());
+                goalEntity.getEquipment().setHelmet(goalItems.get(goalIndex++).create());
                 if (goalIndex >= goalItems.size()) goalIndex = 0;
             }
         }
@@ -1390,7 +1399,7 @@ final class Instance implements Context {
                 case INFERNAL_PHANTASM:
                     double base = event.getFinalDamage();
                     event.setDamage(base * 1.5);
-                    player.sendActionBar(ChatColor.DARK_RED + "Vampiric Bonus Damage");
+                    player.sendActionBar(Component.text("Vampiric Bonus Damage", NamedTextColor.DARK_RED));
                 default: break;
                 }
             }

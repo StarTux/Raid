@@ -9,6 +9,7 @@ import org.bukkit.Location;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Ageable;
 import org.bukkit.entity.Bee;
+import org.bukkit.entity.Breedable;
 import org.bukkit.entity.Creeper;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
@@ -96,7 +97,7 @@ public final class SpawnEnemy extends LivingEnemy {
         prepAttr(mob, Attribute.GENERIC_KNOCKBACK_RESISTANCE, 1.0);
         // Equipment
         EntityEquipment equipment = mob.getEquipment();
-        if (spawn.hand != null) equipment.setItemInHand(new ItemStack(spawn.hand));
+        if (spawn.hand != null) equipment.setItemInMainHand(new ItemStack(spawn.hand));
         equipment.setHelmet(spawn.helmet != null ? new ItemStack(spawn.helmet) : null);
         equipment.setChestplate(spawn.chestplate != null ? new ItemStack(spawn.chestplate) : null);
         equipment.setLeggings(spawn.leggings != null ? new ItemStack(spawn.leggings) : null);
@@ -118,7 +119,10 @@ public final class SpawnEnemy extends LivingEnemy {
             } else {
                 ageable.setAdult();
             }
-            ageable.setAgeLock(true);
+        }
+        if (mob instanceof Breedable) {
+            Breedable breedable = (Breedable) mob;
+            breedable.setAgeLock(true);
         }
         if (mob instanceof Rabbit) {
             Rabbit rabbit = (Rabbit) mob;
