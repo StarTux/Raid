@@ -150,7 +150,14 @@ final class Instance implements Context {
         damageHighscore.reset();
         alreadyJoined.clear();
         phase = Phase.RUN;
-        updateAttributes(true);
+        List<Player> players = getPlayers();
+        updateAttributes(players, true);
+        for (Player player : players) {
+            PluginPlayerEvent.Name.RAID_START.ultimate(plugin, player)
+                .detail(Detail.NAME, name)
+                .detail(Detail.COUNT, bossFighters.size())
+                .call();
+        }
     }
 
     public void resetRun() {
@@ -1431,8 +1438,7 @@ final class Instance implements Context {
         event.addLines(plugin, Priority.HIGHEST, lines);
     }
 
-    protected void updateAttributes(boolean announce) {
-        List<Player> players = getPlayers();
+    protected void updateAttributes(List<Player> players, boolean announce) {
         Set<UUID> uuids = players.stream().map(Player::getUniqueId).collect(Collectors.toSet());
         for (Player player : players) {
             Attributes.update(player, uuids, (p, b) -> {
