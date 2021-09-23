@@ -729,7 +729,7 @@ final class Instance implements Context {
                 }
             }
             if (!debug) {
-                Fam.increaseMutualFriendship(7, bossFighters);
+                Fam.increaseMutualFriendship(15, bossFighters);
             }
             Cuboid bossChestRegion = wave.regions.get("boss_chest");
             if (bossChestRegion != null) {
