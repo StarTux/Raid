@@ -1,6 +1,7 @@
 package com.cavetale.raid;
 
 import com.cavetale.core.event.block.PlayerBlockAbilityQuery;
+import com.cavetale.core.event.player.PluginPlayerEvent;
 import com.cavetale.sidebar.PlayerSidebarEvent;
 import com.cavetale.worldmarker.entity.EntityMarker;
 import com.destroystokyo.paper.event.entity.EndermanEscapeEvent;
@@ -494,6 +495,16 @@ final class EventListener implements Listener {
     void onEntityToggleGlide(EntityToggleGlideEvent event) {
         if (event.isGliding()) {
             Instance inst = plugin.raidInstance(event.getEntity().getWorld());
+            if (inst != null) {
+                event.setCancelled(true);
+            }
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
+    void onPluginPlayer(PluginPlayerEvent event) {
+        if (event.getName() == PluginPlayerEvent.Name.START_FLYING && event.isCancellable()) {
+            Instance inst = plugin.raidInstance(event.getPlayer().getWorld());
             if (inst != null) {
                 event.setCancelled(true);
             }
