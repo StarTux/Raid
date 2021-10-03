@@ -107,7 +107,7 @@ final class Instance implements Context {
                 new ItemBuilder(Material.ORANGE_BANNER),
                 new ItemBuilder(Material.LIGHT_BLUE_BANNER));
     BossBar bossBar;
-    private String sidebarInfo = "";
+    private Component sidebarInfo = Component.empty();
     Random random = new Random();
     @Getter Map<String, EscortMarker> escorts = new HashMap<>();
     private Highscore damageHighscore = new Highscore();
@@ -669,7 +669,7 @@ final class Instance implements Context {
         for (EscortMarker escortMarker : escorts.values()) {
             escortMarker.clearWave();
         }
-        sidebarInfo = null;
+        sidebarInfo = Component.empty();
     }
 
     void onWaveComplete(Wave wave) {
@@ -852,7 +852,9 @@ final class Instance implements Context {
             if (!bosses.isEmpty()) {
                 Enemy boss = bosses.get(0);
                 getBossBar().setTitle(ChatColor.DARK_RED + boss.getDisplayName());
-                sidebarInfo = ChatColor.BLUE + "Boss Health " + ChatColor.RED + ((int) health);
+                sidebarInfo = Component.text("")
+                    .append(Component.text("Boss Health ", NamedTextColor.BLUE))
+                    .append(Component.text("" + ((int) health), NamedTextColor.RED));
             }
             break;
         }
@@ -1050,7 +1052,9 @@ final class Instance implements Context {
             double progress = Math.max(0, Math.min(1, 1.0 - (double) secondsLeft / (double) totalSeconds));
             getBossBar().setTitle(ChatColor.BLUE + timeString);
             getBossBar().setProgress(progress);
-            sidebarInfo = ChatColor.BLUE + "Time " + ChatColor.WHITE + timeString;
+            sidebarInfo = Component.text("")
+                .append(Component.text("Time ", NamedTextColor.BLUE))
+                .append(Component.text(timeString, NamedTextColor.WHITE));
         } else {
             waveComplete = true;
         }
@@ -1106,10 +1110,11 @@ final class Instance implements Context {
         getBossBar().setProgress(progress);
         String timeString = String.format(" %02d:%02d",
                                           secondsLeft / 60, secondsLeft % 60);
-        sidebarInfo = ChatColor.BLUE + "Goal "
-            + ChatColor.WHITE + goalCount
-            + ChatColor.GRAY + "/" + players.size()
-            + " " + ChatColor.GRAY + timeString;
+        sidebarInfo = Component.text("")
+            .append(Component.text("Goal ", NamedTextColor.BLUE))
+            .append(Component.text(goalCount, NamedTextColor.WHITE))
+            .append(Component.text("/" + players.size(), NamedTextColor.WHITE))
+            .append(Component.text(timeString, NamedTextColor.GRAY));
         if (!waveComplete) {
             if (goals == null || goals.isEmpty()) {
                 if (spawnChunks.contains(wave.place.getChunk())) {
@@ -1167,7 +1172,9 @@ final class Instance implements Context {
                        / (double) spawns.size())
             : 0.0;
         getBossBar().setProgress(perc);
-        sidebarInfo = ChatColor.BLUE + "Mobs " + ChatColor.WHITE + aliveMobCount;
+        sidebarInfo = Component.text("")
+            .append(Component.text("Mobs ", NamedTextColor.BLUE))
+            .append(Component.text(aliveMobCount, NamedTextColor.WHITE));
         if (waveComplete && wave.getSpawns().size() > 0) {
             int totalExp = wave.getSpawns().size() * 5;
             if (totalExp > 0) {
@@ -1237,10 +1244,11 @@ final class Instance implements Context {
         double perc = (double) secondsLeft / (double) 60;
         getBossBar().setProgress(perc);
         String timeString = String.format(" %02d:%02d", secondsLeft / 60, secondsLeft % 60);
-        sidebarInfo = ChatColor.BLUE + "Goal "
-            + ChatColor.WHITE + maxGoalCount
-            + ChatColor.GRAY + "/" + players.size()
-            + " " + ChatColor.GRAY + timeString;
+        sidebarInfo = Component.text("")
+            .append(Component.text("Goal ", NamedTextColor.BLUE))
+            .append(Component.text(maxGoalCount, NamedTextColor.WHITE))
+            .append(Component.text("/" + players.size(), NamedTextColor.GRAY))
+            .append(Component.text(timeString, NamedTextColor.GRAY));
         if (!waveComplete) {
             for (Cuboid goal : goals) {
                 highlightRegionFloor(goal);
@@ -1434,21 +1442,26 @@ final class Instance implements Context {
     }
 
     public void onPlayerSidebar(Player player, PlayerSidebarEvent event) {
-        List<String> lines = new ArrayList<>(20);
-        lines.add(Text.colorize(raid.displayName));
-        if (sidebarInfo != null && !sidebarInfo.isEmpty()) {
+        List<Component> lines = new ArrayList<>(20);
+        lines.add(Component.text(Text.colorize(raid.displayName)));
+        if (!Component.empty().equals(sidebarInfo)) {
             lines.add(sidebarInfo);
         }
         if (!damageHighscore.isEmpty()) {
-            lines.add("" + ChatColor.RED + "Damage Dealt:");
+            lines.add(Component.text("Damage Dealt:", NamedTextColor.RED));
             for (Highscore.Entry entry : damageHighscore.getEntries()) {
                 if (entry.getRank() > 9) break;
-                lines.add("" + ChatColor.BLUE + (1 + entry.getRank()) + ") "
-                          + ChatColor.RED + (int) entry.getScore()
-                          + " " + ChatColor.WHITE + entry.getName());
+                Player entryPlayer = Bukkit.getPlayer(entry.getUuid());
+                Component entryName = entryPlayer != null
+                    ? entryPlayer.displayName()
+                    : Component.text(entry.getName(), NamedTextColor.WHITE);
+                lines.add(Component.text("")
+                          .append(Component.text((1 + entry.getRank()) + ") ", NamedTextColor.BLUE))
+                          .append(Component.text((int) entry.getScore(), NamedTextColor.RED))
+                          .append(entryName));
             }
         }
-        event.addLines(plugin, Priority.HIGHEST, lines);
+        event.add(plugin, Priority.HIGHEST, lines);
     }
 
     protected void updateAttributes(List<Player> players, boolean announce) {
