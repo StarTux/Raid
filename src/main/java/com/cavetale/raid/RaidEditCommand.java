@@ -283,7 +283,7 @@ final class RaidEditCommand implements TabExecutor {
                 Instance instance = plugin.raidInstance(raid);
                 if (instance == null) return Collections.emptyList();
                 return instance.clips.keySet().stream()
-                    .filter(f -> f.contains(arg)).collect(Collectors.toList());
+                    .filter(f -> f.toLowerCase().contains(arg)).collect(Collectors.toList());
             }
             return Collections.emptyList();
         default:
