@@ -1,5 +1,6 @@
 package com.cavetale.raid;
 
+import com.cavetale.blockclip.BlockClip;
 import com.cavetale.core.font.DefaultFont;
 import com.cavetale.enemy.EnemyType;
 import com.cavetale.raid.struct.Cuboid;
@@ -29,6 +30,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
@@ -73,7 +75,9 @@ final class RaidEditCommand implements TabExecutor {
         START,
         REGION,
         NEXTWAVE,
-        NAME;
+        NAME,
+        CLIP,
+        WAVECLIP;
 
         final String key;
 
@@ -254,6 +258,34 @@ final class RaidEditCommand implements TabExecutor {
                     .collect(Collectors.toList());
             }
             return Collections.emptyList();
+        case CLIP:
+            if (args.length == 2) {
+                return Stream.of("list", "create")
+                    .filter(f -> f.contains(arg))
+                    .collect(Collectors.toList());
+            }
+            return Collections.emptyList();
+        case WAVECLIP:
+            if (args.length == 2) {
+                return Stream.of("list", "set")
+                    .filter(f -> f.contains(arg)).collect(Collectors.toList());
+            }
+            if (args[1].equals("set")) {
+                if (args.length == 3) {
+                    return Stream.of(Wave.ClipEvent.values())
+                        .map(Wave.ClipEvent::name).map(String::toLowerCase)
+                        .filter(f -> f.contains(arg)).collect(Collectors.toList());
+                }
+                if (!(sender instanceof Player)) return Collections.emptyList();
+                Player player = (Player) sender;
+                Raid raid = plugin.raids.get(player.getWorld().getName());
+                if (raid == null) return Collections.emptyList();
+                Instance instance = plugin.raidInstance(raid);
+                if (instance == null) return Collections.emptyList();
+                return instance.clips.keySet().stream()
+                    .filter(f -> f.contains(arg)).collect(Collectors.toList());
+            }
+            return Collections.emptyList();
         default:
             return Collections.emptyList();
         }
@@ -284,6 +316,8 @@ final class RaidEditCommand implements TabExecutor {
         case REGION: return regionCommand(requirePlayer(sender), args);
         case NAME: return nameCommand(requirePlayer(sender), args);
         case NEXTWAVE: return nextWaveCommand(requirePlayer(sender), args);
+        case CLIP: return clipCommand(requirePlayer(sender), args);
+        case WAVECLIP: return waveClipCommand(requirePlayer(sender), args);
         default:
             throw new IllegalArgumentException(cmd.key);
         }
@@ -360,6 +394,14 @@ final class RaidEditCommand implements TabExecutor {
             sender.sendMessage(y + "/redit region add <name> - Add a region to this wave");
             sender.sendMessage(y + "/redit region remove <name> - Remove a region from this wave");
             break;
+        case CLIP:
+            sender.sendMessage(y + "/redit clip list - List all clips");
+            sender.sendMessage(y + "/redit clip create <name> - Create a clip");
+            break;
+        case WAVECLIP:
+            sender.sendMessage(y + "/redit waveclip list - List wave clips");
+            sender.sendMessage(y + "/redit waveclip set init|enter|complete <clip...> - Set clips for this wave");
+            break;
         default:
             sender.sendMessage(y + "/redit " + cmd.key);
             break;
@@ -380,6 +422,14 @@ final class RaidEditCommand implements TabExecutor {
             throw new Wrong("No raid in this world!");
         }
         return raid;
+    }
+
+    Instance requireInstance(@NonNull Player player) throws Wrong {
+        Instance instance = plugin.raidInstance(requireRaid(player));
+        if (instance == null) {
+            throw new Wrong("No instance in this world!");
+        }
+        return instance;
     }
 
     Wave requireWave(@NonNull Player player) throws Wrong {
@@ -1144,6 +1194,68 @@ final class RaidEditCommand implements TabExecutor {
             plugin.saveRaid(raid);
             player.sendMessage(y + "Wave nextWave set to: " + wave.getNextWave());
             return true;
+        }
+    }
+
+    boolean clipCommand(Player player, String[] args) throws Wrong {
+        if (args.length == 0) return false;
+        Instance instance = requireInstance(player);
+        switch (args[0]) {
+        case "list": {
+            if (args.length != 1) return false;
+            player.sendMessage("Raid has " + instance.clips.size() + " clips: "
+                               + String.join(" ", instance.clips.keySet()));
+            return true;
+        }
+        case "create": {
+            if (args.length != 2) return false;
+            String name = args[1];
+            Cuboid selection = WorldEdit.getSelection(player);
+            if (selection == null) throw new Wrong("No selection!");
+            Block a = selection.min.toBlock(instance.getWorld());
+            Block b = selection.max.toBlock(instance.getWorld());
+            BlockClip clip = BlockClip.copyOf(a, b);
+            instance.setClip(name, clip);
+            player.sendMessage("Clip created: " + name);
+            return true;
+        }
+        default: return false;
+        }
+    }
+
+    boolean waveClipCommand(Player player, String[] args) throws Wrong {
+        Instance instance = requireInstance(player);
+        Wave wave = requireWave(player);
+        if (args.length == 0) return false;
+        switch (args[0]) {
+        case "list":
+            if (args.length != 1) return false;
+            for (Wave.ClipEvent clipEvent : Wave.ClipEvent.values()) {
+                player.sendMessage(clipEvent + ": " + wave.clips.get(clipEvent));
+            }
+            return true;
+        case "set": {
+            if (args.length < 2) return false;
+            String eventArg = args[1];
+            String[] otherArgs = Arrays.copyOfRange(args, 2, args.length);
+            Wave.ClipEvent clipEvent;
+            try {
+                clipEvent = Wave.ClipEvent.valueOf(eventArg.toUpperCase());
+            } catch (IllegalArgumentException iae) {
+                throw new Wrong("Unknown clip event: " + eventArg);
+            }
+            if (otherArgs.length == 0) {
+                wave.clips.remove(clipEvent);
+                player.sendMessage("Event " + clipEvent + " reset");
+            } else {
+                List<String> newValue = List.of(otherArgs);
+                wave.clips.put(clipEvent, newValue);
+                player.sendMessage("Event " + clipEvent + " set to " + newValue);
+            }
+            plugin.saveRaid(instance.raid);
+            return true;
+        }
+        default: return false;
         }
     }
 }

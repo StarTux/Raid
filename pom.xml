@@ -142,5 +142,13 @@
       <scope>provided</scope>
     </dependency>
 
+    <!-- BlockClip -->
+    <dependency>
+      <groupId>com.cavetale.blockclip</groupId>
+      <artifactId>blockclip</artifactId>
+      <version>0.1-SNAPSHOT</version>
+      <scope>provided</scope>
+    </dependency>
+
   </dependencies>
 </project>

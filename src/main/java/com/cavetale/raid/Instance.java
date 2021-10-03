@@ -1,5 +1,6 @@
 package com.cavetale.raid;
 
+import com.cavetale.blockclip.BlockClip;
 import com.cavetale.core.event.player.PluginPlayerEvent.Detail;
 import com.cavetale.core.event.player.PluginPlayerEvent;
 import com.cavetale.core.font.DefaultFont;
@@ -18,6 +19,8 @@ import com.cavetale.raid.util.Gui;
 import com.cavetale.raid.util.Text;
 import com.cavetale.sidebar.PlayerSidebarEvent;
 import com.cavetale.sidebar.Priority;
+import java.io.File;
+import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,6 +31,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 import lombok.Getter;
 import net.kyori.adventure.text.Component;
@@ -71,7 +75,7 @@ import org.bukkit.metadata.FixedMetadataValue;
 final class Instance implements Context {
     @Getter final RaidPlugin plugin;
     final String name;
-    @Getter private Raid raid;
+    @Getter protected Raid raid;
     @Getter private World world;
     @Getter private Phase phase = Phase.PRE_WORLD;
     @Getter int waveIndex = -1;
@@ -110,6 +114,8 @@ final class Instance implements Context {
     Map<Block, CustomBlock> customBlocks = new HashMap<>();
     List<Cuboid> goals; // Used by CHOICE and optionally by GOAL
     int selectedGoalIndex = -1;
+    protected final Map<String, BlockClip> clips = new HashMap<>();
+    protected File clipsFolder;
 
     Instance(final RaidPlugin plugin, final Raid raid) {
         this.plugin = plugin;
@@ -135,6 +141,7 @@ final class Instance implements Context {
             for (Roadblock roadblock: wave.getRoadblocks()) {
                 roadblock.block(world);
             }
+            triggerClipEvent(wave, Wave.ClipEvent.INIT);
         }
         phase = Phase.WARMUP;
         warmupTicks = 0;
@@ -202,6 +209,7 @@ final class Instance implements Context {
                     rb.block(world);
                 }
             }
+            triggerClipEvent(wave, Wave.ClipEvent.COMPLETE);
         }
     }
 
@@ -209,6 +217,9 @@ final class Instance implements Context {
         world = theWorld;
         if (phase != Phase.PRE_WORLD) return;
         phase = Phase.STANDBY;
+        clipsFolder = new File(theWorld.getWorldFolder(), "clips");
+        clipsFolder.mkdirs();
+        loadClips();
     }
 
     public void onWorldUnload() {
@@ -533,6 +544,7 @@ final class Instance implements Context {
         }
         default: break;
         }
+        triggerClipEvent(wave, Wave.ClipEvent.ENTER);
         for (Escort escort : wave.getEscorts()) {
             EscortMarker escortMarker = escorts.get(escort.getName());
             boolean placeIsSpecified = false;
@@ -666,6 +678,7 @@ final class Instance implements Context {
                 rb.unblock(world, true);
             }
         }
+        triggerClipEvent(wave, Wave.ClipEvent.COMPLETE);
     }
 
     /**
@@ -1448,6 +1461,56 @@ final class Instance implements Context {
                                   .append(Mytems.HEART.component)
                                   .append(Component.text(" bonus!")));
                 });
+        }
+    }
+
+    protected void loadClips() {
+        if (clipsFolder == null) return;
+        clips.clear();
+        for (File file : clipsFolder.listFiles()) {
+            final String fileName = file.getName();
+            if (!fileName.endsWith(".json")) continue;
+            final String clipName = fileName.substring(0, fileName.length() - 5);
+            BlockClip clip;
+            try {
+                clip = BlockClip.load(file);
+            } catch (IOException ioe) {
+                plugin.getLogger().log(Level.SEVERE, "Loading " + file, ioe);
+                continue;
+            }
+            clips.put(clipName, clip);
+        }
+    }
+
+    protected void setClip(String clipName, BlockClip clip) {
+        clips.put(clipName, clip);
+        File file = new File(clipsFolder, clipName + ".json");
+        try {
+            clip.save(file);
+        } catch (IOException ioe) {
+            plugin.getLogger().log(Level.SEVERE, "Saving " + file, ioe);
+        }
+    }
+
+    protected void triggerClipEvent(Wave wave, Wave.ClipEvent clipEvent) {
+        List<String> names = wave.clips.get(clipEvent);
+        if (names == null || names.isEmpty()) return;
+        for (String clipName : names) {
+            BlockClip clip = clips.get(clipName);
+            if (clip == null) {
+                plugin.getLogger().warning(name + ": clip not found: " + clipName);
+                continue;
+            }
+            if (clip.getOrigin() == null) {
+                plugin.getLogger().warning(name + ": clip has no origin: " + clipName);
+                continue;
+            }
+            Block origin = clip.getOrigin().toBlock();
+            if (clip.getOrigin() == null) {
+                plugin.getLogger().warning(name + ": clip origin not found: " + clipName);
+                continue;
+            }
+            clip.paste(origin);
         }
     }
 }

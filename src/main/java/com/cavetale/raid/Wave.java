@@ -2,6 +2,7 @@ package com.cavetale.raid;
 
 import com.cavetale.raid.struct.Cuboid;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -24,6 +25,7 @@ final class Wave implements ShortInfo {
     private Set<Flag> flags;
     protected Map<String, Cuboid> regions = new HashMap<>();
     protected List<String> nextWave;
+    protected Map<ClipEvent, List<String>> clips = new EnumMap<>(ClipEvent.class);
 
     enum Type {
         MOBS(ChatColor.RED), // Kill all mobs
@@ -51,8 +53,14 @@ final class Wave implements ShortInfo {
         }
     }
 
-    enum Flag {
+    protected enum Flag {
         NONE;
+    }
+
+    protected enum ClipEvent {
+        INIT,
+        ENTER,
+        COMPLETE;
     }
 
     @Override
