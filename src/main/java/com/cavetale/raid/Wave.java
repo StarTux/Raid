@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import lombok.Data;
-import net.md_5.bungee.api.ChatColor;
+import net.kyori.adventure.text.format.NamedTextColor;
 
 @Data
 final class Wave implements ShortInfo {
@@ -28,28 +28,24 @@ final class Wave implements ShortInfo {
     protected Map<ClipEvent, List<String>> clips = new EnumMap<>(ClipEvent.class);
 
     enum Type {
-        MOBS(ChatColor.RED), // Kill all mobs
-        GOAL(ChatColor.WHITE), // Reach goal
-        BOSS(ChatColor.DARK_RED), // Boss fight
-        TIME(ChatColor.BLUE), // Wait time
-        ROADBLOCK(ChatColor.GREEN), // Roadblocks dictate timing
-        WIN(ChatColor.GOLD), // Rewards, boss chest
-        TITLE(ChatColor.WHITE), // Show title and finish fast
-        ESCORT(ChatColor.LIGHT_PURPLE), // Escorts dictate timing
-        CHOICE(ChatColor.GREEN), // Pick nextWave via region. "choice.X" => nextWave[X]
-        RANDOM(ChatColor.GREEN), // Random next wave among nextWave[]
-        DEFEND(ChatColor.RED); // Defend the escort
+        MOBS(NamedTextColor.RED), // Kill all mobs
+        GOAL(NamedTextColor.WHITE), // Reach goal
+        BOSS(NamedTextColor.DARK_RED), // Boss fight
+        TIME(NamedTextColor.BLUE), // Wait time
+        ROADBLOCK(NamedTextColor.GREEN), // Roadblocks dictate timing
+        WIN(NamedTextColor.GOLD), // Rewards, boss chest
+        TITLE(NamedTextColor.WHITE), // Show title and finish fast
+        ESCORT(NamedTextColor.LIGHT_PURPLE), // Escorts dictate timing
+        CHOICE(NamedTextColor.GREEN), // Pick nextWave via region. "choice.X" => nextWave[X]
+        RANDOM(NamedTextColor.GREEN), // Random next wave among nextWave[]
+        DEFEND(NamedTextColor.RED); // Defend the escort
 
-        public final ChatColor color;
+        public final NamedTextColor textColor;
         public final String key;
 
-        Type(final ChatColor color) {
-            this.color = color;
+        Type(final NamedTextColor textColor) {
+            this.textColor = textColor;
             this.key = name().toLowerCase();
-        }
-
-        Type() {
-            this(ChatColor.WHITE);
         }
     }
 

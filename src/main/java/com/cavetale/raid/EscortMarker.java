@@ -1,16 +1,16 @@
 package com.cavetale.raid;
 
+import com.cavetale.raid.util.Text;
 import com.cavetale.worldmarker.entity.EntityMarker;
 import java.util.List;
 import lombok.Getter;
 import lombok.NonNull;
-import net.md_5.bungee.api.ChatColor;
+import lombok.RequiredArgsConstructor;
 import org.bukkit.Location;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Villager;
-import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public final class EscortMarker {
@@ -124,7 +124,7 @@ public final class EscortMarker {
     }
 
     private void sayLine(List<Player> players, String line) {
-        final String txt = ChatColor.translateAlternateColorCodes('&', line);
+        final String txt = Text.colorize(line);
         if (textArmorStand != null) {
             textArmorStand.remove();
             textArmorStand = null;

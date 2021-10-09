@@ -1,6 +1,6 @@
 package com.cavetale.raid.util;
 
-import net.md_5.bungee.api.ChatColor;
+import org.bukkit.ChatColor;
 
 public final class Text {
     private Text() { }

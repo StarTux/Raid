@@ -20,11 +20,10 @@ import java.util.stream.Stream;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.JoinConfiguration;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
-import net.md_5.bungee.api.chat.ClickEvent;
-import net.md_5.bungee.api.chat.ComponentBuilder;
-import net.md_5.bungee.api.chat.HoverEvent;
-import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -617,19 +616,22 @@ final class RaidEditCommand implements TabExecutor {
             return true;
         }
         case LIST: {
-            ComponentBuilder cb = new ComponentBuilder(y + "" + y + raid.waves.size() + " waves:");
+            List<Component> components = new ArrayList<>(raid.waves.size());
             for (int i = 0; i < raid.waves.size(); i += 1) {
                 Wave wave = raid.waves.get(i);
                 int count = wave.getSpawns().size();
-                cb.append(" " + wave.type.color + i
-                          + (wave.name != null ? "[" + wave.name + "]" : "")
-                          + ":" + wave.type.key
-                          + (count > 0 ? "(" + count + ")" : ""));
-                String tooltip = wave.getShortInfo();
-                cb.event(new HoverEvent(HoverEvent.Action.SHOW_TEXT, TextComponent.fromLegacyText(tooltip)));
-                cb.event(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/raidedit wave " + i));
+                components.add(Component.text(i + (wave.name != null ? "[" + wave.name + "]" : "")
+                                              + ":" + wave.type.key
+                                              + (count > 0 ? "(" + count + ")" : ""),
+                                              wave.type.textColor)
+                               .hoverEvent(HoverEvent.showText(Component.text(wave.getShortInfo())))
+                               .clickEvent(ClickEvent.runCommand("/raidedit wave " + i)));
             }
-            player.sendMessage(cb.create());
+            JoinConfiguration joinConfiguration = JoinConfiguration.builder()
+                .prefix(Component.text(raid.waves.size() + " waves:", NamedTextColor.YELLOW))
+                .separator(Component.space())
+                .build();
+            player.sendMessage(Component.join(joinConfiguration, components));
             return true;
         }
         case TP: {

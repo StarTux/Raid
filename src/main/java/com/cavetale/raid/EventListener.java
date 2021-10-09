@@ -10,7 +10,8 @@ import com.destroystokyo.paper.event.entity.EntityRemoveFromWorldEvent;
 import com.destroystokyo.paper.event.entity.ProjectileCollideEvent;
 import com.destroystokyo.paper.event.entity.ThrownEggHatchEvent;
 import lombok.RequiredArgsConstructor;
-import net.md_5.bungee.api.ChatColor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
@@ -198,8 +199,8 @@ final class EventListener implements Listener {
                 if (dmg > 1.0) event.setDamage(1.0); // 4 times per second
             }
             if (EntityMarker.hasId(event.getDamager(), MOB_PROJECTILE_ID)) {
-                double base = event.getDamage(EntityDamageEvent.DamageModifier.BASE);
-                event.setDamage(EntityDamageEvent.DamageModifier.BASE, base * 1.25);
+                double base = event.getFinalDamage();
+                event.setDamage(base * 1.25);
             }
         }
         if (event.getEntity() instanceof ArmorStand) {
@@ -334,7 +335,7 @@ final class EventListener implements Listener {
             Block block = event.getBlock();
             Roadblock rb = new Roadblock(block, block.getBlockData(), event.getBlockReplacedState().getBlockData());
             wave.addRoadblock(rb);
-            player.sendMessage(ChatColor.YELLOW + "Roadblock added: " + rb);
+            player.sendMessage(Component.text("Roadblock added: " + rb, NamedTextColor.YELLOW));
         }
     }
 
@@ -354,7 +355,7 @@ final class EventListener implements Listener {
             Block block = event.getBlock();
             Roadblock rb = new Roadblock(block, Material.AIR.createBlockData(), block.getBlockData());
             wave.addRoadblock(rb);
-            player.sendMessage(ChatColor.YELLOW + "Roadblock added: " + rb);
+            player.sendMessage(Component.text("Roadblock added: " + rb, NamedTextColor.YELLOW));
         }
     }
 
@@ -377,7 +378,7 @@ final class EventListener implements Listener {
         // Whitelist simple items
         if (stack.isSimilar(new ItemStack(stack.getType()))) return;
         event.setCancelled(true);
-        player.sendMessage(ChatColor.RED + "Can't drop this item in a raid!");
+        player.sendMessage(Component.text("Can't drop this item in a raid!", NamedTextColor.RED));
     }
 
     @EventHandler(ignoreCancelled = true)
