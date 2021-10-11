@@ -6,6 +6,7 @@ import java.util.List;
 import lombok.Getter;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
@@ -85,8 +86,8 @@ public final class EscortMarker {
                 textArmorStand.remove();
                 textArmorStand = null;
                 if (instance.getWave().getType() == Wave.Type.ESCORT) {
-                    instance.getBossBar().setTitle("");
-                    instance.getBossBar().setProgress(0);
+                    instance.getBossBar().name(Component.empty());
+                    instance.getBossBar().progress(0.0f);
                 }
             } else {
                 textArmorStand.teleport(entity.getEyeLocation().add(0, up, 0));
@@ -131,15 +132,15 @@ public final class EscortMarker {
         }
         textArmorStand = entity.getWorld().spawn(entity.getEyeLocation().add(0, up, 0), ArmorStand.class, a -> {
                 a.setPersistent(false);
-                a.setCustomName(txt);
+                a.customName(Component.text(txt));
                 a.setCustomNameVisible(true);
                 a.setInvisible(true);
                 a.setMarker(true);
                 a.setCanTick(false);
             });
         if (instance.getWave().getType() == Wave.Type.ESCORT) {
-            instance.getBossBar().setTitle(txt);
-            instance.getBossBar().setProgress(1);
+            instance.getBossBar().name(Component.text(txt));
+            instance.getBossBar().progress(1.0f);
         }
     }
 

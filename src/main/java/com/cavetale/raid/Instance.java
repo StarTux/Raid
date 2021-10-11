@@ -34,6 +34,7 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import lombok.Getter;
+import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
@@ -52,10 +53,6 @@ import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.boss.BarColor;
-import org.bukkit.boss.BarFlag;
-import org.bukkit.boss.BarStyle;
-import org.bukkit.boss.BossBar;
 import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Damageable;
@@ -145,8 +142,8 @@ final class Instance implements Context {
         }
         phase = Phase.WARMUP;
         warmupTicks = 0;
-        getBossBar().setTitle(ChatColor.DARK_RED + "Preparing the Raid");
-        getBossBar().setColor(BarColor.RED);
+        getBossBar().name(Component.text("Preparing the Raid", NamedTextColor.DARK_RED));
+        getBossBar().color(BossBar.Color.RED);
     }
 
     public void startRun() {
@@ -169,7 +166,9 @@ final class Instance implements Context {
 
     public void resetRun() {
         if (bossBar != null) {
-            bossBar.removeAll();
+            for (Player player : getWorld().getPlayers()) {
+                player.hideBossBar(bossBar);
+            }
         }
         if (waveIndex >= 0) {
             clearWave();
@@ -324,9 +323,8 @@ final class Instance implements Context {
         }
         warmupTicks += 1;
         final int warmupDuration = 20 * 60;
-        double progress = Math.max(0, Math.min(1, (double) warmupTicks / (double) warmupDuration));
-        getBossBar().setProgress(progress);
-        tickBossBar(players);
+        float progress = Math.max(0.0f, Math.min(1.0f, (float) warmupTicks / (float) warmupDuration));
+        getBossBar().progress(progress);
         if (warmupTicks >= warmupDuration) {
             startRun();
         }
@@ -339,7 +337,6 @@ final class Instance implements Context {
             phase = Phase.STANDBY;
             return;
         }
-        tickBossBar(players);
         Wave wave = getWave(waveIndex);
         if (wave == null) {
             plugin.getLogger().info("Wave not found: " + waveIndex + ". Resetting.");
@@ -458,20 +455,6 @@ final class Instance implements Context {
         waveInsts.clear();
     }
 
-    void tickBossBar(List<Player> players) {
-        List<Player> bossBarPlayers = getBossBar().getPlayers();
-        for (Player player : bossBarPlayers) {
-            if (!players.contains(player)) {
-                bossBar.removePlayer(player);
-            }
-        }
-        for (Player player : players) {
-            if (!bossBarPlayers.contains(player)) {
-                getBossBar().addPlayer(player);
-            }
-        }
-    }
-
     public Wave getPreviousWave() {
         if (waveIndex > raid.waves.size()) return null;
         if (waveIndex < 1) return raid.waves.get(0);
@@ -486,35 +469,35 @@ final class Instance implements Context {
         if (wave == null) return;
         switch (wave.type) {
         case MOBS:
-            getBossBar().setColor(BarColor.RED);
-            getBossBar().setProgress(0);
-            getBossBar().setTitle(ChatColor.RED + "Kill all Mobs");
+            getBossBar().color(BossBar.Color.RED);
+            getBossBar().progress(0.0f);
+            getBossBar().name(Component.text("Kill all Mobs", NamedTextColor.RED));
             break;
         case GOAL:
             totalSeconds = wave.time > 0 ? wave.time : 60;
             secondsLeft = totalSeconds;
             setupGoal(wave);
-            getBossBar().setColor(BarColor.PURPLE);
-            getBossBar().setProgress(0);
-            getBossBar().setTitle(ChatColor.LIGHT_PURPLE + "Reach the Goal");
+            getBossBar().color(BossBar.Color.PURPLE);
+            getBossBar().progress(0.0f);
+            getBossBar().name(Component.text("Reach the Goal", NamedTextColor.LIGHT_PURPLE));
             break;
         case TIME:
             totalSeconds = wave.time > 0 ? wave.time : 60;
             secondsLeft = totalSeconds;
-            getBossBar().setColor(BarColor.BLUE);
-            getBossBar().setProgress(0);
-            getBossBar().setTitle("");
+            getBossBar().color(BossBar.Color.BLUE);
+            getBossBar().progress(0);
+            getBossBar().name(Component.empty());
             break;
         case BOSS:
-            getBossBar().addFlag(BarFlag.CREATE_FOG);
-            getBossBar().addFlag(BarFlag.DARKEN_SKY);
-            getBossBar().addFlag(BarFlag.PLAY_BOSS_MUSIC);
+            getBossBar().addFlag(BossBar.Flag.CREATE_WORLD_FOG);
+            getBossBar().addFlag(BossBar.Flag.DARKEN_SCREEN);
+            getBossBar().addFlag(BossBar.Flag.PLAY_BOSS_MUSIC);
             for (Player player : getPlayers()) {
                 bossFighters.add(player.getUniqueId());
             }
             if (!bosses.isEmpty()) {
-                Title title = Title.title(Component.text(bosses.get(0).getDisplayName()),
-                                          Component.text(ChatColor.DARK_RED + "Boss Fight"),
+                Title title = Title.title(bosses.get(0).getDisplayName(),
+                                          Component.text("Boss Fight", NamedTextColor.DARK_RED),
                                           Title.Times.of(Duration.ofMillis(10L * 50L),
                                                          Duration.ofMillis(20L * 50L),
                                                          Duration.ofMillis(10L * 50L)));
@@ -531,15 +514,15 @@ final class Instance implements Context {
             } catch (IllegalStateException iae) {
                 warn(waveIndex + ": CHOICE: " + iae.getMessage());
             }
-            getBossBar().setColor(BarColor.BLUE);
-            getBossBar().setProgress(0);
-            getBossBar().setTitle(ChatColor.BLUE + "Chooase a path");
+            getBossBar().color(BossBar.Color.BLUE);
+            getBossBar().progress(0.0f);
+            getBossBar().name(Component.text("Choose a path", NamedTextColor.BLUE));
             break;
         }
         case ESCORT: {
-            getBossBar().setColor(BarColor.WHITE);
-            getBossBar().setProgress(0);
-            getBossBar().setTitle("");
+            getBossBar().color(BossBar.Color.WHITE);
+            getBossBar().progress(0.0f);
+            getBossBar().name(Component.empty());
             break;
         }
         default: break;
@@ -654,9 +637,9 @@ final class Instance implements Context {
         Wave wave = getWave(waveIndex);
         if (wave == null) return;
         if (bossBar != null && wave.type == Wave.Type.BOSS) {
-            bossBar.removeFlag(BarFlag.CREATE_FOG);
-            bossBar.removeFlag(BarFlag.DARKEN_SKY);
-            bossBar.removeFlag(BarFlag.PLAY_BOSS_MUSIC);
+            bossBar.removeFlag(BossBar.Flag.CREATE_WORLD_FOG);
+            bossBar.removeFlag(BossBar.Flag.DARKEN_SCREEN);
+            bossBar.removeFlag(BossBar.Flag.PLAY_BOSS_MUSIC);
         }
         // Custom blocks
         for (CustomBlock customBlock : customBlocks.values()) {
@@ -846,12 +829,12 @@ final class Instance implements Context {
                 maxHealth += boss.getMaxHealth();
             }
             if (maxHealth > 0) {
-                getBossBar().setProgress(health / maxHealth);
+                getBossBar().progress((float) (health / maxHealth));
             }
             waveComplete = bosses.isEmpty();
             if (!bosses.isEmpty()) {
                 Enemy boss = bosses.get(0);
-                getBossBar().setTitle(ChatColor.DARK_RED + boss.getDisplayName());
+                getBossBar().name(boss.getDisplayName());
                 sidebarInfo = Component.text("")
                     .append(Component.text("Boss Health ", NamedTextColor.BLUE))
                     .append(Component.text("" + ((int) health), NamedTextColor.RED));
@@ -1049,9 +1032,9 @@ final class Instance implements Context {
         if (secondsLeft > 0) {
             String timeString = String.format("%02d:%02d",
                                               secondsLeft / 60, secondsLeft % 60);
-            double progress = Math.max(0, Math.min(1, 1.0 - (double) secondsLeft / (double) totalSeconds));
-            getBossBar().setTitle(ChatColor.BLUE + timeString);
-            getBossBar().setProgress(progress);
+            float progress = Math.max(0.0f, Math.min(1.0f, 1.0f - (float) secondsLeft / (float) totalSeconds));
+            getBossBar().name(Component.text(timeString, NamedTextColor.BLUE));
+            getBossBar().progress(progress);
             sidebarInfo = Component.text("")
                 .append(Component.text("Time ", NamedTextColor.BLUE))
                 .append(Component.text(timeString, NamedTextColor.WHITE));
@@ -1106,8 +1089,8 @@ final class Instance implements Context {
                 removePlayer(out);
             }
         }
-        double progress = Math.max(0, Math.min(1, 1.0 - (double) secondsLeft / (double) 60));
-        getBossBar().setProgress(progress);
+        float progress = Math.max(0.0f, Math.min(1.0f, 1.0f - (float) secondsLeft / (float) 60));
+        getBossBar().progress(progress);
         String timeString = String.format(" %02d:%02d",
                                           secondsLeft / 60, secondsLeft % 60);
         sidebarInfo = Component.text("")
@@ -1140,7 +1123,7 @@ final class Instance implements Context {
                     e.setMarker(true);
                     e.setPersistent(false);
                     e.setSilent(true);
-                    e.setCustomName(ChatColor.BLUE + "Goal");
+                    e.customName(Component.text("Goal", NamedTextColor.BLUE));
                 });
         }
         if (goalEntity != null) {
@@ -1167,11 +1150,10 @@ final class Instance implements Context {
                                  0.1f, 2.0f);
             }
         }
-        double perc = !spawns.isEmpty()
-            ? Math.min(1.0, (double) aliveMobCount
-                       / (double) spawns.size())
-            : 0.0;
-        getBossBar().setProgress(perc);
+        float perc = !spawns.isEmpty()
+            ? Math.min(1.0f, (float) aliveMobCount / (float) spawns.size())
+            : 0.0f;
+        getBossBar().progress(perc);
         sidebarInfo = Component.text("")
             .append(Component.text("Mobs ", NamedTextColor.BLUE))
             .append(Component.text(aliveMobCount, NamedTextColor.WHITE));
@@ -1241,8 +1223,8 @@ final class Instance implements Context {
                 removePlayer(out);
             }
         }
-        double perc = (double) secondsLeft / (double) 60;
-        getBossBar().setProgress(perc);
+        float perc = (float) secondsLeft / (float) 60;
+        getBossBar().progress(Math.max(0.0f, Math.min(1.0f, perc)));
         String timeString = String.format(" %02d:%02d", secondsLeft / 60, secondsLeft % 60);
         sidebarInfo = Component.text("")
             .append(Component.text("Goal ", NamedTextColor.BLUE))
@@ -1332,16 +1314,17 @@ final class Instance implements Context {
         World w = Bukkit.getWorlds().get(0);
         player.teleport(w.getSpawnLocation());
         if (bossBar != null) {
-            bossBar.removePlayer(player);
+            player.hideBossBar(bossBar);
         }
     }
 
     BossBar getBossBar() {
-        if (bossBar != null) return bossBar;
-        bossBar = plugin.getServer().createBossBar("raid",
-                                                   BarColor.WHITE,
-                                                   BarStyle.SOLID);
-        bossBar.setVisible(true);
+        if (bossBar == null) {
+            bossBar = BossBar.bossBar(Component.text("Raid"),
+                                      1.0f,
+                                      BossBar.Color.WHITE,
+                                      BossBar.Overlay.PROGRESS);
+        }
         return bossBar;
     }
 
