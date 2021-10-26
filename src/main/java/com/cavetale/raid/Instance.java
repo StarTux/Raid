@@ -36,6 +36,7 @@ import java.util.stream.Collectors;
 import lombok.Getter;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.JoinConfiguration;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.title.Title;
@@ -1438,10 +1439,11 @@ final class Instance implements Context {
                 Component entryName = entryPlayer != null
                     ? entryPlayer.displayName()
                     : Component.text(entry.getName(), NamedTextColor.WHITE);
-                lines.add(Component.text("")
-                          .append(Component.text((1 + entry.getRank()) + ") ", NamedTextColor.BLUE))
-                          .append(Component.text((int) entry.getScore(), NamedTextColor.RED))
-                          .append(entryName));
+                lines.add(Component.join(JoinConfiguration.noSeparators(), new Component[] {
+                            Component.text((int) entry.getScore(), NamedTextColor.RED),
+                            Component.space(),
+                            entryName,
+                        }));
             }
         }
         event.add(plugin, Priority.HIGHEST, lines);
