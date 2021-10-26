@@ -305,18 +305,37 @@ final class EventListener implements Listener {
 
     @EventHandler
     void onPlayerJoin(PlayerJoinEvent event) {
-        plugin.sessions.enter(event.getPlayer());
+        Player player = event.getPlayer();
+        plugin.sessions.enter(player);
+        Instance instance = plugin.raidInstance(player.getWorld());
+        if (instance != null) {
+            instance.onPlayerEnter(player);
+        }
     }
 
     @EventHandler
     void onPlayerQuit(PlayerQuitEvent event) {
-        Attributes.reset(event.getPlayer());
-        plugin.sessions.exit(event.getPlayer());
+        Player player = event.getPlayer();
+        Attributes.reset(player);
+        plugin.sessions.exit(player);
+        Instance instance = plugin.raidInstance(player.getWorld());
+        if (instance != null) {
+            instance.onPlayerLeave(player);
+        }
     }
 
     @EventHandler
     void onPlayerChangedWorld(PlayerChangedWorldEvent event) {
-        Attributes.reset(event.getPlayer());
+        Player player = event.getPlayer();
+        Attributes.reset(player);
+        Instance oldInstance = plugin.raidInstance(event.getFrom());
+        if (oldInstance != null) {
+            oldInstance.onPlayerLeave(player);
+        }
+        Instance instance = plugin.raidInstance(player.getWorld());
+        if (instance != null) {
+            instance.onPlayerEnter(player);
+        }
     }
 
     @EventHandler

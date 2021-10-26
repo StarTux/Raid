@@ -1509,4 +1509,12 @@ final class Instance implements Context {
             clip.paste(origin);
         }
     }
+
+    protected void onPlayerEnter(Player player) {
+        player.showBossBar(getBossBar());
+    }
+
+    protected void onPlayerLeave(Player player) {
+        player.hideBossBar(getBossBar());
+    }
 }
