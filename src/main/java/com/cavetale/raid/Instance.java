@@ -930,11 +930,12 @@ final class Instance implements Context {
         switch (index) {
         case 0:
             return Arrays.asList(new LootDrop(new ItemStack(Material.BLAZE_ROD, 1), 63, 1),
-                                 new LootDrop(new ItemStack(Material.BONE, 1), 63, 1),
+                                 new LootDrop(new ItemStack(Material.BONE, 1), 63, 10),
                                  new LootDrop(new ItemStack(Material.CLAY_BALL, 1), 63, 1),
                                  new LootDrop(new ItemStack(Material.FEATHER, 1), 63, 1),
                                  new LootDrop(new ItemStack(Material.FLINT, 1), 63, 1),
-                                 new LootDrop(new ItemStack(Material.GUNPOWDER, 1), 63, 1),
+                                 new LootDrop(new ItemStack(Material.GUNPOWDER, 1), 63, 10),
+                                 new LootDrop(new ItemStack(Material.PHANTOM_MEMBRANE, 1), 63, 5),
                                  new LootDrop(new ItemStack(Material.INK_SAC, 1), 63, 1),
                                  new LootDrop(new ItemStack(Material.LEATHER, 1), 63, 1),
                                  new LootDrop(new ItemStack(Material.NETHER_BRICK, 1), 63, 1),
@@ -942,24 +943,27 @@ final class Instance implements Context {
                                  new LootDrop(new ItemStack(Material.RABBIT_HIDE, 1), 63, 1),
                                  new LootDrop(new ItemStack(Material.SLIME_BALL, 1), 63, 1),
                                  new LootDrop(new ItemStack(Material.STRING, 1), 63, 1),
+                                 new LootDrop(new ItemStack(Material.SPIDER_EYE, 1), 63, 10),
                                  new LootDrop(new ItemStack(Material.HONEYCOMB, 1), 63, 1),
-                                 new LootDrop(new ItemStack(Material.PRISMARINE_SHARD, 1), 63, 1),
+                                 new LootDrop(new ItemStack(Material.PRISMARINE_SHARD, 1), 63, 10),
                                  new LootDrop(new ItemStack(Material.PUMPKIN, 1), 63, 1),
+                                 new LootDrop(new ItemStack(Material.ARROW, 1), 63, 10),
                                  new LootDrop(new ItemStack(Material.SUGAR_CANE, 1), 63, 1));
         case 1:
             return Arrays.asList(new LootDrop(new ItemStack(Material.DIAMOND, 1), 15, 4),
                                  new LootDrop(new ItemStack(Material.EMERALD, 2), 30, 4),
                                  new LootDrop(new ItemStack(Material.IRON_INGOT, 4), 60, 4),
+                                 new LootDrop(new ItemStack(Material.COPPER_INGOT, 4), 60, 4),
                                  new LootDrop(new ItemStack(Material.GOLD_INGOT, 4), 60, 4),
                                  new LootDrop(new ItemStack(Material.LAPIS_LAZULI, 2), 30, 4),
                                  new LootDrop(new ItemStack(Material.COAL, 4), 60, 4),
                                  new LootDrop(new ItemStack(Material.QUARTZ, 4), 60, 4),
                                  new LootDrop(new ItemStack(Material.ANCIENT_DEBRIS, 1), 0, 1));
         case 2:
-            return Arrays.asList(new LootDrop(new ItemStack(Material.COD, 1), 0, 30),
-                                 new LootDrop(new ItemStack(Material.TROPICAL_FISH, 1), 0, 30),
-                                 new LootDrop(new ItemStack(Material.SALMON, 1), 0, 30),
-                                 new LootDrop(new ItemStack(Material.PUFFERFISH, 1), 0, 30),
+            return Arrays.asList(new LootDrop(new ItemStack(Material.COD, 1), 0, 10),
+                                 new LootDrop(new ItemStack(Material.TROPICAL_FISH, 1), 0, 10),
+                                 new LootDrop(new ItemStack(Material.SALMON, 1), 0, 10),
+                                 new LootDrop(new ItemStack(Material.PUFFERFISH, 1), 0, 10),
                                  new LootDrop(new ItemStack(Material.NETHER_STAR, 1), 0, 1),
                                  new LootDrop(new ItemStack(Material.CONDUIT, 1), 0, 1),
                                  new LootDrop(new ItemStack(Material.DRAGON_EGG, 1), 0, 1),
@@ -967,7 +971,8 @@ final class Instance implements Context {
                                  new LootDrop(new ItemStack(Material.BEACON, 1), 0, 1),
                                  new LootDrop(new ItemStack(Material.HEART_OF_THE_SEA, 1), 0, 1));
         case 3:
-            return Arrays.asList(new LootDrop(Mytems.KITTY_COIN.createItemStack(), 2, 1));
+            return Arrays.asList(new LootDrop(Mytems.KITTY_COIN.createItemStack(), 2, 1),
+                                 new LootDrop(Mytems.RUBY.createItemStack(), 0, 1));
         default:
             return null;
         }
