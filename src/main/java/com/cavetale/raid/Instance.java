@@ -623,7 +623,6 @@ final class Instance implements Context {
         adds.clear();
         // Bosses
         for (Enemy boss : bosses) {
-            boss.onRemove();
             boss.remove();
         }
         bosses.clear();
@@ -971,8 +970,11 @@ final class Instance implements Context {
                                  new LootDrop(new ItemStack(Material.BEACON, 1), 0, 1),
                                  new LootDrop(new ItemStack(Material.HEART_OF_THE_SEA, 1), 0, 1));
         case 3:
-            return Arrays.asList(new LootDrop(Mytems.KITTY_COIN.createItemStack(), 2, 1),
-                                 new LootDrop(Mytems.RUBY.createItemStack(), 0, 1));
+            return Arrays.asList(new LootDrop(Mytems.RUBY.createItemStack(), 0, 1),
+                                 new LootDrop(Mytems.RUSTY_BUCKET.createItemStack(), 0, 1),
+                                 new LootDrop(Mytems.BRITTLE_BARREL.createItemStack(), 0, 1),
+                                 new LootDrop(Mytems.CORRODED_DRUM.createItemStack(), 0, 1),
+                                 new LootDrop(Mytems.BENT_PITCHFORK.createItemStack(), 0, 1));
         default:
             return null;
         }
@@ -1383,7 +1385,6 @@ final class Instance implements Context {
     @Override // Context
     public void onDeath(Enemy enemy) {
         if (bosses.contains(enemy)) {
-            enemy.onRemove();
             enemy.remove();
             bosses.remove(enemy);
             if (bosses.isEmpty()) {

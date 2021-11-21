@@ -63,7 +63,7 @@ public final class SpawnEnemy extends LivingEnemy {
     }
 
     @Override
-    public void onRemove() {
+    public void cleanUp() {
         if (mount != null) {
             mount.remove();
             mount = null;
