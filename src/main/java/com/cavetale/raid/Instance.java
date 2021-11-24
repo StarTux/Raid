@@ -154,6 +154,7 @@ final class Instance implements Context {
         setupWave();
         damageHighscore.reset();
         alreadyJoined.clear();
+        bossFighters.clear();
         phase = Phase.RUN;
         List<Player> players = getPlayers();
         updateAttributes(players, true);
@@ -233,9 +234,6 @@ final class Instance implements Context {
     public void joinPlayer(Player player) {
         if (phase == Phase.STANDBY) {
             setupRun();
-        }
-        if ("CastleRaid".equals(raid.worldName)) {
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "ml add " + player.getName());
         }
         Wave wave = getPreviousWave();
         player.teleport(wave.place.toLocation(getWorld()));
@@ -493,6 +491,7 @@ final class Instance implements Context {
             getBossBar().addFlag(BossBar.Flag.CREATE_WORLD_FOG);
             getBossBar().addFlag(BossBar.Flag.DARKEN_SCREEN);
             getBossBar().addFlag(BossBar.Flag.PLAY_BOSS_MUSIC);
+            bossFighters.clear();
             for (Player player : getPlayers()) {
                 bossFighters.add(player.getUniqueId());
             }
