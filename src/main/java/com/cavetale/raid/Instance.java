@@ -681,7 +681,9 @@ final class Instance implements Context {
             }
         }
         if (wave.boss != null) {
-            bosses.add(wave.boss.type.create(this));
+            Enemy boss = wave.boss.type.create(this);
+            boss.setSpawnLocation(wave.place.toLocation(world));
+            bosses.add(boss);
         }
         switch (wave.type) {
         case TITLE: {
@@ -1348,7 +1350,6 @@ final class Instance implements Context {
         }
     }
 
-    @Override // Context
     public Location getSpawnLocation() {
         return getWave(waveIndex).getPlace().toLocation(world);
     }
