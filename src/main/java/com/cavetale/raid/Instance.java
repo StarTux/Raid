@@ -971,8 +971,8 @@ final class Instance implements Context {
         case 3:
             return Arrays.asList(new LootDrop(Mytems.RUBY.createItemStack(), 0, 1),
                                  new LootDrop(Mytems.RUSTY_BUCKET.createItemStack(), 0, 1),
+                                 new LootDrop(Mytems.OLD_OVEN_LID.createItemStack(), 0, 1),
                                  new LootDrop(Mytems.BRITTLE_BARREL.createItemStack(), 0, 1),
-                                 new LootDrop(Mytems.CORRODED_DRUM.createItemStack(), 0, 1),
                                  new LootDrop(Mytems.BENT_PITCHFORK.createItemStack(), 0, 1));
         default:
             return null;
