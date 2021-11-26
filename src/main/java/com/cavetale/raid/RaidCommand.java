@@ -43,7 +43,7 @@ final class RaidCommand implements CommandExecutor {
             player.sendMessage(Component.text("Raid not ready!", NamedTextColor.RED));
             return true;
         }
-        Wave wave = instance.getPreviousWave();
+        Wave wave = instance.getPreviousGoalWave();
         if (wave == null || wave.type == Wave.Type.WIN) {
             player.sendMessage(Component.text("Raid already over!", NamedTextColor.RED));
             return true;
@@ -59,7 +59,7 @@ final class RaidCommand implements CommandExecutor {
             player.sendMessage(Component.text("You're not in a raid!", NamedTextColor.RED));
             return true;
         }
-        Wave wave = instance.getPreviousWave();
+        Wave wave = instance.getPreviousGoalWave();
         if (wave == null || wave.type == Wave.Type.WIN) {
             player.sendMessage(Component.text("Raid already over!", NamedTextColor.RED));
             return true;

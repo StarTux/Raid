@@ -235,7 +235,7 @@ final class Instance implements Context {
         if (phase == Phase.STANDBY) {
             setupRun();
         }
-        Wave wave = getPreviousWave();
+        Wave wave = getPreviousGoalWave();
         player.teleport(wave.place.toLocation(getWorld()));
         UUID uuid = player.getUniqueId();
         if (!alreadyJoined.contains(uuid)) {
@@ -454,10 +454,15 @@ final class Instance implements Context {
         waveInsts.clear();
     }
 
-    public Wave getPreviousWave() {
+    public Wave getPreviousGoalWave() {
         if (waveIndex > raid.waves.size()) return null;
-        if (waveIndex < 1) return raid.waves.get(0);
-        return getWave(waveIndex - 1);
+        for (int i = waveIndex - 1; i > 0; i -= 1) {
+            Wave it = getWave(i);
+            if (it.type == Wave.Type.GOAL) {
+                return it;
+            }
+        }
+        return raid.waves.get(0);
     }
 
     void setupWave() {
@@ -1434,6 +1439,10 @@ final class Instance implements Context {
     public void onPlayerSidebar(Player player, PlayerSidebarEvent event) {
         List<Component> lines = new ArrayList<>(20);
         lines.add(Component.text(Text.colorize(raid.displayName)));
+        if (waveIndex >= 0) {
+            lines.add(Component.text("Wave ", NamedTextColor.GRAY)
+                      .append(Component.text(waveIndex, NamedTextColor.RED)));
+        }
         if (!Component.empty().equals(sidebarInfo)) {
             lines.add(sidebarInfo);
         }
