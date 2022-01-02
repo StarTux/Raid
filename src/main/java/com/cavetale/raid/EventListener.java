@@ -275,6 +275,7 @@ final class EventListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     void onEntityChangeBlock(EntityChangeBlockEvent event) {
+        if (event.getEntity().getType() == EntityType.FALLING_BLOCK) return;
         Instance inst = plugin.raidInstance(event.getBlock().getWorld());
         if (inst == null) return;
         event.setCancelled(true);
@@ -282,6 +283,7 @@ final class EventListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     void onEntityBlockForm(EntityBlockFormEvent event) {
+        if (event.getEntity().getType() == EntityType.FALLING_BLOCK) return;
         Instance inst = plugin.raidInstance(event.getBlock().getWorld());
         if (inst == null) return;
         event.setCancelled(true);
