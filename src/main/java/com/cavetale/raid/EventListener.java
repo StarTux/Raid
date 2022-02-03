@@ -525,11 +525,28 @@ final class EventListener implements Listener {
 
     @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
     void onPluginPlayer(PluginPlayerEvent event) {
-        if (event.getName() == PluginPlayerEvent.Name.START_FLYING && event.isCancellable()) {
-            Instance inst = plugin.raidInstance(event.getPlayer().getWorld());
-            if (inst != null) {
-                event.setCancelled(true);
-            }
+        Player player = event.getPlayer();
+        switch (player.getGameMode()) {
+        case SURVIVAL:
+        case ADVENTURE:
+            break; // proceed
+        case CREATIVE:
+        case SPECTATOR:
+        default:
+            return;
+        }
+        Instance inst = plugin.raidInstance(player.getWorld());
+        if (inst == null || !inst.isRunning()) return;
+        switch (event.getName()) {
+        case START_FLYING:
+            if (event.isCancellable()) event.setCancelled(true);
+            break;
+        case OPEN_STASH:
+            if (event.isCancellable()) event.setCancelled(true);
+            player.sendMessage(Component.text("Stash is locked during raids!", NamedTextColor.RED));
+            break;
+        default:
+            break;
         }
     }
 }
