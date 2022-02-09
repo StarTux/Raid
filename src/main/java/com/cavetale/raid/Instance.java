@@ -10,7 +10,7 @@ import com.cavetale.enemy.EnemyType;
 import com.cavetale.enemy.boss.SadisticVampireBoss;
 import com.cavetale.fam.Fam;
 import com.cavetale.mytems.Mytems;
-import com.cavetale.mytems.MytemsPlugin;
+import com.cavetale.mytems.gear.Equipment;
 import com.cavetale.mytems.item.acula.AculaItemSet;
 import com.cavetale.raid.struct.Cuboid;
 import com.cavetale.raid.struct.Vec3i;
@@ -1415,7 +1415,7 @@ final class Instance implements Context {
         Enemy enemy = Enemy.of(event.getEntity());
         if (enemy != null) {
             EnemyType enemyType = EnemyType.of(enemy);
-            if (enemyType != null && MytemsPlugin.getInstance().getEquipment(player).hasSetBonus(AculaItemSet.getInstance().getVampiricBonusDamage())) {
+            if (enemyType != null && Equipment.of(player).hasSetBonus(AculaItemSet.getInstance().getVampiricBonusDamage())) {
                 switch (enemyType) {
                 case VAMPIRE_BAT:
                 case SADISTIC_VAMPIRE:
