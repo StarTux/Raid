@@ -23,6 +23,7 @@ public final class Highscore {
     }
 
     public void add(Player player, double score) {
+        if (score <= 0.0) return;
         UUID uuid = player.getUniqueId();
         Entry entry = null;
         for (Entry it : entries) {

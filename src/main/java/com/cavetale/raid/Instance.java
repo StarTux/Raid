@@ -7,7 +7,6 @@ import com.cavetale.core.font.DefaultFont;
 import com.cavetale.enemy.Context;
 import com.cavetale.enemy.Enemy;
 import com.cavetale.enemy.EnemyType;
-import com.cavetale.enemy.boss.SadisticVampireBoss;
 import com.cavetale.fam.Fam;
 import com.cavetale.mytems.Mytems;
 import com.cavetale.mytems.gear.Equipment;
@@ -828,9 +827,6 @@ final class Instance implements Context {
             double health = 0;
             double maxHealth = 0;
             for (Enemy boss : bosses) {
-                if (boss instanceof SadisticVampireBoss) {
-                    ((SadisticVampireBoss) boss).tickBossFight();
-                }
                 health += boss.getHealth();
                 maxHealth += boss.getMaxHealth();
             }
