@@ -43,7 +43,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
 import org.bukkit.Color;
-import org.bukkit.GameMode;
 import org.bukkit.GameRule;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -281,12 +280,26 @@ final class Instance implements Context {
     }
 
     @Override // Context
+    public List<Player> getPlayers(Enemy enemy) {
+        return getPlayers();
+    }
+
     public List<Player> getPlayers() {
-        return world.getPlayers().stream()
-            .filter(p -> !p.isDead())
-            .filter(p -> p.getGameMode() == GameMode.SURVIVAL
-                    || p.getGameMode() == GameMode.ADVENTURE)
-            .collect(Collectors.toList());
+        List<Player> result = new ArrayList<>();
+        for (Player player : world.getPlayers()) {
+            if (player.isDead()) continue;
+            switch (player.getGameMode()) {
+            case SURVIVAL:
+            case ADVENTURE:
+                result.add(player);
+                break;
+            case CREATIVE:
+            case SPECTATOR:
+            default:
+                break;
+            }
+        }
+        return result;
     }
 
     boolean isChunkLoaded(Vec2i chunk) {
