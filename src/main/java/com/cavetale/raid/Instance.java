@@ -67,6 +67,7 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.metadata.FixedMetadataValue;
+import static net.kyori.adventure.text.Component.text;
 
 final class Instance implements Context {
     @Getter final RaidPlugin plugin;
@@ -446,10 +447,10 @@ final class Instance implements Context {
                     Location loc = wave.place.toLocation(world).add(0, 1, 0);
                     waveInst.debugEntity.teleport(loc);
                     waveInst.debugEntity
-                        .setCustomName(ChatColor.GRAY + "#"
-                                       + ChatColor.GREEN + ChatColor.BOLD + i
-                                       + ChatColor.GRAY + " "
-                                       + wave.type.name().toLowerCase());
+                        .customName(text(ChatColor.GRAY + "#"
+                                         + ChatColor.GREEN + ChatColor.BOLD + i
+                                         + ChatColor.GRAY + " "
+                                         + wave.type.name().toLowerCase()));
                 }
             }
         }
@@ -515,9 +516,9 @@ final class Instance implements Context {
             if (!bosses.isEmpty()) {
                 Title title = Title.title(bosses.get(0).getDisplayName(),
                                           Component.text("Boss Fight", NamedTextColor.DARK_RED),
-                                          Title.Times.of(Duration.ofMillis(10L * 50L),
-                                                         Duration.ofMillis(20L * 50L),
-                                                         Duration.ofMillis(10L * 50L)));
+                                          Title.Times.times(Duration.ofMillis(10L * 50L),
+                                                            Duration.ofMillis(20L * 50L),
+                                                            Duration.ofMillis(10L * 50L)));
                 for (Player player : getPlayers()) {
                     player.showTitle(title);
                 }
@@ -706,9 +707,9 @@ final class Instance implements Context {
         case TITLE: {
             Title title = Title.title(Component.text(Text.colorize(raid.displayName)),
                                       Component.empty(),
-                                      Title.Times.of(Duration.ofSeconds(1),
-                                                     Duration.ofSeconds(2),
-                                                     Duration.ofSeconds(1)));
+                                      Title.Times.times(Duration.ofSeconds(1),
+                                                        Duration.ofSeconds(2),
+                                                        Duration.ofSeconds(1)));
             for (Player player : players) {
                 player.showTitle(title);
             }
@@ -787,7 +788,6 @@ final class Instance implements Context {
             }
         }
         adds.removeIf(add -> !add.isValid());
-        aliveMobCount += adds.size();
         // Arrows
         for (AbstractArrow arrow : arrows) {
             if (!arrow.isValid()) continue;
@@ -1193,13 +1193,14 @@ final class Instance implements Context {
                 }
             }
         }
-        if (waveTicks > 1200 && waveTicks % 100 == 0) {
+        if (waveTicks > 0 && (waveTicks % 1800) == 0) {
             for (Enemy enemy : spawns) {
                 Mob mob = enemy.getMob();
                 if (mob != null) mob.setGlowing(true);
-            }
-            for (Mob mob : adds) {
-                if (mob.isValid()) mob.setGlowing(true);
+                Location spawnLocation = enemy.getSpawnLocation();
+                if (spawnLocation != null) {
+                    mob.teleport(spawnLocation);
+                }
             }
         }
     }

@@ -87,6 +87,7 @@ final class EventListener implements Listener {
         if (inst == null) return;
         switch (event.getSpawnReason()) {
         case CUSTOM:
+        case SPELL:
             // allowed
             return;
         case SPAWNER:
