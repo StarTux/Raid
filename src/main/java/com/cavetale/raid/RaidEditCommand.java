@@ -2,6 +2,8 @@ package com.cavetale.raid;
 
 import com.cavetale.blockclip.BlockClip;
 import com.cavetale.core.font.DefaultFont;
+import com.cavetale.editor.Editor;
+import com.cavetale.editor.EditContext;
 import com.cavetale.enemy.EnemyType;
 import com.cavetale.raid.struct.Cuboid;
 import com.cavetale.raid.util.Gui;
@@ -76,7 +78,8 @@ final class RaidEditCommand implements TabExecutor {
         NEXTWAVE,
         NAME,
         CLIP,
-        WAVECLIP;
+        WAVECLIP,
+        EDITOR;
 
         final String key;
 
@@ -317,6 +320,7 @@ final class RaidEditCommand implements TabExecutor {
         case NEXTWAVE: return nextWaveCommand(requirePlayer(sender), args);
         case CLIP: return clipCommand(requirePlayer(sender), args);
         case WAVECLIP: return waveClipCommand(requirePlayer(sender), args);
+        case EDITOR: return editorCommand(requirePlayer(sender), args);
         default:
             throw new IllegalArgumentException(cmd.key);
         }
@@ -401,6 +405,8 @@ final class RaidEditCommand implements TabExecutor {
             sender.sendMessage(y + "/redit waveclip list - List wave clips");
             sender.sendMessage(y + "/redit waveclip set init|enter|complete <clip...> - Set clips for this wave");
             break;
+        case EDITOR:
+            sender.sendMessage(y + "/redit editor - Open editor");
         default:
             sender.sendMessage(y + "/redit " + cmd.key);
             break;
@@ -1259,5 +1265,17 @@ final class RaidEditCommand implements TabExecutor {
         }
         default: return false;
         }
+    }
+
+    private boolean editorCommand(Player player, String[] args) throws Wrong {
+        if (args.length != 0) return false;
+        Instance instance = requireInstance(player);
+        Editor.open(plugin, player, instance.raid, new EditContext() {
+                @Override
+                public void save() {
+                    plugin.saveRaid(instance.raid);
+                }
+            });
+        return true;
     }
 }

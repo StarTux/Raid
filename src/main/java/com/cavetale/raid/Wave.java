@@ -1,5 +1,7 @@
 package com.cavetale.raid;
 
+import com.cavetale.core.editor.EditMenuAdapter;
+import com.cavetale.mytems.Mytems;
 import com.cavetale.raid.struct.Cuboid;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -8,11 +10,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 import lombok.Data;
-import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextColor;
+import org.bukkit.Material;
+import org.bukkit.inventory.ItemStack;
+import static net.kyori.adventure.text.Component.join;
+import static net.kyori.adventure.text.Component.text;
+import static net.kyori.adventure.text.JoinConfiguration.separator;
+import static net.kyori.adventure.text.format.NamedTextColor.*;
 
 @Data
-final class Wave implements ShortInfo {
+final class Wave implements ShortInfo, EditMenuAdapter {
     protected String name;
     protected Type type = Type.MOBS;
     protected Place place;
@@ -28,24 +38,28 @@ final class Wave implements ShortInfo {
     protected Map<ClipEvent, List<String>> clips = new EnumMap<>(ClipEvent.class);
 
     enum Type {
-        MOBS(NamedTextColor.RED), // Kill all mobs
-        GOAL(NamedTextColor.WHITE), // Reach goal
-        BOSS(NamedTextColor.DARK_RED), // Boss fight
-        TIME(NamedTextColor.BLUE), // Wait time
-        ROADBLOCK(NamedTextColor.GREEN), // Roadblocks dictate timing
-        WIN(NamedTextColor.GOLD), // Rewards, boss chest
-        TITLE(NamedTextColor.WHITE), // Show title and finish fast
-        ESCORT(NamedTextColor.LIGHT_PURPLE), // Escorts dictate timing
-        CHOICE(NamedTextColor.GREEN), // Pick nextWave via region. "choice.X" => nextWave[X]
-        RANDOM(NamedTextColor.GREEN), // Random next wave among nextWave[]
-        DEFEND(NamedTextColor.RED); // Defend the escort
+        MOBS(RED, () -> new ItemStack(Material.CREEPER_SPAWN_EGG)), // Kill all mobs
+        GOAL(WHITE, () -> Mytems.ARROW_RIGHT.createIcon()), // Reach goal
+        BOSS(DARK_RED, () -> new ItemStack(Material.DRAGON_HEAD)), // Boss fight
+        TIME(BLUE, () -> new ItemStack(Material.CLOCK)), // Wait time
+        ROADBLOCK(GREEN, () -> new ItemStack(Material.BARRIER)), // Roadblocks dictate timing
+        WIN(GOLD, () -> new ItemStack(Material.WHITE_BANNER)), // Rewards, boss chest
+        TITLE(WHITE, () -> new ItemStack(Material.NAME_TAG)), // Show title and finish fast
+        ESCORT(LIGHT_PURPLE, () -> new ItemStack(Material.EMERALD)), // Escorts dictate timing
+        CHOICE(GREEN, () -> Mytems.QUESTION_MARK.createIcon()), // Pick nextWave via region. "choice.X" => nextWave[X]
+        RANDOM(GREEN, () -> Mytems.DICE.createIcon()), // Random next wave among nextWave[]
+        DEFEND(RED, () -> new ItemStack(Material.EMERALD_BLOCK)); // Defend the escort
 
-        public final NamedTextColor textColor;
+        public final TextColor textColor;
         public final String key;
+        public final String humanName;
+        public final Supplier<ItemStack> iconCreator;
 
-        Type(final NamedTextColor textColor) {
+        Type(final TextColor textColor, final Supplier<ItemStack> iconCreator) {
             this.textColor = textColor;
             this.key = name().toLowerCase();
+            this.humanName = name().substring(0, 1) + name().substring(1).toLowerCase();
+            this.iconCreator = iconCreator;
         }
     }
 
@@ -115,5 +129,19 @@ final class Wave implements ShortInfo {
             getRoadblocks().remove(found);
         }
         getRoadblocks().add(roadblock);
+    }
+
+    @Override
+    public ItemStack getMenuIcon() {
+        return type.iconCreator.get();
+    }
+
+    @Override
+    public List<Component> getTooltip() {
+        Component sep = text(": ", DARK_GRAY);
+        return List.of(text(type.humanName + " Wave", type.textColor),
+                       join(separator(sep), text("Name", GRAY), text(name != null ? name : "-", WHITE)),
+                       join(separator(sep), text("Place", GRAY), text(place != null ? place.getShortInfo() : "-", WHITE)),
+                       join(separator(sep), text("Radius", GRAY), text(String.format("%.2f", radius), WHITE)));
     }
 }
