@@ -1,24 +1,37 @@
 package com.cavetale.raid;
 
+import com.cavetale.core.editor.EditMenuAdapter;
 import com.cavetale.enemy.Enemy;
 import com.cavetale.enemy.EnemyType;
+import com.cavetale.mytems.Mytems;
+import com.cavetale.mytems.item.font.Glyph;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import lombok.NonNull;
+import net.kyori.adventure.text.Component;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Mob;
+import org.bukkit.inventory.ItemStack;
+import static net.kyori.adventure.text.Component.join;
+import static net.kyori.adventure.text.Component.text;
+import static net.kyori.adventure.text.JoinConfiguration.separator;
+import static net.kyori.adventure.text.format.NamedTextColor.*;
 
 /**
  * Configuration.
  * A mob to be spawned in a location.
  */
-final class Spawn implements ShortInfo {
+final class Spawn implements ShortInfo, EditMenuAdapter {
     String entityType;
+    EntityType entity;
+    EnemyType enemy;
     Place place;
     int amount = 1;
     EntityType mount;
@@ -41,6 +54,7 @@ final class Spawn implements ShortInfo {
     }
 
     public EnemyType getEnemyType() {
+        if (enemy != null) return enemy;
         try {
             return EnemyType.valueOf(entityType.toUpperCase());
         } catch (IllegalArgumentException iae) {
@@ -49,6 +63,7 @@ final class Spawn implements ShortInfo {
     }
 
     public EntityType getBukkitType() {
+        if (entity != null) return entity;
         try {
             return EntityType.valueOf(entityType.toUpperCase());
         } catch (IllegalArgumentException iae) {
@@ -100,5 +115,38 @@ final class Spawn implements ShortInfo {
 
     public void onSave() {
         if (attributes != null && attributes.isEmpty()) attributes = null;
+    }
+
+    @Override
+    public ItemStack getMenuIcon() {
+        ItemStack result;
+        EnemyType enemyType = getEnemyType();
+        if (enemyType != null) {
+            Glyph glyph = Glyph.toGlyph(enemyType.toString().toLowerCase().charAt(0));
+            return glyph != null
+                ? glyph.mytems.createIcon()
+                : Mytems.QUESTION_MARK.createIcon();
+        }
+        EntityType bukkitType = getBukkitType();
+        if (bukkitType != null) {
+            ItemStack egg = Bukkit.getItemFactory().getSpawnEgg(bukkitType);
+            if (egg != null) return egg;
+            Glyph glyph = Glyph.toGlyph(bukkitType.toString().toLowerCase().charAt(0));
+            return glyph != null
+                ? glyph.mytems.createIcon()
+                : Mytems.QUESTION_MARK.createIcon();
+        }
+        return new ItemStack(Material.BARRIER);
+    }
+
+    @Override
+    public List<Component> getTooltip() {
+        EnemyType enemyType = getEnemyType();
+        EntityType bukkitType = getBukkitType();
+        if (enemyType == null && bukkitType == null) return List.of(text("?", DARK_GRAY));
+        String displayName = enemyType != null ? enemyType.toString() : bukkitType.toString();
+        Component sep = text(": ", DARK_GRAY);
+        return List.of(text(amount + " " + displayName, WHITE),
+                       join(separator(sep), text("Place", GRAY), text(place.getShortInfo(), WHITE)));
     }
 }

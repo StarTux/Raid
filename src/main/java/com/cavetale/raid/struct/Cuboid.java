@@ -1,16 +1,36 @@
 package com.cavetale.raid.struct;
 
+import com.cavetale.core.editor.EditMenuAdapter;
+import com.cavetale.core.editor.EditMenuButton;
+import com.cavetale.raid.util.WorldEdit;
 import java.util.ArrayList;
 import java.util.List;
-import lombok.Value;
+import lombok.Data;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.ClickType;
+import org.bukkit.inventory.ItemStack;
+import static net.kyori.adventure.text.Component.text;
+import static net.kyori.adventure.text.format.NamedTextColor.*;
 
-@Value
-public final class Cuboid {
+@Data
+public final class Cuboid implements EditMenuAdapter {
     public static final Cuboid ZERO = new Cuboid(Vec3i.ZERO, Vec3i.ZERO);
-    public final Vec3i min;
-    public final Vec3i max;
+    private Vec3i min;
+    private Vec3i max;
+
+    public Cuboid() {
+        this.min = Vec3i.ZERO;
+        this.max = Vec3i.ZERO;
+    }
+
+    public Cuboid(final Vec3i min, final Vec3i max) {
+        this.min = min;
+        this.max = max;
+    }
 
     public boolean contains(int x, int y, int z) {
         return x >= min.x && x <= max.x
@@ -79,5 +99,48 @@ public final class Cuboid {
 
     public boolean isZero() {
         return equals(ZERO);
+    }
+
+    @Override
+    public List<EditMenuButton> getEditMenuButtons() {
+        return List.of(new EditMenuButton[] {
+                new EditMenuButton() {
+                    @Override
+                    public ItemStack getMenuIcon() {
+                        return new ItemStack(Material.WOODEN_AXE);
+                    }
+
+                    @Override
+                    public List<Component> getTooltip() {
+                        return List.of(text("Set to selection", GREEN));
+                    }
+
+                    @Override
+                    public void onClick(Player player, ClickType clickType) {
+                        if (clickType.isLeftClick()) {
+                            Cuboid selection = WorldEdit.getSelection(player);
+                            if (selection == null) {
+                                player.sendMessage(text("No selection!", RED));
+                                return;
+                            }
+                            min = selection.min;
+                            max = selection.max;
+                            player.sendMessage(text("Set to selection: " + Cuboid.this.toString(), GREEN));
+                        }
+                    }
+                },
+            });
+    }
+
+    @Override
+    public ItemStack getMenuIcon() {
+        return new ItemStack(Material.STRUCTURE_BLOCK);
+    }
+
+    @Override
+    public List<Component> getTooltip() {
+        Component sep = text(": ", DARK_GRAY);
+        return List.of(text("Cuboid", LIGHT_PURPLE),
+                       text(toString(), GRAY));
     }
 }

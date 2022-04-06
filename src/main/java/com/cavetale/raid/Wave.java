@@ -37,7 +37,7 @@ final class Wave implements ShortInfo, EditMenuAdapter {
     protected List<String> nextWave;
     protected Map<ClipEvent, List<String>> clips = new EnumMap<>(ClipEvent.class);
 
-    enum Type {
+    enum Type implements EditMenuAdapter {
         MOBS(RED, () -> new ItemStack(Material.CREEPER_SPAWN_EGG)), // Kill all mobs
         GOAL(WHITE, () -> Mytems.ARROW_RIGHT.createIcon()), // Reach goal
         BOSS(DARK_RED, () -> new ItemStack(Material.DRAGON_HEAD)), // Boss fight
@@ -60,6 +60,11 @@ final class Wave implements ShortInfo, EditMenuAdapter {
             this.key = name().toLowerCase();
             this.humanName = name().substring(0, 1) + name().substring(1).toLowerCase();
             this.iconCreator = iconCreator;
+        }
+
+        @Override
+        public ItemStack getMenuIcon() {
+            return iconCreator.get();
         }
     }
 

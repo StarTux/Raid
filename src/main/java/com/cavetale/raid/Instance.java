@@ -1289,22 +1289,22 @@ final class Instance implements Context {
         int index = ticks % total;
         Vec3i vector;
         BlockFace face;
-        int y = cuboid.min.y;
+        int y = cuboid.getMin().y;
         if (index < lenx) {
             int offset = index;
-            vector = Vec3i.of(cuboid.min.x + offset, y, cuboid.min.z);
+            vector = Vec3i.of(cuboid.getMin().x + offset, y, cuboid.getMin().z);
             face = BlockFace.NORTH;
         } else if (index < lenx + lenz) {
             int offset = index - lenx;
-            vector = Vec3i.of(cuboid.max.x, y, cuboid.min.z + offset);
+            vector = Vec3i.of(cuboid.getMax().x, y, cuboid.getMin().z + offset);
             face = BlockFace.EAST;
         } else if (index < lenx + lenz + lenx) {
             int offset = index - lenx - lenz;
-            vector = Vec3i.of(cuboid.max.x - offset, y, cuboid.max.z);
+            vector = Vec3i.of(cuboid.getMax().x - offset, y, cuboid.getMax().z);
             face = BlockFace.SOUTH;
         } else {
             int offset = index - lenx - lenz - lenx;
-            vector = Vec3i.of(cuboid.min.x, y, cuboid.max.z - offset);
+            vector = Vec3i.of(cuboid.getMin().x, y, cuboid.getMax().z - offset);
             face = BlockFace.WEST;
         }
         if (!vector.isChunkLoaded(world)) return;

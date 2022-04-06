@@ -1220,8 +1220,8 @@ final class RaidEditCommand implements TabExecutor {
             String name = args[1];
             Cuboid selection = WorldEdit.getSelection(player);
             if (selection == null) throw new Wrong("No selection!");
-            Block a = selection.min.toBlock(instance.getWorld());
-            Block b = selection.max.toBlock(instance.getWorld());
+            Block a = selection.getMin().toBlock(instance.getWorld());
+            Block b = selection.getMax().toBlock(instance.getWorld());
             BlockClip clip = BlockClip.copyOf(a, b);
             instance.setClip(name, clip);
             player.sendMessage("Clip created: " + name);
