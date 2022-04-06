@@ -55,6 +55,7 @@ final class Spawn implements ShortInfo, EditMenuAdapter {
 
     public EnemyType getEnemyType() {
         if (enemy != null) return enemy;
+        if (entityType == null) return null;
         try {
             return EnemyType.valueOf(entityType.toUpperCase());
         } catch (IllegalArgumentException iae) {
@@ -64,6 +65,7 @@ final class Spawn implements ShortInfo, EditMenuAdapter {
 
     public EntityType getBukkitType() {
         if (entity != null) return entity;
+        if (entityType == null) return null;
         try {
             return EntityType.valueOf(entityType.toUpperCase());
         } catch (IllegalArgumentException iae) {
