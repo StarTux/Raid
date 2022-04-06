@@ -32,7 +32,7 @@ final class Spawn implements ShortInfo, EditMenuAdapter {
     String entityType;
     EntityType entity;
     EnemyType enemy;
-    Place place;
+    Place place = new Place(0f, 0f, 0f, 0f, 0.0f);
     int amount = 1;
     EntityType mount;
     Material helmet;
@@ -93,7 +93,9 @@ final class Spawn implements ShortInfo, EditMenuAdapter {
     @Override
     public String getShortInfo() {
         StringBuilder sb = new StringBuilder("" + entityType);
-        sb.append(" ").append(place.getShortInfo());
+        if (place != null) {
+            sb.append(" " + place.getShortInfo());
+        }
         if (amount != 1) sb.append(" x" + amount);
         if (mount != null) sb.append(" mount=" + mount);
         if (helmet != null) sb.append(" helmet=" + helmet);
