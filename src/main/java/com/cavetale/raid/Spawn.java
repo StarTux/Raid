@@ -90,7 +90,7 @@ final class Spawn implements ShortInfo, EditMenuAdapter {
 
     @Override
     public String getShortInfo() {
-        StringBuilder sb = new StringBuilder(entityType);
+        StringBuilder sb = new StringBuilder("" + entityType);
         sb.append(" ").append(place.getShortInfo());
         if (amount != 1) sb.append(" x" + amount);
         if (mount != null) sb.append(" mount=" + mount);
