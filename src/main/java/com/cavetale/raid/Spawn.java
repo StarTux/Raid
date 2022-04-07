@@ -1,6 +1,7 @@
 package com.cavetale.raid;
 
 import com.cavetale.core.editor.EditMenuAdapter;
+import com.cavetale.core.editor.EditMenuItem;
 import com.cavetale.enemy.Enemy;
 import com.cavetale.enemy.EnemyType;
 import com.cavetale.mytems.Mytems;
@@ -29,19 +30,29 @@ import static net.kyori.adventure.text.format.NamedTextColor.*;
  * A mob to be spawned in a location.
  */
 final class Spawn implements ShortInfo, EditMenuAdapter {
+    @EditMenuItem(deletable = true)
     protected EntityType entity;
+    @EditMenuItem(deletable = true)
     protected EnemyType enemy;
+    @EditMenuItem(deletable = true)
     protected String entityType;
-    protected Place place;
+    protected Place place = new Place(0f, 0f, 0f, 0f, 0.0f);
     protected int amount = 1;
+    @EditMenuItem(deletable = true)
     protected EntityType mount;
+    @EditMenuItem(deletable = true)
     protected Material helmet;
+    @EditMenuItem(deletable = true)
     protected Material chestplate;
+    @EditMenuItem(deletable = true)
     protected Material leggings;
+    @EditMenuItem(deletable = true)
     protected Material boots;
+    @EditMenuItem(deletable = true)
     protected Material hand;
     protected boolean baby;
     protected boolean powered;
+    @EditMenuItem(deletable = true)
     protected Map<Attribute, Double> attributes;
     protected double scaling = 0.25;
     private static final List<EntityType> ENTITY_TYPES = Stream.of(EntityType.values())
@@ -58,6 +69,7 @@ final class Spawn implements ShortInfo, EditMenuAdapter {
 
     public EnemyType getEnemyType() {
         if (enemy != null) return enemy;
+        if (entityType == null) return null;
         try {
             return EnemyType.valueOf(entityType.toUpperCase());
         } catch (IllegalArgumentException iae) {
@@ -67,6 +79,7 @@ final class Spawn implements ShortInfo, EditMenuAdapter {
 
     public EntityType getBukkitType() {
         if (entity != null) return entity;
+        if (entityType == null) return null;
         try {
             return EntityType.valueOf(entityType.toUpperCase());
         } catch (IllegalArgumentException iae) {
@@ -93,8 +106,10 @@ final class Spawn implements ShortInfo, EditMenuAdapter {
 
     @Override
     public String getShortInfo() {
-        StringBuilder sb = new StringBuilder(entityType);
-        sb.append(" ").append(place.getShortInfo());
+        StringBuilder sb = new StringBuilder("" + entityType);
+        if (place != null) {
+            sb.append(" " + place.getShortInfo());
+        }
         if (amount != 1) sb.append(" x" + amount);
         if (mount != null) sb.append(" mount=" + mount);
         if (helmet != null) sb.append(" helmet=" + helmet);
