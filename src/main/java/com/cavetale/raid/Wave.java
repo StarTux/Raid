@@ -149,4 +149,21 @@ final class Wave implements ShortInfo, EditMenuAdapter {
                        join(separator(sep), text("Place", GRAY), text(place != null ? place.getShortInfo() : "-", WHITE)),
                        join(separator(sep), text("Radius", GRAY), text(String.format("%.2f", radius), WHITE)));
     }
+
+    @Override
+    public List<Object> getPossibleValues(String fieldName, int valueIndex) {
+        switch (fieldName) {
+        default: return null;
+        }
+    }
+
+    @Override
+    public Boolean validateValue(String fieldName, Object newValue, int valueIndex) {
+        switch (fieldName) {
+        case "radius":
+        case "time":
+            return newValue instanceof Number number && number.doubleValue() >= 0.0;
+        default: return null;
+        }
+    }
 }

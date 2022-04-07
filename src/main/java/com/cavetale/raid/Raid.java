@@ -1,5 +1,6 @@
 package com.cavetale.raid;
 
+import com.cavetale.core.editor.EditMenuItem;
 import java.util.ArrayList;
 import java.util.List;
 import lombok.Getter;
@@ -13,6 +14,7 @@ import org.bukkit.World;
  */
 @Getter
 public final class Raid {
+    @EditMenuItem(settable = false)
     transient String worldName;
     List<Wave> waves = new ArrayList<>();
     String displayName = "";

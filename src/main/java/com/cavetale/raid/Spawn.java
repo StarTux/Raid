@@ -29,21 +29,24 @@ import static net.kyori.adventure.text.format.NamedTextColor.*;
  * A mob to be spawned in a location.
  */
 final class Spawn implements ShortInfo, EditMenuAdapter {
-    String entityType;
-    EntityType entity;
-    EnemyType enemy;
-    Place place;
-    int amount = 1;
-    EntityType mount;
-    Material helmet;
-    Material chestplate;
-    Material leggings;
-    Material boots;
-    Material hand;
-    boolean baby;
-    boolean powered;
-    Map<Attribute, Double> attributes;
-    double scaling = 0.25;
+    protected EntityType entity;
+    protected EnemyType enemy;
+    protected String entityType;
+    protected Place place;
+    protected int amount = 1;
+    protected EntityType mount;
+    protected Material helmet;
+    protected Material chestplate;
+    protected Material leggings;
+    protected Material boots;
+    protected Material hand;
+    protected boolean baby;
+    protected boolean powered;
+    protected Map<Attribute, Double> attributes;
+    protected double scaling = 0.25;
+    private static final List<EntityType> ENTITY_TYPES = Stream.of(EntityType.values())
+        .filter(e -> e != EntityType.UNKNOWN && Mob.class.isAssignableFrom(e.getEntityClass()))
+        .collect(Collectors.toList());
 
     Spawn() { }
 
@@ -148,5 +151,21 @@ final class Spawn implements ShortInfo, EditMenuAdapter {
         Component sep = text(": ", DARK_GRAY);
         return List.of(text(amount + " " + displayName, WHITE),
                        join(separator(sep), text("Place", GRAY), text(place.getShortInfo(), WHITE)));
+    }
+
+    @Override
+    public List<Object> getPossibleValues(String fieldName, int valueIndex) {
+        switch (fieldName) {
+        case "entity": return List.copyOf(ENTITY_TYPES);
+        default: return null;
+        }
+    }
+
+    @Override
+    public Boolean validateValue(String fieldName, Object newValue, int valueIndex) {
+        switch (fieldName) {
+        case "amount": return newValue instanceof Integer integer && integer > 0;
+        default: return null;
+        }
     }
 }
