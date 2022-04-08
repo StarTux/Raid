@@ -2,6 +2,7 @@ package com.cavetale.raid.struct;
 
 import com.cavetale.core.editor.EditMenuAdapter;
 import com.cavetale.core.editor.EditMenuButton;
+import com.cavetale.core.editor.EditMenuNode;
 import com.cavetale.raid.util.WorldEdit;
 import java.util.ArrayList;
 import java.util.List;
@@ -102,7 +103,7 @@ public final class Cuboid implements EditMenuAdapter {
     }
 
     @Override
-    public List<EditMenuButton> getEditMenuButtons() {
+    public List<EditMenuButton> getEditMenuButtons(EditMenuNode node) {
         return List.of(new EditMenuButton[] {
                 new EditMenuButton() {
                     @Override
@@ -133,12 +134,12 @@ public final class Cuboid implements EditMenuAdapter {
     }
 
     @Override
-    public ItemStack getMenuIcon() {
+    public ItemStack getMenuIcon(EditMenuNode node) {
         return new ItemStack(Material.STRUCTURE_BLOCK);
     }
 
     @Override
-    public List<Component> getTooltip() {
+    public List<Component> getTooltip(EditMenuNode node) {
         Component sep = text(": ", DARK_GRAY);
         return List.of(text("Cuboid", LIGHT_PURPLE),
                        text(toString(), GRAY));

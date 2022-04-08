@@ -2,6 +2,7 @@ package com.cavetale.raid;
 
 import com.cavetale.core.editor.EditMenuAdapter;
 import com.cavetale.core.editor.EditMenuButton;
+import com.cavetale.core.editor.EditMenuNode;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
@@ -57,7 +58,7 @@ public final class Place implements ShortInfo, EditMenuAdapter {
     }
 
     @Override
-    public List<EditMenuButton> getEditMenuButtons() {
+    public List<EditMenuButton> getEditMenuButtons(EditMenuNode node) {
         return List.of(new EditMenuButton[] {
                 new EditMenuButton() {
                     @Override
@@ -102,12 +103,12 @@ public final class Place implements ShortInfo, EditMenuAdapter {
     }
 
     @Override
-    public ItemStack getMenuIcon() {
+    public ItemStack getMenuIcon(EditMenuNode node) {
         return new ItemStack(Material.ENDER_PEARL);
     }
 
     @Override
-    public List<Component> getTooltip() {
+    public List<Component> getTooltip(EditMenuNode node) {
         Component sep = text(": ", DARK_GRAY);
         return List.of(text("Place", LIGHT_PURPLE),
                        join(separator(sep), text("x", GRAY), text(String.format("%.2f", x), WHITE)),

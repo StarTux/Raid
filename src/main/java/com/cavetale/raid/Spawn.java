@@ -2,6 +2,7 @@ package com.cavetale.raid;
 
 import com.cavetale.core.editor.EditMenuAdapter;
 import com.cavetale.core.editor.EditMenuItem;
+import com.cavetale.core.editor.EditMenuNode;
 import com.cavetale.enemy.Enemy;
 import com.cavetale.enemy.EnemyType;
 import com.cavetale.mytems.Mytems;
@@ -30,13 +31,17 @@ import static net.kyori.adventure.text.format.NamedTextColor.*;
  * A mob to be spawned in a location.
  */
 final class Spawn implements ShortInfo, EditMenuAdapter {
-    @EditMenuItem(deletable = true)
-    protected EntityType entity;
-    @EditMenuItem(deletable = true)
+    @EditMenuItem(deletable = true,
+                  description = "Spawn custom enemy. Overrides entity and entityType")
     protected EnemyType enemy;
-    @EditMenuItem(deletable = true)
+    @EditMenuItem(deletable = true,
+                  description = "Spawn a regular mob. Overrides entityType")
+    protected EntityType entity;
+    @EditMenuItem(deletable = true,
+                  description = "LEGACY! Use entity or enemy instead!")
     protected String entityType;
-    protected Place place = new Place(0f, 0f, 0f, 0f, 0.0f);
+    @EditMenuItem(description = "Where the mob will spawn")
+    protected Place place = new Place();
     protected int amount = 1;
     @EditMenuItem(deletable = true)
     protected EntityType mount;
@@ -54,6 +59,7 @@ final class Spawn implements ShortInfo, EditMenuAdapter {
     protected boolean powered;
     @EditMenuItem(deletable = true)
     protected Map<Attribute, Double> attributes;
+    @EditMenuItem(description = "Damage and armor will scale with player count and this multiplier")
     protected double scaling = 0.25;
     private static final List<EntityType> ENTITY_TYPES = Stream.of(EntityType.values())
         .filter(e -> e != EntityType.UNKNOWN && Mob.class.isAssignableFrom(e.getEntityClass()))
@@ -136,7 +142,7 @@ final class Spawn implements ShortInfo, EditMenuAdapter {
     }
 
     @Override
-    public ItemStack getMenuIcon() {
+    public ItemStack getMenuIcon(EditMenuNode node) {
         ItemStack result;
         EnemyType enemyType = getEnemyType();
         if (enemyType != null) {
@@ -158,7 +164,7 @@ final class Spawn implements ShortInfo, EditMenuAdapter {
     }
 
     @Override
-    public List<Component> getTooltip() {
+    public List<Component> getTooltip(EditMenuNode node) {
         EnemyType enemyType = getEnemyType();
         EntityType bukkitType = getBukkitType();
         if (enemyType == null && bukkitType == null) return List.of(text("?", DARK_GRAY));
@@ -169,7 +175,7 @@ final class Spawn implements ShortInfo, EditMenuAdapter {
     }
 
     @Override
-    public List<Object> getPossibleValues(String fieldName, int valueIndex) {
+    public List<Object> getPossibleValues(EditMenuNode node, String fieldName, int valueIndex) {
         switch (fieldName) {
         case "entity": return List.copyOf(ENTITY_TYPES);
         default: return null;
@@ -177,7 +183,7 @@ final class Spawn implements ShortInfo, EditMenuAdapter {
     }
 
     @Override
-    public Boolean validateValue(String fieldName, Object newValue, int valueIndex) {
+    public Boolean validateValue(EditMenuNode node, String fieldName, Object newValue, int valueIndex) {
         switch (fieldName) {
         case "amount": return newValue instanceof Integer integer && integer > 0;
         default: return null;

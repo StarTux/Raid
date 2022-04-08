@@ -5,7 +5,7 @@ api-version: 1.18
 description: Turn worlds into raids
 author: StarTux
 website: https://cavetale.com
-depend: [Core, WorldMarker, Mytems, Sidebar, Enemy, WorldEdit, PlayerCache, Fam, BlockClip, Editor]
+depend: [Core, WorldMarker, Mytems, Sidebar, Enemy, WorldEdit, PlayerCache, Fam, BlockClip]
 softdepend: []
 commands:
 

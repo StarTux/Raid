@@ -144,13 +144,5 @@
       <scope>provided</scope>
     </dependency>
 
-    <!-- Editor -->
-    <dependency>
-      <groupId>com.cavetale.editor</groupId>
-      <artifactId>editor</artifactId>
-      <version>0.1-SNAPSHOT</version>
-      <scope>provided</scope>
-    </dependency>
-
   </dependencies>
 </project>

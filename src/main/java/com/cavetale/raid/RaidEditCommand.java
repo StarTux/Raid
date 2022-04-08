@@ -1,9 +1,10 @@
 package com.cavetale.raid;
 
 import com.cavetale.blockclip.BlockClip;
+import com.cavetale.core.editor.EditMenuDelegate;
+import com.cavetale.core.editor.EditMenuNode;
+import com.cavetale.core.editor.Editor;
 import com.cavetale.core.font.DefaultFont;
-import com.cavetale.editor.Editor;
-import com.cavetale.editor.EditContext;
 import com.cavetale.enemy.EnemyType;
 import com.cavetale.raid.struct.Cuboid;
 import com.cavetale.raid.util.Gui;
@@ -1270,10 +1271,10 @@ final class RaidEditCommand implements TabExecutor {
     private boolean editorCommand(Player player, String[] args) throws Wrong {
         if (args.length != 0) return false;
         Instance instance = requireInstance(player);
-        Editor.open(plugin, player, instance.raid, new EditContext() {
+        Editor.get().open(plugin, player, instance.raid, new EditMenuDelegate() {
                 @Override
-                public void save() {
-                    plugin.saveRaid(instance.raid);
+                public Runnable getSaveFunction(EditMenuNode node) {
+                    return () -> plugin.saveRaid(instance.raid);
                 }
             });
         return true;
