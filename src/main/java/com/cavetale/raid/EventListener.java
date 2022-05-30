@@ -1,7 +1,6 @@
 package com.cavetale.raid;
 
 import com.cavetale.core.event.block.PlayerBlockAbilityQuery;
-import com.cavetale.core.event.player.PluginPlayerEvent;
 import com.cavetale.sidebar.PlayerSidebarEvent;
 import com.cavetale.worldmarker.entity.EntityMarker;
 import com.destroystokyo.paper.event.entity.EndermanEscapeEvent;
@@ -521,33 +520,6 @@ final class EventListener implements Listener {
             if (inst != null) {
                 event.setCancelled(true);
             }
-        }
-    }
-
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.LOWEST)
-    void onPluginPlayer(PluginPlayerEvent event) {
-        Player player = event.getPlayer();
-        switch (player.getGameMode()) {
-        case SURVIVAL:
-        case ADVENTURE:
-            break; // proceed
-        case CREATIVE:
-        case SPECTATOR:
-        default:
-            return;
-        }
-        Instance inst = plugin.raidInstance(player.getWorld());
-        if (inst == null || !inst.isRunning()) return;
-        switch (event.getName()) {
-        case START_FLYING:
-            if (event.isCancellable()) event.setCancelled(true);
-            break;
-        case OPEN_STASH:
-            if (event.isCancellable()) event.setCancelled(true);
-            player.sendMessage(Component.text("Stash is locked during raids!", NamedTextColor.RED));
-            break;
-        default:
-            break;
         }
     }
 }

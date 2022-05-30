@@ -158,10 +158,10 @@ final class Instance implements Context {
         List<Player> players = getPlayers();
         updateAttributes(players, true);
         for (Player player : players) {
-            PluginPlayerEvent.Name.RAID_START.ultimate(plugin, player)
+            PluginPlayerEvent.Name.RAID_START.make(plugin, player)
                 .detail(Detail.NAME, name)
                 .detail(Detail.COUNT, bossFighters.size())
-                .call();
+                .callEvent();
         }
     }
 
@@ -737,10 +737,10 @@ final class Instance implements Context {
                                  SoundCategory.MASTER,
                                  1.0f, 1.0f);
                 if (!debug) {
-                    PluginPlayerEvent.Name.RAID_VICTORY.ultimate(plugin, player)
+                    PluginPlayerEvent.Name.RAID_VICTORY.make(plugin, player)
                         .detail(Detail.NAME, name)
                         .detail(Detail.COUNT, bossFighters.size())
-                        .call();
+                        .callEvent();
                 }
             }
             if (!debug) {

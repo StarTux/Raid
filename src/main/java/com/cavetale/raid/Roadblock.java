@@ -1,13 +1,12 @@
 package com.cavetale.raid;
 
-import com.destroystokyo.paper.block.BlockSoundGroup;
 import java.util.function.Consumer;
 import lombok.Data;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Material;
 import org.bukkit.Particle;
-import org.bukkit.SoundCategory;
+import org.bukkit.SoundGroup;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
@@ -61,8 +60,8 @@ public final class Roadblock implements ShortInfo {
                 if (blockData.getMaterial().isEmpty()) {
                     // Break
                     if (effect) {
-                        BlockSoundGroup group = block.getSoundGroup();
-                        world.playSound(block.getLocation(), group.getBreakSound(), SoundCategory.BLOCKS, 1.0f, 1.0f);
+                        SoundGroup group = block.getBlockSoundGroup();
+                        world.playSound(block.getLocation(), group.getBreakSound(), group.getVolume(), group.getPitch());
                         world.spawnParticle(Particle.BLOCK_DUST, block.getLocation(), 8, 0.0, 0.0, 0.0, 0.0, block.getBlockData());
                     }
                     block.setBlockData(blockData);
@@ -70,8 +69,8 @@ public final class Roadblock implements ShortInfo {
                     // Place
                     block.setBlockData(blockData);
                     if (effect) {
-                        BlockSoundGroup group = block.getSoundGroup();
-                        world.playSound(block.getLocation(), group.getPlaceSound(), SoundCategory.BLOCKS, 1.0f, 1.0f);
+                        SoundGroup group = block.getBlockSoundGroup();
+                        world.playSound(block.getLocation(), group.getPlaceSound(), group.getVolume(), group.getPitch());
                     }
                 }
             });
