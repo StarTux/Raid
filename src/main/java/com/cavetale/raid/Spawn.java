@@ -153,8 +153,8 @@ final class Spawn implements ShortInfo, EditMenuAdapter {
         }
         EntityType bukkitType = getBukkitType();
         if (bukkitType != null) {
-            ItemStack egg = Bukkit.getItemFactory().getSpawnEgg(bukkitType);
-            if (egg != null) return egg;
+            Material egg = Bukkit.getItemFactory().getSpawnEgg(bukkitType);
+            if (egg != null) return new ItemStack(egg);
             Glyph glyph = Glyph.toGlyph(bukkitType.toString().toLowerCase().charAt(0));
             return glyph != null
                 ? glyph.mytems.createIcon()

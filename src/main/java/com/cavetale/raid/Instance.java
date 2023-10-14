@@ -6,11 +6,8 @@ import com.cavetale.core.event.player.PluginPlayerEvent;
 import com.cavetale.core.font.DefaultFont;
 import com.cavetale.enemy.Context;
 import com.cavetale.enemy.Enemy;
-import com.cavetale.enemy.EnemyType;
 import com.cavetale.fam.Fam;
 import com.cavetale.mytems.Mytems;
-import com.cavetale.mytems.gear.Equipment;
-import com.cavetale.mytems.item.acula.AculaItemSet;
 import com.cavetale.raid.struct.Cuboid;
 import com.cavetale.raid.struct.Vec3i;
 import com.cavetale.raid.util.Fireworks;
@@ -1423,21 +1420,6 @@ final class Instance implements Context {
 
     public void onDealDamage(Player player, EntityDamageByEntityEvent event) {
         Enemy enemy = Enemy.of(event.getEntity());
-        if (enemy != null) {
-            EnemyType enemyType = EnemyType.of(enemy);
-            if (enemyType != null && Equipment.of(player).hasSetBonus(AculaItemSet.getInstance().getVampiricBonusDamage())) {
-                switch (enemyType) {
-                case VAMPIRE_BAT:
-                case SADISTIC_VAMPIRE:
-                case WICKED_CRONE:
-                case INFERNAL_PHANTASM:
-                    double base = event.getFinalDamage();
-                    event.setDamage(base * 1.5);
-                    player.sendActionBar(Component.text("Vampiric Bonus Damage", NamedTextColor.DARK_RED));
-                default: break;
-                }
-            }
-        }
         if (enemy != null || adds.contains(event.getEntity())) {
             double damage = event.getFinalDamage();
             if (event.getEntity() instanceof Damageable) {
