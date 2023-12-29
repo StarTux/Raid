@@ -1,6 +1,8 @@
 package com.cavetale.raid;
 
 import com.cavetale.blockclip.BlockClip;
+import com.cavetale.core.event.hud.PlayerHudEvent;
+import com.cavetale.core.event.hud.PlayerHudPriority;
 import com.cavetale.core.event.player.PluginPlayerEvent.Detail;
 import com.cavetale.core.event.player.PluginPlayerEvent;
 import com.cavetale.core.font.DefaultFont;
@@ -13,8 +15,6 @@ import com.cavetale.raid.struct.Vec3i;
 import com.cavetale.raid.util.Fireworks;
 import com.cavetale.raid.util.Gui;
 import com.cavetale.raid.util.Text;
-import com.cavetale.sidebar.PlayerSidebarEvent;
-import com.cavetale.sidebar.Priority;
 import java.io.File;
 import java.io.IOException;
 import java.time.Duration;
@@ -1429,7 +1429,7 @@ final class Instance implements Context {
         }
     }
 
-    public void onPlayerSidebar(Player player, PlayerSidebarEvent event) {
+    public void onPlayerHud(Player player, PlayerHudEvent event) {
         List<Component> lines = new ArrayList<>(20);
         lines.add(Component.text(Text.colorize(raid.displayName)));
         if (waveIndex >= 0) {
@@ -1454,7 +1454,7 @@ final class Instance implements Context {
                         }));
             }
         }
-        event.add(plugin, Priority.HIGHEST, lines);
+        event.sidebar(PlayerHudPriority.HIGHEST, lines);
     }
 
     protected void updateAttributes(List<Player> players, boolean announce) {

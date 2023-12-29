@@ -1,7 +1,7 @@
 package com.cavetale.raid;
 
 import com.cavetale.core.event.block.PlayerBlockAbilityQuery;
-import com.cavetale.sidebar.PlayerSidebarEvent;
+import com.cavetale.core.event.hud.PlayerHudEvent;
 import com.cavetale.worldmarker.entity.EntityMarker;
 import com.destroystokyo.paper.event.entity.EndermanEscapeEvent;
 import com.destroystokyo.paper.event.entity.EntityPathfindEvent;
@@ -436,10 +436,10 @@ final class EventListener implements Listener {
     }
 
     @EventHandler
-    void onPlayerSidebar(PlayerSidebarEvent event) {
+    private void onPlayerHud(PlayerHudEvent event) {
         Instance inst = plugin.raidInstance(event.getPlayer().getWorld());
         if (inst == null) return;
-        inst.onPlayerSidebar(event.getPlayer(), event);
+        inst.onPlayerHud(event.getPlayer(), event);
     }
 
     @EventHandler(ignoreCancelled = true)
