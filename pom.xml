@@ -1,6 +1,12 @@
 <project>
   <modelVersion>4.0.0</modelVersion>
 
+  <parent>
+    <groupId>com.cavetale.pom</groupId>
+    <artifactId>cavetale-pom-base</artifactId>
+    <version>0.1-SNAPSHOT</version>
+  </parent>
+
   <groupId>com.cavetale.raid</groupId>
   <artifactId>raid</artifactId>
   <version>0.1-SNAPSHOT</version>
@@ -9,58 +15,12 @@
   <url>https://github.com/StarTux/Raid</url>
   <packaging>jar</packaging>
 
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-  </properties>
-  <build>
-    <finalName>${project.name}</finalName>
-    <plugins>
-
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.2</version>
-        <configuration>
-          <source>17</source>
-          <target>17</target>
-          <showDeprecation>true</showDeprecation>
-          <showWarnings>true</showWarnings>
-          <compilerArgs>
-            <arg>-Xlint:unchecked</arg>
-          </compilerArgs>
-        </configuration>
-      </plugin>
-
-    </plugins>
-  </build>
-  <repositories>
-
-    <!-- Cavetale Repo -->
-    <repository>
-      <id>cavetale</id>
-      <url>https://cavetale.com/jenkins/plugin/repository/everything/</url>
-    </repository>
-
-    <!-- Paper Repo -->
-    <repository>
-      <id>papermc</id>
-      <url>https://papermc.io/repo/repository/maven-public/</url>
-    </repository>
-
-    <!-- WorldEdit Repo -->
-    <repository>
-      <id>worldedit</id>
-      <url>http://maven.enginehub.org/repo/</url>
-    </repository>
-
-  </repositories>
   <dependencies>
 
     <!-- Paper API -->
     <dependency>
       <groupId>io.papermc.paper</groupId>
       <artifactId>paper-api</artifactId>
-      <version>1.20.4-R0.1-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
 
@@ -68,22 +28,13 @@
     <dependency>
       <groupId>org.projectlombok</groupId>
       <artifactId>lombok</artifactId>
-      <version>1.18.20</version>
       <scope>provided</scope>
     </dependency>
 
-    <!-- WorldMarker -->
+    <!-- Core -->
     <dependency>
-      <groupId>com.cavetale.worldmarker</groupId>
-      <artifactId>worldmarker</artifactId>
-      <version>0.1-SNAPSHOT</version>
-      <scope>provided</scope>
-    </dependency>
-
-    <!-- Enemy -->
-    <dependency>
-      <groupId>com.cavetale.enemy</groupId>
-      <artifactId>enemy</artifactId>
+      <groupId>com.cavetale.core</groupId>
+      <artifactId>core</artifactId>
       <version>0.1-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
@@ -96,42 +47,10 @@
       <scope>provided</scope>
     </dependency>
 
-    <!-- Core -->
+    <!-- Creative -->
     <dependency>
-      <groupId>com.cavetale.core</groupId>
-      <artifactId>core</artifactId>
-      <version>0.1-SNAPSHOT</version>
-      <scope>provided</scope>
-    </dependency>
-
-    <!-- PlayerCache -->
-    <dependency>
-      <groupId>com.winthier.playercache</groupId>
-      <artifactId>playercache</artifactId>
-      <version>0.1-SNAPSHOT</version>
-      <scope>provided</scope>
-    </dependency>
-
-    <!-- Fam -->
-    <dependency>
-      <groupId>com.cavetale.fam</groupId>
-      <artifactId>fam</artifactId>
-      <version>0.1-SNAPSHOT</version>
-      <scope>provided</scope>
-    </dependency>
-
-    <!-- WorldEdit -->
-    <dependency>
-      <groupId>com.sk89q.worldedit</groupId>
-      <artifactId>worldedit-bukkit</artifactId>
-      <version>7.3.0-SNAPSHOT</version>
-      <scope>provided</scope>
-    </dependency>
-
-    <!-- BlockClip -->
-    <dependency>
-      <groupId>com.cavetale.blockclip</groupId>
-      <artifactId>blockclip</artifactId>
+      <groupId>com.winthier.creative</groupId>
+      <artifactId>creative</artifactId>
       <version>0.1-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>

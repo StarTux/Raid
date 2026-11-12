@@ -1,12 +1,19 @@
 main: com.cavetale.raid.RaidPlugin
 name: Raid
 version: 0.1
-api-version: '1.20'
+api-version: '26.3'
 description: Turn worlds into raids
 author: StarTux
 website: https://cavetale.com
-depend: [Core, WorldMarker, Mytems, Enemy, WorldEdit, PlayerCache, Fam, BlockClip]
+
+depend:
+
+- Core
+- Mytems
+- Creative
+
 softdepend: []
+
 commands:
 
   raid:
@@ -19,7 +26,6 @@ commands:
     aliases: [redit]
     description: Raid Editor Command
     permission: raid.edit
-    permission-message: You do not have permission!
     usage: /raidedit
 
 permissions:
