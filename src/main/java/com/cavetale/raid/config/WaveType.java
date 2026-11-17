@@ -15,12 +15,14 @@ public enum WaveType {
     ;
 
     private final Function<WaveConfig, WaveTypeConfig> configGetter;
+    private final Function<WaveConfig, WaveTypeConfig> existingConfigGetter;
 
     <T extends WaveTypeConfig> WaveType(
         final Function<WaveConfig, T> getter,
         final BiConsumer<WaveConfig, T> setter,
         final Supplier<T> supplier
     ) {
+        this.existingConfigGetter = getter::apply;
         this.configGetter = waveConfig -> {
             final T current = getter.apply(waveConfig);
             if (current != null) return current;
@@ -32,5 +34,10 @@ public enum WaveType {
 
     public WaveTypeConfig getWaveTypeConfig(final WaveConfig waveConfig) {
         return configGetter.apply(waveConfig);
+    }
+
+    /** Return the stored payload without creating a missing configuration. */
+    public WaveTypeConfig getExistingWaveTypeConfig(final WaveConfig waveConfig) {
+        return existingConfigGetter.apply(waveConfig);
     }
 }

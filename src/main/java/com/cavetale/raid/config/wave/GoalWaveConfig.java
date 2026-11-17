@@ -1,6 +1,7 @@
 package com.cavetale.raid.config.wave;
 
 import com.cavetale.raid.config.LocationConfig;
+import com.cavetale.raid.config.validate.ValidationContext;
 import java.util.List;
 import lombok.Data;
 
@@ -15,5 +16,17 @@ public final class GoalWaveConfig implements WaveTypeConfig {
             new WaveEditField<>("goal", LocationConfig.class, this::getGoal, this::setGoal),
             new WaveEditField<>("range", Integer.class, this::getRange, this::setRange)
         );
+    }
+
+    @Override
+    public void validate(final ValidationContext context) {
+        if (goal == null) context.child("goal").error("Goal location is required");
+        if (range <= 0) context.child("range").error("Must be greater than zero");
+    }
+
+    @Override
+    public void validateDeep(final ValidationContext context) {
+        validate(context);
+        if (goal != null) goal.validateDeep(context.child("goal"));
     }
 }

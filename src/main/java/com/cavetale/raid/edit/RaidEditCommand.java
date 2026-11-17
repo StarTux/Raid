@@ -11,16 +11,21 @@ import com.cavetale.raid.config.RaidConfigFolder;
 import com.cavetale.raid.config.RaidConfigs;
 import com.cavetale.raid.config.WaveConfig;
 import com.cavetale.raid.config.WaveType;
+import com.cavetale.raid.config.validate.ConfigIssue;
+import com.cavetale.raid.config.validate.ConfigValidation;
+import com.cavetale.raid.config.validate.ValidationContext;
 import com.cavetale.raid.config.wave.WaveEditField;
 import com.cavetale.raid.config.wave.WaveEditList;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import static net.kyori.adventure.text.Component.text;
 import static net.kyori.adventure.text.Component.textOfChildren;
@@ -48,6 +53,9 @@ public final class RaidEditCommand extends AbstractCommand<RaidPlugin> {
         rootNode.addChild("save")
             .description("Save the selected raid to disk")
             .playerCaller(this::save);
+        rootNode.addChild("validate")
+            .description("Check the selected raid for configuration issues")
+            .playerCaller(this::validate);
         final CommandNode waveNode = rootNode.addChild("wave")
             .description("Wave commands");
         waveNode.addChild("setint").arguments("<field> <value>")
@@ -162,6 +170,40 @@ public final class RaidEditCommand extends AbstractCommand<RaidPlugin> {
         return true;
     }
 
+    private boolean validate(final Player player, final String[] args) {
+        if (args.length != 0) return false;
+        final List<ConfigIssue> issues = Editor.of(player).requireCurrentRaid().validate();
+        if (issues.isEmpty()) {
+            player.sendMessage(text("Raid validation passed.", GREEN));
+        } else {
+            player.sendMessage(text("Raid validation found " + issues.size() + " issue(s):", YELLOW));
+            sendValidationIssues(player, issues);
+        }
+        return true;
+    }
+
+    /** Warn about local problems after applying an edit, without rejecting it. */
+    private void validateWaveEdit(final Player player, final WaveConfig wave, final String fieldName, final Object value) {
+        final Editor editor = Editor.of(player);
+        final ValidationContext context = new ValidationContext(editor.requireCurrentRaid())
+            .child("waves").child(editor.getCurrentWavesName()).index(editor.getCurrentWaveIndex())
+            .child(wave.getType().name().toLowerCase(Locale.ROOT));
+        wave.getWaveTypeConfig().validate(context);
+        if (value instanceof ConfigValidation validation) {
+            validation.validateDeep(context.child(fieldName));
+        }
+        sendValidationIssues(player, context.getIssues());
+    }
+
+    private void sendValidationIssues(final Player player, final List<ConfigIssue> issues) {
+        for (final ConfigIssue issue : issues) {
+            player.sendMessage(textOfChildren(
+                    text("Warning: ", YELLOW), text(issue.getPath(), GRAY), text(": ", GRAY),
+                    text(issue.getMessage(), YELLOW)
+                ));
+        }
+    }
+
     private boolean waveSetInt(final Player player, final String[] args) {
         if (args.length != 2) return false;
         final WaveConfig wave = Editor.of(player).requireCurrentWave();
@@ -169,6 +211,7 @@ public final class RaidEditCommand extends AbstractCommand<RaidPlugin> {
         final int value = CommandArgCompleter.requireInt(args[1]);
         setWaveField(field, value);
         sendWaveValue(player, field.getName(), value);
+        validateWaveEdit(player, wave, field.getName(), value);
         return true;
     }
 
@@ -178,20 +221,8 @@ public final class RaidEditCommand extends AbstractCommand<RaidPlugin> {
         final WaveConfig wave = editor.requireCurrentWave();
         final WaveEditField<?> field = requireWaveField(wave, args[0], LocationConfig.class);
         final Location location = player.getLocation();
-        final List<String> worldNames = new ArrayList<>();
-        for (Map.Entry<String, String> entry : editor.requireCurrentRaid().getBuildWorlds().entrySet()) {
-            if (entry.getValue().equals(location.getWorld().getName())) {
-                worldNames.add(entry.getKey());
-            }
-        }
-        if (worldNames.isEmpty()) {
-            throw new CommandWarn("Your current world is not part of the selected raid!");
-        }
-        if (worldNames.size() != 1) {
-            throw new CommandWarn("Your current world has multiple raid names: " + String.join(", ", worldNames));
-        }
         final LocationConfig value = new LocationConfig();
-        value.setWorldName(worldNames.get(0));
+        value.setWorldName(requireRaidWorldName(location.getWorld(), editor.requireCurrentRaid()));
         value.setX(location.getX());
         value.setY(location.getY());
         value.setZ(location.getZ());
@@ -199,7 +230,24 @@ public final class RaidEditCommand extends AbstractCommand<RaidPlugin> {
         value.setPitch(location.getPitch());
         setWaveField(field, value);
         sendWaveValue(player, field.getName(), value);
+        validateWaveEdit(player, wave, field.getName(), value);
         return true;
+    }
+
+    private String requireRaidWorldName(World world, RaidConfig raidConfig) {
+        final List<String> worldNames = new ArrayList<>();
+        for (Map.Entry<String, String> entry : raidConfig.getBuildWorlds().entrySet()) {
+            if (entry.getValue().equals(world.getName())) {
+                worldNames.add(entry.getKey());
+            }
+        }
+        if (worldNames.isEmpty()) {
+            throw new CommandWarn("This world is not part of the selected raid!");
+        }
+        if (worldNames.size() != 1) {
+            throw new CommandWarn("This world has multiple raid names: " + String.join(", ", worldNames));
+        }
+        return worldNames.get(0);
     }
 
     private WaveEditField<?> requireWaveField(final WaveConfig wave, final String name, final Class<?> type) {
@@ -333,6 +381,7 @@ public final class RaidEditCommand extends AbstractCommand<RaidPlugin> {
         final WaveType waveType = CommandArgCompleter.requireEnum(WaveType.class, args[0]);
         final WaveConfig waveConfig = new WaveConfig();
         waveConfig.setType(waveType);
+        waveConfig.getWaveTypeConfig();
         final Editor editor = Editor.of(player);
         final List<WaveConfig> waveList = editor.requireCurrentWaveList();
         waveList.add(waveConfig);

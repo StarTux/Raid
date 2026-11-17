@@ -1,9 +1,10 @@
 package com.cavetale.raid.config.wave;
 
+import com.cavetale.raid.config.validate.ConfigValidation;
 import java.io.Serializable;
 import java.util.List;
 
-public interface WaveTypeConfig extends Serializable {
+public interface WaveTypeConfig extends Serializable, ConfigValidation {
     /**
      * Return all editable scalar fields of this configuration.
      * Implementations must include inherited fields when overriding this method.
