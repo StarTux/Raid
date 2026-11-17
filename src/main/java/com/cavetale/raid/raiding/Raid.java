@@ -30,19 +30,32 @@ public final class Raid {
         return Raiding.getInstance().getRaids().getRaid(raidName);
     }
 
-    public void enable(Runnable callback) {
-        worlds.load(config.getBuildWorlds(), () -> {
-                for (Map.Entry<String, ArrayList<WaveConfig>> entry : config.getWaves().entrySet()) {
-                    waveProcessors.add(new WaveProcessor(this, entry.getKey(), entry.getValue()));
-                }
-                waveProcessors.forEach(WaveProcessor::enable);
-                enabled = true;
-            });
+    public void enable() {
+        if (config.getBuildWorlds().isEmpty()) {
+            error("Build worlds are empty!");
+            disable();
+            return;
+        }
+        if (!worlds.load(config.getBuildWorlds())) {
+            disable();
+        }
+    }
+
+    /**
+     * This is called by RaidWorlds.load() once all worlds are loaded.
+     */
+    public void worldsDidLoad() {
+        for (Map.Entry<String, ArrayList<WaveConfig>> entry : config.getWaves().entrySet()) {
+            waveProcessors.add(new WaveProcessor(this, entry.getKey(), entry.getValue()));
+        }
+        waveProcessors.forEach(WaveProcessor::enable);
+        enabled = true;
     }
 
     public void disable() {
         if (disabled) return;
         disabled = true;
+        enabled = false;
         worlds.clear();
     }
 

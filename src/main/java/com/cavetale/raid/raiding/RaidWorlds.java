@@ -2,7 +2,7 @@ package com.cavetale.raid.raiding;
 
 import com.cavetale.raid.config.LocationConfig;
 import com.winthier.creative.BuildWorld;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.Location;
@@ -22,27 +22,45 @@ import org.bukkit.World;
 @RequiredArgsConstructor
 public final class RaidWorlds {
     private final Raid raid;
-    private final Map<String, RaidWorld> nameMap = new HashMap<>();
+    private final Map<String, RaidWorld> nameMap = new LinkedHashMap<>();
+    private int totalWorldCount;
 
-    public void load(final Map<String, String> pathMap, final Runnable callback) {
-        pathMap.forEach(
-            (name, path) -> {
-                final BuildWorld buildWorld = BuildWorld.findWithPath(path);
-                if (buildWorld == null) {
-                    throw new IllegalStateException("BuildWorld not found: " + path);
-                }
-                buildWorld.makeLocalCopyAsync(
-                    world -> {
-                        raid.log("World loaded: '" + name + "' path:'" + buildWorld.getPath() + "' world:'" + world.getName() + "'");
-                        final RaidWorld raidWorld = new RaidWorld(name, buildWorld, world);
-                        nameMap.put(name, raidWorld);
-                        if (nameMap.size() == pathMap.size()) {
-                            callback.run();
-                        }
-                    }
-                );
+    public boolean load(final Map<String, String> pathMap) {
+        totalWorldCount = pathMap.size();
+        final Map<String, BuildWorld> buildWorldMap = new LinkedHashMap<>();
+        for (Map.Entry<String, String> entry : pathMap.entrySet()) {
+            final String name = entry.getKey();
+            final String path = entry.getValue();
+            final BuildWorld buildWorld = BuildWorld.findWithPath(path);
+            if (buildWorld == null) {
+                raid.error("BuildWorld not found: " + path);
+                return false;
             }
-        );
+            buildWorldMap.put(name, buildWorld);
+        }
+        buildWorldMap.forEach((name, buildWorld) -> buildWorld.makeLocalCopyAsync(world -> worldDidLoad(name, buildWorld, world)));
+        return true;
+    }
+
+    /**
+     * The callback for load() when a single world finished loading.
+     */
+    private void worldDidLoad(final String name, final BuildWorld buildWorld, final World world) {
+        if (world == null) {
+            raid.error("World loading filed: '" + name + "' path:'" + buildWorld.getPath());
+            raid.disable();
+            return;
+        }
+        raid.log("World loaded: '" + name + "' path:'" + buildWorld.getPath() + "' world:'" + world.getName() + "'");
+        final RaidWorld raidWorld = new RaidWorld(name, buildWorld, world);
+        if (raid.isDisabled()) {
+            raidWorld.delete();
+            return;
+        }
+        nameMap.put(name, raidWorld);
+        if (nameMap.size() == totalWorldCount) {
+            raid.worldsDidLoad();
+        }
     }
 
     public void clear() {
