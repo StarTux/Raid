@@ -4,6 +4,7 @@ import com.cavetale.core.command.AbstractCommand;
 import com.cavetale.core.command.CommandArgCompleter;
 import com.cavetale.core.command.CommandNode;
 import com.cavetale.core.command.CommandWarn;
+import com.cavetale.core.connect.NetworkServer;
 import com.cavetale.raid.RaidPlugin;
 import com.cavetale.raid.config.LocationConfig;
 import com.cavetale.raid.config.RaidConfig;
@@ -16,14 +17,18 @@ import com.cavetale.raid.config.validate.ConfigValidation;
 import com.cavetale.raid.config.validate.ValidationContext;
 import com.cavetale.raid.config.wave.WaveEditField;
 import com.cavetale.raid.config.wave.WaveEditList;
+import com.winthier.creative.BuildWorld;
+import com.winthier.creative.BuildWorldPurpose;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.regex.Pattern;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -32,6 +37,9 @@ import static net.kyori.adventure.text.Component.textOfChildren;
 import static net.kyori.adventure.text.format.NamedTextColor.*;
 
 public final class RaidEditCommand extends AbstractCommand<RaidPlugin> {
+    /** Shared syntax for raid names, logical world names, and wave list names. */
+    private static final Pattern NAME_PATTERN = Pattern.compile("[a-z0-9_]+");
+    private static final Pattern WAVE_INDEX_PATTERN = Pattern.compile("[0-9]+");
 
     public RaidEditCommand(final RaidPlugin plugin) {
         super(plugin, "raidedit");
@@ -47,6 +55,17 @@ public final class RaidEditCommand extends AbstractCommand<RaidPlugin> {
             .description("Select a raid for editing")
             .completers(CommandArgCompleter.supplyList(() -> RaidConfigs.getInstance().getAllRaidNames()))
             .playerCaller(this::select);
+        rootNode.addChild("setworld").arguments("<name> <path>")
+            .description("Add or replace a world mapping")
+            .completers(
+                CommandArgCompleter.producePlayerList(this::getRaidWorldNames),
+                CommandArgCompleter.supplyList(() -> getWorldPaths())
+            )
+            .playerCaller(this::setWorld);
+        rootNode.addChild("rmworld").arguments("<name>")
+            .description("Remove a world mapping")
+            .completers(CommandArgCompleter.producePlayerList(this::getRaidWorldNames))
+            .playerCaller(this::removeWorld);
         rootNode.addChild("info")
             .description("Show the selected raid")
             .playerCaller(this::info);
@@ -91,7 +110,7 @@ public final class RaidEditCommand extends AbstractCommand<RaidPlugin> {
     private boolean create(final Player player, final String[] args) {
         if (args.length != 1) return false;
         final String raidName = args[0];
-        if (!raidName.matches("[a-z0-9_]+")) {
+        if (!NAME_PATTERN.matcher(raidName).matches()) {
             throw new CommandWarn("Illegal raid name: '" + raidName + "', must be lower cased, alphanumeric, underscores allowed!");
         }
         if (RaidConfig.named(raidName) != null) {
@@ -128,6 +147,74 @@ public final class RaidEditCommand extends AbstractCommand<RaidPlugin> {
             ).color(GREEN)
         );
         return true;
+    }
+
+    private boolean setWorld(final Player player, final String[] args) {
+        if (args.length != 2) return false;
+        final RaidConfig raidConfig = Editor.of(player).requireCurrentRaid();
+        final String name = args[0];
+        if (!NAME_PATTERN.matcher(name).matches()) {
+            throw new CommandWarn("Illegal world name: '" + name + "', must be lower cased, alphanumeric, underscores allowed!");
+        }
+        final String path = requireWorldPath(args[1]);
+        raidConfig.getBuildWorlds().put(name, path);
+        player.sendMessage(
+            textOfChildren(
+                text("World mapping set: "),
+                text(name, WHITE),
+                text(" -> "),
+                text(path, WHITE)
+            ).color(GREEN)
+        );
+        sendValidationIssues(player, raidConfig.validate());
+        return true;
+    }
+
+    private String requireWorldPath(final String path) {
+        if (path.isBlank()) throw new CommandWarn("World path is required!");
+        if (!NetworkServer.CREATIVE.isThisServer()) return path;
+        final BuildWorld buildWorld = BuildWorld.findWithPath(path);
+        if (buildWorld == null) throw new CommandWarn("BuildWorld not found: " + path);
+        if (buildWorld.getRow().parsePurpose() != BuildWorldPurpose.RAID) {
+            throw new CommandWarn("BuildWorld purpose must be Raid: " + path);
+        }
+        return buildWorld.getPath();
+    }
+
+    private boolean removeWorld(final Player player, final String[] args) {
+        if (args.length != 1) return false;
+        final RaidConfig raidConfig = Editor.of(player).requireCurrentRaid();
+        final String name = args[0];
+        if (!raidConfig.getBuildWorlds().containsKey(name)) {
+            throw new CommandWarn("World mapping not found: " + name);
+        }
+        raidConfig.getBuildWorlds().remove(name);
+        player.sendMessage(
+            textOfChildren(
+                text("World mapping removed: "),
+                text(name, WHITE)
+            ).color(GREEN)
+        );
+        sendValidationIssues(player, raidConfig.validate());
+        return true;
+    }
+
+    private List<String> getRaidWorldNames(final Player player) {
+        final RaidConfig raidConfig = Editor.of(player).getCurrentRaid();
+        if (raidConfig == null || raidConfig.getBuildWorlds() == null) return List.of();
+        return List.copyOf(raidConfig.getBuildWorlds().keySet());
+    }
+
+    private List<String> getWorldPaths() {
+        final List<String> result = new ArrayList<>();
+        if (NetworkServer.CREATIVE.isThisServer()) {
+            for (final BuildWorld buildWorld : BuildWorld.findPurposeWorlds(BuildWorldPurpose.RAID, false)) {
+                result.add(buildWorld.getPath());
+            }
+        } else {
+            for (final World world : Bukkit.getWorlds()) result.add(world.getName());
+        }
+        return result;
     }
 
     private boolean info(final Player player, final String[] args) {
@@ -358,7 +445,7 @@ public final class RaidEditCommand extends AbstractCommand<RaidPlugin> {
         final Editor editor = Editor.of(player);
         final RaidConfig raidConfig = editor.requireCurrentRaid();
         final String wavesName = args[0];
-        if (!wavesName.matches("[a-z0-9_]+")) {
+        if (!NAME_PATTERN.matcher(wavesName).matches()) {
             throw new CommandWarn("Illegal wave list name: '" + wavesName + "', must be lower cased, alphanumeric, underscores allowed!");
         }
         if (raidConfig.getWaves().containsKey(wavesName)) {
@@ -417,7 +504,7 @@ public final class RaidEditCommand extends AbstractCommand<RaidPlugin> {
             return true;
         }
         final int waveIndex;
-        if (waveIndexName.matches("[0-9]+")) {
+        if (WAVE_INDEX_PATTERN.matcher(waveIndexName).matches()) {
             try {
                 waveIndex = Integer.parseInt(waveIndexName);
             } catch (NumberFormatException exception) {
