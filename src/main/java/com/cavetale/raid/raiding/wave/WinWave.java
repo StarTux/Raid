@@ -1,12 +1,12 @@
 package com.cavetale.raid.raiding.wave;
 
-import com.cavetale.raid.config.WaveConfig.WinConfig;
 import com.cavetale.raid.config.WaveType;
+import com.cavetale.raid.config.wave.WinWaveConfig;
 
 public final class WinWave extends AbstractWave {
-    private final WinConfig config;
+    private final WinWaveConfig config;
 
-    public WinWave(final WinConfig config) {
+    public WinWave(final WinWaveConfig config) {
         super(WaveType.WIN);
         this.config = config;
     }

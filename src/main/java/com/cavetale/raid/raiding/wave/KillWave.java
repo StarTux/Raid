@@ -1,12 +1,12 @@
 package com.cavetale.raid.raiding.wave;
 
-import com.cavetale.raid.config.WaveConfig.KillConfig;
 import com.cavetale.raid.config.WaveType;
+import com.cavetale.raid.config.wave.KillWaveConfig;
 
 public final class KillWave extends AbstractWave {
-    private final KillConfig config;
+    private final KillWaveConfig config;
 
-    public KillWave(final KillConfig config) {
+    public KillWave(final KillWaveConfig config) {
         super(WaveType.KILL);
         this.config = config;
     }
