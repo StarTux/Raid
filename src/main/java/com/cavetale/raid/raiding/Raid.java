@@ -3,9 +3,11 @@ package com.cavetale.raid.raiding;
 import com.cavetale.raid.RaidPlugin;
 import com.cavetale.raid.config.RaidConfig;
 import com.cavetale.raid.config.WaveConfig;
+import com.cavetale.raid.config.validate.ConfigIssue;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.entity.Player;
@@ -23,6 +25,8 @@ public final class Raid {
     private final RaidWorlds worlds = new RaidWorlds(this);
     private final List<WaveProcessor> waveProcessors = new ArrayList<>();
 
+    private WaveProcessor victoryProcessor;
+    private boolean hadPlayersInside;
     private boolean enabled;
     private boolean disabled;
 
@@ -31,8 +35,9 @@ public final class Raid {
     }
 
     public void enable() {
-        if (config.getBuildWorlds().isEmpty()) {
-            error("Build worlds are empty!");
+        final List<ConfigIssue> issues = config.validate();
+        if (!issues.isEmpty()) {
+            for (final ConfigIssue issue : issues) error(issue.getPath() + ": " + issue.getMessage());
             disable();
             return;
         }
@@ -56,11 +61,30 @@ public final class Raid {
         if (disabled) return;
         disabled = true;
         enabled = false;
+        waveProcessors.forEach(WaveProcessor::disable);
+        getRaiders().forEach(this::kickPlayer);
         worlds.clear();
     }
 
     public List<Raider> getRaiders() {
         return Raiders.getInstance().getRaiders(this);
+    }
+
+    public void addRaider(UUID uuid) {
+        Raider.of(uuid).setCurrentRaidName(name);
+    }
+
+    public void addRaider(Player player) {
+        Raider.of(player).setCurrentRaidName(name);
+    }
+
+    public void kickPlayer(final Raider raider) {
+        if (!name.equals(raider.getCurrentRaidName())) return;
+        raider.setCurrentRaidName(null);
+        final Player player = raider.getPlayer();
+        if (player != null && player.isOnline() && worlds.containsWorld(player.getWorld())) {
+            RaidPlugin.getInstance().getLobby().bringPlayer(player);
+        }
     }
 
     public void log(String message) {
@@ -75,11 +99,29 @@ public final class Raid {
         RaidPlugin.getInstance().getLogger().severe("[" + name + "] " + message);
     }
 
-    public void tick() {
-        if (!enabled) return;
-        waveProcessors.forEach(WaveProcessor::tick);
+    public void markVictory(final WaveProcessor processor) {
+        victoryProcessor = processor;
     }
 
-    public void bring(Player player) {
+    public void tick() {
+        if (!enabled) return;
+        if (victoryProcessor != null) {
+            victoryProcessor.tick();
+            return;
+        }
+        final boolean occupied = getRaiders().stream()
+            .filter(raider -> !raider.isFallen())
+            .map(Raider::getPlayer)
+            .anyMatch(player -> player != null && player.isOnline() && !player.isDead() && worlds.containsWorld(player.getWorld()));
+        if (occupied) {
+            hadPlayersInside = true;
+        } else if (hadPlayersInside || waveProcessors.stream().noneMatch(WaveProcessor::isAdmittingPlayers)) {
+            disable();
+            return;
+        }
+        for (final WaveProcessor processor : waveProcessors) {
+            processor.tick();
+            if (victoryProcessor != null || disabled) return;
+        }
     }
 }

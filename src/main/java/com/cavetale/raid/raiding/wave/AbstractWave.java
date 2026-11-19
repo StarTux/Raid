@@ -6,6 +6,6 @@ import lombok.Data;
 @Data
 public abstract class AbstractWave implements Wave {
     private final WaveType type;
-
     private String label;
+    private boolean finished;
 }

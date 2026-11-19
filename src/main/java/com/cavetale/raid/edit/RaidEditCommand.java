@@ -7,6 +7,7 @@ import com.cavetale.core.command.CommandWarn;
 import com.cavetale.core.connect.NetworkServer;
 import com.cavetale.raid.RaidPlugin;
 import com.cavetale.raid.config.LocationConfig;
+import com.cavetale.raid.config.MobSpawnConfig;
 import com.cavetale.raid.config.RaidConfig;
 import com.cavetale.raid.config.RaidConfigFolder;
 import com.cavetale.raid.config.RaidConfigs;
@@ -30,11 +31,14 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Registry;
 import org.bukkit.World;
+import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import static net.kyori.adventure.text.Component.text;
 import static net.kyori.adventure.text.Component.textOfChildren;
 import static net.kyori.adventure.text.format.NamedTextColor.*;
+import static net.kyori.adventure.text.format.TextDecoration.BOLD;
 
 public final class RaidEditCommand extends AbstractCommand<RaidPlugin> {
     /** Shared syntax for raid names, logical world names, and wave list names. */
@@ -55,6 +59,9 @@ public final class RaidEditCommand extends AbstractCommand<RaidPlugin> {
             .description("Select a raid for editing")
             .completers(CommandArgCompleter.supplyList(() -> RaidConfigs.getInstance().getAllRaidNames()))
             .playerCaller(this::select);
+        rootNode.addChild("displayname").arguments("<name...>")
+            .description("Set the selected raid's display name with MiniMessage formatting")
+            .playerCaller(this::displayName);
         rootNode.addChild("setworld").arguments("<name> <path>")
             .description("Add or replace a world mapping")
             .completers(
@@ -77,6 +84,35 @@ public final class RaidEditCommand extends AbstractCommand<RaidPlugin> {
             .playerCaller(this::validate);
         final CommandNode waveNode = rootNode.addChild("wave")
             .description("Wave commands");
+        waveNode.addChild("addlocation").arguments("<list>")
+            .description("Append your location to a wave list")
+            .completers(CommandArgCompleter.producePlayerList(player -> editLists(player).stream()
+                        .filter(list -> list.getType() == LocationConfig.class).map(WaveEditList::getName).toList()))
+            .playerCaller(this::waveAddLocation);
+        waveNode.addChild("addmob").arguments("<list> <mob>")
+            .description("Add a mob spawn at your location")
+            .completers(
+                CommandArgCompleter.producePlayerList(player -> editLists(player).stream()
+                    .filter(list -> list.getType() == MobSpawnConfig.class).map(WaveEditList::getName).toList()),
+                CommandArgCompleter.supplyStream(() -> Registry.ENTITY_TYPE.stream()
+                    .filter(type -> type.isSpawnable() && type.getEntityClass() != null && Mob.class.isAssignableFrom(type.getEntityClass()))
+                    .map(type -> type.getKey().toString()))
+            )
+            .playerCaller(this::waveAddMob);
+        waveNode.addChild("remove").arguments("<list> <index>")
+            .description("Remove a list entry")
+            .completers(
+                CommandArgCompleter.producePlayerList(player -> editLists(player).stream().map(WaveEditList::getName).toList()),
+                CommandArgCompleter.producePlayerList((player, args) -> {
+                        for (final WaveEditList<?> list : editLists(player)) {
+                            if (!list.getName().equals(args[0])) continue;
+                            final List<?> entries = list.getGetter().get();
+                            if (entries != null) return java.util.stream.IntStream.range(0, entries.size()).mapToObj(Integer::toString).toList();
+                        }
+                        return List.of();
+                    })
+            )
+            .playerCaller(this::waveRemove);
         waveNode.addChild("setint").arguments("<field> <value>")
             .description("Set an integer field of the selected wave")
             .completers(
@@ -118,6 +154,7 @@ public final class RaidEditCommand extends AbstractCommand<RaidPlugin> {
         }
         final RaidConfig raidConfig = new RaidConfig();
         final String mainWorld = player.getWorld().getName();
+        raidConfig.setName(raidName);
         raidConfig.getBuildWorlds().put(RaidConfig.MAIN_WORLD, mainWorld);
         raidConfig.getWaves().put(RaidConfig.MAIN_WAVE, new ArrayList<>());
         RaidConfigs.getInstance().addRaidConfig(raidName, raidConfig);
@@ -144,6 +181,19 @@ public final class RaidEditCommand extends AbstractCommand<RaidPlugin> {
             textOfChildren(
                 text("Raid selected: "),
                 text(raidName, WHITE)
+            ).color(GREEN)
+        );
+        return true;
+    }
+
+    private boolean displayName(final Player player, final String[] args) {
+        if (args.length == 0) return false;
+        final RaidConfig raidConfig = Editor.of(player).requireCurrentRaid();
+        raidConfig.setDisplayName(String.join(" ", args));
+        player.sendMessage(
+            textOfChildren(
+                text("Raid display name set: "),
+                raidConfig.getDisplayNameComponent()
             ).color(GREEN)
         );
         return true;
@@ -221,24 +271,41 @@ public final class RaidEditCommand extends AbstractCommand<RaidPlugin> {
         if (args.length != 0) return false;
         final Editor editor = Editor.of(player);
         final RaidConfig raidConfig = editor.requireCurrentRaid();
-        player.sendMessage(textOfChildren(
-                text("Raid: "), text(editor.getCurrentRaidName(), WHITE)
-            ).color(GREEN));
+        player.sendMessage(
+            textOfChildren(
+                text("Raid: ", GREEN, BOLD),
+                raidConfig.getDisplayNameComponent()
+            ).color(WHITE)
+        );
         player.sendMessage(text("World mappings (" + raidConfig.getBuildWorlds().size() + "):", GREEN));
         for (Map.Entry<String, String> entry : raidConfig.getBuildWorlds().entrySet()) {
-            player.sendMessage(textOfChildren(
-                    text(" | "), text(entry.getKey()), text(" -> "), text(entry.getValue(), WHITE)
-                ).color(GRAY));
+            player.sendMessage(
+                textOfChildren(
+                    text(" | "),
+                    text(entry.getKey()),
+                    text(" -> "),
+                    text(entry.getValue(), WHITE)
+                ).color(GRAY)
+            );
         }
         player.sendMessage(text("Wave lists (" + raidConfig.getWaves().size() + "):", GREEN));
         for (Map.Entry<String, ArrayList<WaveConfig>> entry : raidConfig.getWaves().entrySet()) {
-            player.sendMessage(textOfChildren(
-                    text(" | "), text(entry.getKey()), text(": "), text(entry.getValue().size(), WHITE), text(" waves")
-                ).color(GRAY));
+            player.sendMessage(
+                textOfChildren(
+                    text(" | "),
+                    text(entry.getKey()),
+                    text(": "),
+                    text(entry.getValue().size(), WHITE),
+                    text(" waves")
+                ).color(GRAY)
+            );
         }
-        player.sendMessage(textOfChildren(
-                text("Areas: "), text(raidConfig.getAreas().size(), WHITE)
-            ).color(GREEN));
+        player.sendMessage(
+            textOfChildren(
+                text("Areas: "),
+                text(raidConfig.getAreas().size(), WHITE)
+            ).color(GREEN)
+        );
         return true;
     }
 
@@ -307,6 +374,14 @@ public final class RaidEditCommand extends AbstractCommand<RaidPlugin> {
         final Editor editor = Editor.of(player);
         final WaveConfig wave = editor.requireCurrentWave();
         final WaveEditField<?> field = requireWaveField(wave, args[0], LocationConfig.class);
+        final LocationConfig value = captureLocation(player, editor);
+        setWaveField(field, value);
+        sendWaveValue(player, field.getName(), value);
+        validateWaveEdit(player, wave, field.getName(), value);
+        return true;
+    }
+
+    private LocationConfig captureLocation(final Player player, final Editor editor) {
         final Location location = player.getLocation();
         final LocationConfig value = new LocationConfig();
         value.setWorldName(requireRaidWorldName(location.getWorld(), editor.requireCurrentRaid()));
@@ -315,10 +390,77 @@ public final class RaidEditCommand extends AbstractCommand<RaidPlugin> {
         value.setZ(location.getZ());
         value.setYaw(location.getYaw());
         value.setPitch(location.getPitch());
-        setWaveField(field, value);
-        sendWaveValue(player, field.getName(), value);
-        validateWaveEdit(player, wave, field.getName(), value);
+        return value;
+    }
+
+    private List<WaveEditList<?>> editLists(final Player player) {
+        final WaveConfig wave = Editor.of(player).getCurrentWave();
+        return wave == null ? List.of() : wave.getWaveTypeConfig().getEditLists();
+    }
+
+    private WaveEditList<?> requireList(final WaveConfig wave, final String name) {
+        for (final WaveEditList<?> list : wave.getWaveTypeConfig().getEditLists()) {
+            if (list.getName().equals(name)) return list;
+        }
+        throw new CommandWarn("Wave list field not found: " + name);
+    }
+
+    private boolean waveAddLocation(final Player player, final String[] args) {
+        if (args.length != 1) return false;
+        final Editor editor = Editor.of(player);
+        final WaveConfig wave = editor.requireCurrentWave();
+        final WaveEditList<?> list = requireList(wave, args[0]);
+        if (list.getType() != LocationConfig.class) throw new CommandWarn("Expected a location list");
+        final LocationConfig location = captureLocation(player, editor);
+        final int index = appendEntry(list, location);
+        final String path = list.getName() + "[" + index + "]";
+        sendWaveValue(player, path, location);
+        validateWaveEdit(player, wave, path, location);
         return true;
+    }
+
+    private boolean waveAddMob(final Player player, final String[] args) {
+        if (args.length != 2) return false;
+        final Editor editor = Editor.of(player);
+        final WaveConfig wave = editor.requireCurrentWave();
+        final WaveEditList<?> list = requireList(wave, args[0]);
+        if (list.getType() != MobSpawnConfig.class) throw new CommandWarn("Expected a mob spawn list");
+        final MobSpawnConfig spawn = new MobSpawnConfig();
+        spawn.setLocation(captureLocation(player, editor));
+        spawn.setMob(args[1]);
+        if (org.bukkit.NamespacedKey.fromString(args[1]) == null) throw new CommandWarn("Invalid mob key: " + args[1]);
+        final int index = appendEntry(list, spawn);
+        final String path = list.getName() + "[" + index + "]";
+        sendWaveValue(player, path, spawn);
+        validateWaveEdit(player, wave, path, spawn);
+        return true;
+    }
+
+    private <T> int appendEntry(final WaveEditList<T> list, final Object value) {
+        final List<T> current = list.getGetter().get();
+        final List<T> entries = current == null ? new ArrayList<>() : new ArrayList<>(current);
+        entries.add(list.getType().cast(value));
+        list.getSetter().accept(entries);
+        return entries.size() - 1;
+    }
+
+    private boolean waveRemove(final Player player, final String[] args) {
+        if (args.length != 2) return false;
+        final WaveConfig wave = Editor.of(player).requireCurrentWave();
+        final WaveEditList<?> list = requireList(wave, args[0]);
+        final int index = CommandArgCompleter.requireInt(args[1]);
+        removeEntry(list, index);
+        player.sendMessage(text("Removed " + list.getName() + "[" + index + "]", GREEN));
+        validateWaveEdit(player, wave, list.getName(), null);
+        return true;
+    }
+
+    private <T> void removeEntry(final WaveEditList<T> list, final int index) {
+        final List<T> current = list.getGetter().get();
+        if (current == null || index < 0 || index >= current.size()) throw new CommandWarn("Index out of range: " + index);
+        final List<T> entries = new ArrayList<>(current);
+        entries.remove(index);
+        list.getSetter().accept(entries);
     }
 
     private String requireRaidWorldName(World world, RaidConfig raidConfig) {
@@ -393,7 +535,14 @@ public final class RaidEditCommand extends AbstractCommand<RaidPlugin> {
             sendWaveValue(player, field.getName(), field.getGetter().get());
         }
         for (WaveEditList<?> list : wave.getWaveTypeConfig().getEditLists()) {
-            sendWaveValue(player, list.getName(), list.getGetter().get());
+            final List<?> entries = list.getGetter().get();
+            if (entries == null || entries.isEmpty()) {
+                sendWaveValue(player, list.getName(), entries);
+            } else {
+                for (int i = 0; i < entries.size(); i++) {
+                    sendWaveValue(player, list.getName() + "[" + i + "]", entries.get(i));
+                }
+            }
         }
         return true;
     }
@@ -410,6 +559,13 @@ public final class RaidEditCommand extends AbstractCommand<RaidPlugin> {
 
     private Component formatWaveValue(final Object value) {
         if (value == null) return text("(unset)", DARK_GRAY);
+        if (value instanceof MobSpawnConfig spawn) {
+            return textOfChildren(
+                formatWaveValue(spawn.getMob()),
+                text(" at ", GRAY),
+                formatWaveValue(spawn.getLocation())
+            );
+        }
         if (value instanceof LocationConfig location) {
             final DecimalFormat numberFormat = new DecimalFormat("0.##", DecimalFormatSymbols.getInstance());
             return textOfChildren(

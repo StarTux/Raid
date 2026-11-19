@@ -17,10 +17,16 @@ softdepend: []
 commands:
 
   raid:
-    aliases: [back]
-    description: Join the Raid
+    aliases: []
+    description: User Interface
     permission: raid.raid
-    usage: /raid - Join the raid
+    usage: /raid
+
+  raidadmin:
+    aliases: []
+    description: Admin Command
+    permission: raid.admin
+    usage: /raidadmin
 
   raidedit:
     aliases: [redit]
@@ -35,4 +41,8 @@ permissions:
 
   raid.edit:
     description: Use /raidedit
+    default: op
+
+  raid.admin:
+    description: Use /raidadmin
     default: op

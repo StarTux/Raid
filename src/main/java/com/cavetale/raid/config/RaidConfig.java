@@ -10,6 +10,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 import lombok.Data;
+import net.kyori.adventure.text.Component;
+import static net.kyori.adventure.text.Component.text;
+import static net.kyori.adventure.text.minimessage.MiniMessage.miniMessage;
 
 @Data
 public final class RaidConfig implements Serializable, ConfigValidation {
@@ -22,6 +25,10 @@ public final class RaidConfig implements Serializable, ConfigValidation {
 
     public static final String MAIN_WAVE = "main";
 
+    private String name;
+
+    private String displayName;
+
     /** Map reference name to BuildWorld path. */
     private LinkedHashMap<String, String> buildWorlds = new LinkedHashMap<>();
 
@@ -31,6 +38,11 @@ public final class RaidConfig implements Serializable, ConfigValidation {
 
     public static RaidConfig named(final String raidName) {
         return RaidConfigs.getInstance().getRaidConfig(raidName);
+    }
+
+    public Component getDisplayNameComponent() {
+        if (displayName == null || displayName.isEmpty()) return text(name);
+        return miniMessage().deserialize(displayName);
     }
 
     public WaveConfig findWaveConfig(final String wavesName, final int index) {
@@ -64,26 +76,33 @@ public final class RaidConfig implements Serializable, ConfigValidation {
             context.child("buildWorlds").error("World mappings are required");
         } else {
             if (!buildWorlds.containsKey(MAIN_WORLD)) context.child("buildWorlds").error("Main world is required");
-            buildWorlds.forEach((name, path) -> {
-                    if (name == null || name.isBlank()) context.child("buildWorlds").error("World name is required");
-                    if (path == null || path.isBlank()) context.child("buildWorlds").child(String.valueOf(name)).error("World path is required");
+            buildWorlds.forEach((worldName, path) -> {
+                    if (worldName == null || worldName.isBlank()) context.child("buildWorlds").error("World name is required");
+                    if (path == null || path.isBlank()) context.child("buildWorlds").child(String.valueOf(worldName)).error("World path is required");
                 });
         }
         if (waves == null) {
             context.child("waves").error("Wave lists are required");
         } else {
             if (!waves.containsKey(MAIN_WAVE)) context.child("waves").error("Main wave list is required");
-            waves.forEach((name, list) -> {
-                    if (name == null || name.isBlank()) context.child("waves").error("Wave list name is required");
-                    if (list == null) context.child("waves").child(String.valueOf(name)).error("Wave list is required");
+            final List<WaveConfig> main = waves.get(MAIN_WAVE);
+            if (main != null) {
+                final WaveConfig first = findWaveConfig(MAIN_WAVE, 0);
+                if (first == null || first.getType() != WaveType.WARMUP) {
+                    context.child("waves").child(MAIN_WAVE).index(0).error("Main wave list must start with WARMUP");
+                }
+            }
+            waves.forEach((waveName, list) -> {
+                    if (waveName == null || waveName.isBlank()) context.child("waves").error("Wave list name is required");
+                    if (list == null) context.child("waves").child(String.valueOf(waveName)).error("Wave list is required");
                 });
         }
         if (areas == null) {
             context.child("areas").error("Area mappings are required");
         } else {
-            areas.forEach((name, area) -> {
-                    if (name == null || name.isBlank()) context.child("areas").error("Area name is required");
-                    if (area == null) context.child("areas").child(String.valueOf(name)).error("Area is required");
+            areas.forEach((areaName, area) -> {
+                    if (areaName == null || areaName.isBlank()) context.child("areas").error("Area name is required");
+                    if (area == null) context.child("areas").child(String.valueOf(areaName)).error("Area is required");
                 });
         }
     }
@@ -92,9 +111,9 @@ public final class RaidConfig implements Serializable, ConfigValidation {
     public void validateDeep(final ValidationContext context) {
         validate(context);
         if (waves != null) {
-            waves.forEach((name, list) -> {
+            waves.forEach((waveName, list) -> {
                     if (list == null) return;
-                    final ValidationContext listContext = context.child("waves").child(String.valueOf(name));
+                    final ValidationContext listContext = context.child("waves").child(String.valueOf(waveName));
                     final Set<String> labels = new HashSet<>();
                     for (int i = 0; i < list.size(); i += 1) {
                         final WaveConfig wave = list.get(i);
@@ -111,8 +130,8 @@ public final class RaidConfig implements Serializable, ConfigValidation {
                 });
         }
         if (areas != null) {
-            areas.forEach((name, area) -> {
-                    if (area != null) area.validateDeep(context.child("areas").child(String.valueOf(name)));
+            areas.forEach((areaName, area) -> {
+                    if (area != null) area.validateDeep(context.child("areas").child(String.valueOf(areaName)));
                 });
         }
     }

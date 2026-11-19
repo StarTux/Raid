@@ -3,6 +3,7 @@ package com.cavetale.raid.raiding;
 import com.cavetale.raid.config.LocationConfig;
 import com.winthier.creative.BuildWorld;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
 import org.bukkit.Location;
@@ -63,9 +64,17 @@ public final class RaidWorlds {
         }
     }
 
+    public List<BuildWorld> getBuildWorlds() {
+        return nameMap.values().stream().map(RaidWorld::getBuildWorld).toList();
+    }
+
     public void clear() {
         nameMap.values().forEach(RaidWorld::delete);
         nameMap.clear();
+    }
+
+    public boolean containsWorld(final World world) {
+        return nameMap.values().stream().anyMatch(raidWorld -> raidWorld.getLocalWorld().equals(world));
     }
 
     public World findWorld(String name) {

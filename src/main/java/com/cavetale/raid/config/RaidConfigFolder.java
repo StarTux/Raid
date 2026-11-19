@@ -33,6 +33,9 @@ public final class RaidConfigFolder {
 
     public void load() {
         raidConfig = Json.load(raidConfigFile, RaidConfig.class);
+        if (raidConfig != null) {
+            raidConfig.setName(raidName);
+        }
     }
 
     public void saveRaidConfig() {

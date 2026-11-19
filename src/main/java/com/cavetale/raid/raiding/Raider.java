@@ -1,5 +1,6 @@
 package com.cavetale.raid.raiding;
 
+import java.util.Objects;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +13,18 @@ public final class Raider {
     private final UUID uuid;
 
     private String currentRaidName;
+
+    private boolean fallen;
+
+    public void setCurrentRaidName(final String raidName) {
+        if (!Objects.equals(currentRaidName, raidName)) fallen = false;
+        currentRaidName = raidName;
+    }
+
+    public void markFallen() {
+        fallen = true;
+    }
+
     private boolean enabled;
     private boolean disabled;
 
@@ -26,6 +39,10 @@ public final class Raider {
 
     public Player getPlayer() {
         return Bukkit.getPlayer(uuid);
+    }
+
+    public boolean isOnline() {
+        return getPlayer() != null;
     }
 
     public static Raider of(UUID uuid) {

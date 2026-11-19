@@ -1,6 +1,7 @@
 package com.cavetale.raid.raiding;
 
 import com.cavetale.raid.RaidPlugin;
+import com.cavetale.raid.raiding.wave.WaveListener;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -22,13 +23,16 @@ public final class Raiding {
     private final Raiders raiders = new Raiders();
 
     public void enable() {
+        plugin.getServer().getPluginManager().registerEvents(new RaidListener(), plugin);
+        plugin.getServer().getPluginManager().registerEvents(new WaveListener(), plugin);
+        new RaidAdminCommand(plugin).enable();
         raids.enable();
         raiders.enable();
     }
 
     public void disable() {
-        raiders.disable();
         raids.disable();
+        raiders.disable();
     }
 
     public static Raiding getInstance() {
